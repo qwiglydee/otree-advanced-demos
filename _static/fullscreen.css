@@ -1,0 +1,64 @@
+html,
+body {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+}
+
+.otree-body,
+.otree-form {
+    height: 100%
+}
+
+.otree-body>h2,
+.otree-body>br,
+form#liveform {
+    display: none;
+}
+
+._otree-content {
+    height: 100vh;
+    display: flex;
+    flex-flow: column nowrap;
+    align-items: center;
+    padding: 1rem;
+}
+
+.otree-timer {
+    position: fixed;
+    right: 1rem;
+    top: 1rem;
+}
+
+.above-main,
+.below-main {
+    flex: 1 1 50%;
+    display: flex;
+    flex-flow: column nowrap;
+}
+
+.above-main {
+    justify-content: end;
+}
+
+.below-main {
+    justify-content: start;
+}
+
+main {
+    display: flex;
+    flex-flow: column nowrap;
+    justify-content: center;
+    align-items: center;
+    flex: 0 0 auto;
+}
+
+progress,
+.progress {
+    width: 100%;
+}
+
+.center {
+    justify-content: center;
+    align-items: center;
+}
