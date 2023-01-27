@@ -1,0 +1,5 @@
+# development tools
+-r requirements.txt
+pylint
+autopep8
+# requests~=2.0  # for testing with bots
