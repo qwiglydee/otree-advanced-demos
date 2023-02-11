@@ -1,0 +1,25 @@
+main {
+    transition: opacity 100ms cubic-bezier(0.2, 0.0, 0, 1.0);
+}
+main.hide {
+    opacity: 0;
+}
+main.show {
+    opacity: 1;
+}
+
+.task {
+    font-size: 3rem;
+}
+
+.grid-2 {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+}
+
+.grid-3 {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+}

@@ -38,13 +38,12 @@ header, footer {
 }
 
 header {
-    justify-content: end;
-}
-
-footer {
     justify-content: start;
 }
 
+footer {
+    justify-content: end;
+}
 
 main {
     display: flex;

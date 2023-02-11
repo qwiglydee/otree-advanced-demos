@@ -1,0 +1,127 @@
+{{ block title }}
+Main page
+{{ endblock }}
+
+{{ block content }}
+
+<header>
+    <h3>Trial <span ot-text="progress.current"></span> / <span ot-text="progress.total"></span></h3>
+    <div class="alert alert-info float-left">
+        Score: <span ot-text="total_score"></span>
+    </div>
+</header>
+
+<main ot-class="main_visible">
+    <div class="task" ot-text="trial.question"></div>
+
+    <div class="input-group">
+        <input type="number" class="form-control" ot-input="answer" autofocus ot-class="feedback_style">
+    </div>
+</main>
+
+<footer>
+    <div>Type solution to the equation and press <kbd>Enter</kbd></div>
+</footer>
+
+<!-- form fields to submit to server -->
+<input type="hidden" name="answers" ot-attr-value="form.answers">
+<input type="hidden" name="total_time" ot-attr-value="form.total_time">
+
+{{ endblock }}
+
+{{ block styles }}
+<link rel="stylesheet" href="{{ static 'fullscreen.css' }}">
+<link rel="stylesheet" href="{{ static 'common.css' }}">
+{{ endblock }}
+
+{{ block scripts }}
+<script src="{{ static 'otree-front-1.0.0.js' }}"></script>
+
+<script>
+    "use strict";
+
+    const TRIALS = js_vars.trials;
+    const NUM_TRIALS = TRIALS.length;
+    const TRIAL_DELAY = js_vars.trial_delay;
+
+    ot.onLoad(function () {
+        // initialize iteration loop
+        ot.page.progress = { total: NUM_TRIALS, current: 0 };
+        ot.page.total_score = 0;
+        
+        // restore current state
+        if(js_vars.current) {
+            ot.page.progress.current = js_vars.current.iteration;
+            ot.page.total_score = js_vars.current.total_score; 
+        }
+        
+        // start/continue loop
+        ot.startIteration();
+    });
+
+    ot.onIteration(function () {
+        delete ot.page.trial;
+        delete ot.page.response;
+        delete ot.page.feedback;
+
+        ot.freezeInputs();
+        ot.page.progress.current += 1;
+        if (ot.page.progress.current > NUM_TRIALS) {
+            ot.completePage();
+        } else {
+            let trial = TRIALS[ot.page.progress.current - 1];
+            ot.startTrial(trial);
+        }
+    });
+
+    ot.onTrial(function (trial) {
+        console.debug("trial", trial);
+        ot.page.trial = trial;
+        ot.page.main_visible = "show";
+        ot.resetInputs();
+        ot.beginMeasurement();
+    });
+
+    ot.onInput('answer', function (value) {
+        ot.freezeInputs();
+        let time = ot.endMeasurement();
+
+        ot.page.response = parseInt(value.trim()); // convert raw text value to number  
+        console.debug("response", ot.page.response);
+
+        ot.sendLive("response", { 
+            iter: ot.page.progress.current, 
+            response: ot.page.response,
+            response_time: time
+        });
+    });
+
+    ot.onLive('feedback', function(feedback) {
+        ot.completeTrial(feedback);
+    });
+
+    ot.onComplete(function (feedback) {
+        ot.page.feedback = feedback;
+        ot.page.total_score = feedback.total_score;
+
+        ot.delay(TRIAL_DELAY - 100, function() { ot.page.main_visible = "hide" }); // reserve 100ms for animation of hiding        
+        ot.delay(TRIAL_DELAY, ot.nextIteration);
+    });
+
+
+    ot.onReset('feedback', function() {
+        delete ot.page.feedback_style;
+    });
+
+    ot.onUpdate('feedback', function(feedback) {
+        ot.page.feedback_style = feedback.success ? "is-valid" : "is-invalid";
+    });
+
+    ot.onLive('failure', function() {
+        alert("Critical failure occured.");
+        ot.completePage();
+    });
+
+</script>
+
+{{ endblock }}
