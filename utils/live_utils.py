@@ -16,19 +16,16 @@ class SomePage(Page):
         # handle message of type 'sometype'
         ...
         
-        yield player, type1, data1   # send response message to the original player
-        yield player, type2         # send another response without data
-        yield player2, type3, data3 # send another message to another player
-```
+        yield type1, data1   # send response message back to the original player
+        yield type2         # send another response without data
 
-The above is equivalent of sending:
-```
-{
-    player.id_in_group: { type1: data1, type2: None },
-    player2.id_in_group: { type3: data3 }
-}
-```
+        # in multiplayer setup:
+        yield player2, type3, data   # send response message to another player
+        yield player2, type3         # send another response without data
 
+        yield "all", type4, data       # send message to all players
+        yield "others", type4, data    # send message to all other players, not adressed individually
+```
 
 """
 
@@ -103,22 +100,33 @@ def live_page(cls):
         responses = {}
         try:
             for response in handling:
-                if len(response) == 3:
-                    rcpt, mtype, data = response
-                elif len(response) == 2:
-                    rcpt, mtype = response
-                    data = None
+                if isinstance(response[0], BasePlayer) or response[0] in ("all", "others"):
+                    rcpt = response[0]
+                    response = response[1:]
                 else:
-                    raise RuntimeError(f"Unexpected yield format from handler @live_method('{msgtype}'), expected 2 or 3 elems")
+                    rcpt = player
+                
+                if isinstance(response, str):
+                    mtype, data = response, None
+                elif len(response) == 1:
+                    mtype, data = response[0], None
+                elif len(response) == 2:
+                    mtype, data = response
+                else:
+                    print(response)
+                    raise RuntimeError(f"Unexpected yield format from handler @live_method('{msgtype}')")
+
                 if rcpt not in responses:
                     responses[rcpt] = {}
+
                 responses[rcpt][mtype] = data
+
             responses = expand_recipients(player.group, responses)
             return responses
-        except:
+        except Exception:
             logging.exception("Exception in message handler")
             return {
-                player.id_in_group: { "error": None }
+                0: { "failure": None }
             }
 
     cls.live_method = staticmethod(generic_live_method)

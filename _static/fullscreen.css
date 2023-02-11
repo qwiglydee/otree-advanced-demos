@@ -30,20 +30,21 @@ form#liveform {
     top: 1rem;
 }
 
-.above-main,
-.below-main {
+header, footer {
     flex: 1 1 50%;
     display: flex;
     flex-flow: column nowrap;
+    align-items: center;
 }
 
-.above-main {
+header {
     justify-content: end;
 }
 
-.below-main {
+footer {
     justify-content: start;
 }
+
 
 main {
     display: flex;
