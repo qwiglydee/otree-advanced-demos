@@ -1,15 +1,23 @@
-main {
-    transition: opacity 100ms cubic-bezier(0.2, 0.0, 0, 1.0);
-}
-main.hide {
-    opacity: 0;
-}
-main.show {
-    opacity: 1;
+[my-progress] {
+    --my-current-color: var(--bs-info);
+    --my-current-opacity: 0.25;
+    --my-completed-color: var(--bs-info);
+    --my-completed-opacity: 1.0;
 }
 
-.task {
-    font-size: 3rem;
+
+main {
+    opacity: 1;
+    /* transition: opacity 100ms cubic-bezier(0.3, 0.0, 1.0, 1.0); */
+}
+
+main.hiding {
+    opacity: 0;
+    transition: opacity 200ms cubic-bezier(0.3, 0.0, 1.0, 1.0);
+}
+
+input[type=number].form-control {
+    width: 5em;
 }
 
 .grid-2 {

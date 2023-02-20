@@ -5,8 +5,11 @@ Task
 {{ block content }}
 
 <header>
-    <div my-progress="progress.*"></div>
-    <div class="alert alert-info m-2">Score: <span ot-text="total_score"></span></div>
+    <div class="flex-row">
+        <div class="alert alert-info m-2">Trials: <span ot-text="progress.completed"></span></div>
+        <div class="alert alert-success m-2">Score: <span ot-text="progress.score"></span></div>
+        <div class="alert alert-danger m-2">Failures: <span ot-text="progress.failed"></span></div>
+    </div>
 </header>
 
 <main ot-class="hiding">
@@ -25,33 +28,33 @@ Task
 
 {{ block styles }}
 <link rel="stylesheet" href="{{ static 'fullscreen.css' }}">
-<link rel="stylesheet" href="{{ static 'progress2.css' }}">
 <link rel="stylesheet" href="{{ static 'common.css' }}">
 {{ endblock }}
 
 {{ block scripts }}
 <script src="{{ static 'otree-front-1.1.1.js' }}"></script>
-<script src="{{ static 'progress2.js' }}"></script>
 
 <script>
     "use strict";
 
-    const TRIALS = js_vars.trials;
-    const NUM_TRIALS = js_vars.num_trials;
     const TRIAL_DELAY = js_vars.trial_delay;
 
     ot.onLoad(function () {
         const current = js_vars.current; // restoring current state
-        ot.page.total_score = current.score;
         ot.page.progress = {
-            total: NUM_TRIALS,
+            current: current.current,
+            score: current.score,
             completed: current.completed,
-            current: current.completed,
-            ticks: 1
+            failed: current.failed,
         };
 
         ot.freezeInputs();
-        ot.startIteration();
+
+        if(current.trial) {
+            ot.startTrial(current.trial)
+        } else {
+            ot.startIteration();
+        }
     });
 
     ot.onIteration(function () {
@@ -60,21 +63,26 @@ Task
         delete ot.page.feedback;
 
         if (ot.page.progress.current != ot.page.progress.completed) {
-            alert("Internal error: messed up with iterations.");
-            return ot.completePage();
+            throw new Error("messed up with iterations");
         }
 
-        if (ot.page.progress.current == NUM_TRIALS) {
-            return ot.completePage();
-        }
-
-        ot.page.progress.current += 1;
-        ot.startTrial(TRIALS[ot.page.progress.current]);
+        ot.sendLive("iterate");
     });
 
-    ot.onLive('progress', function(progress) {
+    ot.onLive('progress', function (progress) {
         ot.page.progress.completed = progress.completed;
-        ot.page.total_score = progress.total_score;
+        ot.page.progress.failed = progress.failed;
+        ot.page.progress.score = progress.score;
+        if (progress.current) {
+            ot.page.progress.current = progress.current;
+        }
+        if (progress.gameover == true) {
+            ot.completePage();
+        }
+    });
+
+    ot.onLive('trial', function(data) {
+        ot.startTrial(data);
     });
 
     ot.onTrial(function (trial) {

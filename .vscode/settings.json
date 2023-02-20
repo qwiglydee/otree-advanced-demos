@@ -1,3 +1,9 @@
 {
-  "python.formatting.provider": "autopep8"
+"python.formatting.provider": "autopep8",
+"python.linting.pylintArgs": [
+    "-d W0237",
+    "-d C0111",
+    "-d C0103",
+    "-d W0613"
+]
 }

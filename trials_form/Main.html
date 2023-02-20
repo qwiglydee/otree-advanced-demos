@@ -6,20 +6,23 @@ Task
 
 <header>
     <div my-progress="progress.*"></div>
-    <div class="alert alert-info m-2">Score: <span ot-text="total_score"></span></div>
 </header>
 
 <main ot-class="hiding">
     <div class="fs-1" ot-text="trial.question"></div>
 
     <div class="input-group">
-        <input type="number" class="form-control" ot-class="feedback_style" ot-input="answer" autofocus>
+        <input type="number" class="form-control" ot-class="validation_style" ot-input="answer" autofocus>
     </div>
 </main>
 
 <footer>
     <div>Type solution to the equation and press <kbd>Enter</kbd></div>
 </footer>
+
+<!-- form fields to submit to server -->
+<input type="hidden" name="answers" ot-attr-value="form.answers">
+<input type="hidden" name="total_time" ot-attr-value="form.total_time">
 
 {{ endblock }}
 
@@ -41,40 +44,26 @@ Task
     const TRIAL_DELAY = js_vars.trial_delay;
 
     ot.onLoad(function () {
-        const current = js_vars.current; // restoring current state
-        ot.page.total_score = current.score;
-        ot.page.progress = {
-            total: NUM_TRIALS,
-            completed: current.completed,
-            current: current.completed,
-            ticks: 1
-        };
+        ot.page.form = { answers: "", total_time: 0 }
+        ot.page.progress = { total: NUM_TRIALS, current: 0, completed: 0, ticks: 1 };
 
         ot.freezeInputs();
         ot.startIteration();
+        ot.beginMeasurement('total');
     });
 
     ot.onIteration(function () {
         delete ot.page.trial;
         delete ot.page.response;
-        delete ot.page.feedback;
-
-        if (ot.page.progress.current != ot.page.progress.completed) {
-            alert("Internal error: messed up with iterations.");
-            return ot.completePage();
-        }
 
         if (ot.page.progress.current == NUM_TRIALS) {
-            return ot.completePage();
+            ot.page.form.total_time = ot.endMeasurement('total') / 1000;
+            ot.completePage();
+            return;
         }
 
         ot.page.progress.current += 1;
         ot.startTrial(TRIALS[ot.page.progress.current]);
-    });
-
-    ot.onLive('progress', function(progress) {
-        ot.page.progress.completed = progress.completed;
-        ot.page.total_score = progress.total_score;
     });
 
     ot.onTrial(function (trial) {
@@ -82,22 +71,15 @@ Task
         ot.page.trial = trial;
         delete ot.page.hiding;
         ot.resetInputs();
-        ot.beginMeasurement();
     });
 
     ot.onInput('answer', function (value) {
         console.debug("answer", value);
         ot.page.response = validateInput(value);
-        // do not accept response if it's invalid (not a valid number)
         if (ot.page.response == undefined) return;
 
-        let response_time = ot.endMeasurement();
         ot.freezeInputs();
-        ot.sendLive('response', {
-            iteration: ot.page.progress.current,
-            response: ot.page.response,
-            response_time
-        });
+        ot.completeTrial({ status: "ok" });
     });
 
     function validateInput(val) {
@@ -105,12 +87,10 @@ Task
         return Number.isNaN(num) ? undefined : num;
     }
 
-    ot.onLive('feedback', function (data) {
-        ot.completeTrial(data);
-    });
+    ot.onComplete(function (results) {
+        ot.page.progress.completed += 1;
+        ot.page.form.answers += ot.page.response + ";";
 
-    ot.onComplete(function (feedback) {
-        ot.page.feedback = feedback;
         ot.delayEvent(TRIAL_DELAY - 200, "fadeout");
         ot.delayEvent(TRIAL_DELAY, 'startIteration');
     });
@@ -118,20 +98,6 @@ Task
     ot.onEvent('fadeout', function () {
         ot.page.hiding = "hiding";
     });
-
-    ot.onLive('failure', function (message) {
-        alert(message);
-        ot.completePage();
-    });
-
-    /* update feedback_style when feedback changes */
-    ot.onReset('feedback', function () {
-        delete ot.page.feedback_style;
-    });
-    ot.onUpdate('feedback.success', function (success) {
-        ot.page.feedback_style = success ? "is-valid" : "is-invalid";
-    });
-
 </script>
 
 {{ endblock }}

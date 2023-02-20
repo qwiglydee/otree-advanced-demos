@@ -16,15 +16,13 @@ class SomePage(Page):
         # handle message of type 'sometype'
         ...
         
-        yield type1, data1   # send response message back to the original player
-        yield type2         # send another response without data
+        yield type1, dict(...)   # send response message of type 'type1' and data back to the original player
+        yield type2              # send response without data
 
         # in multiplayer setup:
-        yield player2, type3, data   # send response message to another player
-        yield player2, type3         # send another response without data
-
-        yield "all", type4, data       # send message to all players
-        yield "others", type4, data    # send message to all other players, not adressed individually
+        yield player2, type3, dict(...)  # send response message to another player
+        yield player2, type3             # send another response without data
+        yield group, type4, data         # send message to all players in a group
 ```
 
 """
@@ -33,39 +31,7 @@ import inspect
 import types
 import logging
 
-from otree.api import BasePlayer
-
-
-def expand_recipients(group, response):
-    """ Replaces recipients with their player ids,
-    handles player instances, 'all', 'others' 
-    """
-
-    if 'all' in response:
-        if len(list(response.keys())) != 1:
-            raise ValueError("Can not address 'all' and someone else")
-        return { 0: response['all'] }
-
-    expanded = {}
-
-    expanded.update({
-        rcpt: data
-        for rcpt, data in response.items() if isinstance(rcpt, int)
-    })
-
-    expanded.update({
-        rcpt.id_in_group: data
-        for rcpt, data in response.items() if isinstance(rcpt, BasePlayer)
-    })    
-
-    if 'others' in response:
-        msg = response.pop('others')  # type: ignore
-        for p in group.get_players():
-            id = p.id_in_group
-            if id not in expanded:
-                expanded[id] = msg
-
-    return expanded
+from otree.api import BasePlayer, BaseGroup
 
 
 def live_method(name):
@@ -83,52 +49,80 @@ def live_page(cls):
     }
 
     def generic_live_method(player: BasePlayer, message: dict):
-        if len(list(message.keys())) != 1:
-            raise ValueError("Invalid input message format, expected { type: data }")
-
-        msgtype, msgdata = list(message.items())[0]
-
-        if msgtype not in handlers:
-            raise RuntimeError(f"Missing @live_method('{msgtype}')")
-
-        handler = handlers[msgtype]
-        handling = handler(player, msgdata)
-
-        if not isinstance(handling, types.GeneratorType):
-            raise RuntimeError(f"Expected @live_method('{msgtype}') to `yield` responses.")
-
-        responses = {}
         try:
-            for response in handling:
-                if isinstance(response[0], BasePlayer) or response[0] in ("all", "others"):
-                    rcpt = response[0]
-                    response = response[1:]
-                else:
-                    rcpt = player
-                
-                if isinstance(response, str):
-                    mtype, data = response, None
-                elif len(response) == 1:
-                    mtype, data = response[0], None
-                elif len(response) == 2:
-                    mtype, data = response
-                else:
-                    print(response)
-                    raise RuntimeError(f"Unexpected yield format from handler @live_method('{msgtype}')")
+            if len(list(message.keys())) != 1:
+                raise RuntimeError("Invalid input message format, expected { type: data }")
 
+            msgtype, msgdata = list(message.items())[0]
+
+            if msgtype not in handlers:
+                raise RuntimeError(f"Missing @live_method('{msgtype}')")
+
+            handler = handlers[msgtype]
+            handling = handler(player, msgdata)
+
+            if not isinstance(handling, types.GeneratorType):
+                raise RuntimeError(f"Expected @live_method('{msgtype}') to `yield` responses.")
+
+            responses = {}
+
+            for rcpt, mtype, data in parse_yielding(handling):
+                if rcpt is None:
+                    rcpt = player
                 if rcpt not in responses:
                     responses[rcpt] = {}
-
                 responses[rcpt][mtype] = data
-
-            responses = expand_recipients(player.group, responses)
-            return responses
         except Exception:
             logging.exception("Exception in message handler")
             return {
-                0: { "failure": None }
+                0: { "failure": "Critical failure occured." }
             }
+        responses = expand_recipients(responses)
+
+        return responses
 
     cls.live_method = staticmethod(generic_live_method)
 
     return cls
+
+
+def parse_yielding(yielding):
+    for yielded in yielding:
+        if not isinstance(yielded, tuple):
+            yielded = (yielded,)
+
+        if isinstance(yielded[0], BasePlayer) or isinstance(yielded[0], BaseGroup):
+            rcpt = yielded[0]
+            yielded = yielded[1:]
+        else:
+            rcpt = None
+
+        if len(yielded) == 1:
+            mtype, data = yielded[0], None
+        elif len(yielded) == 2:
+            mtype, data = yielded
+        else:
+            raise RuntimeError(f"Unexpected yield format from handler @live_method('{msgtype}')")
+
+        yield rcpt, mtype, data
+
+
+def expand_recipients(responses):
+    """Replaces recipients Player or Group with player ids"""
+    result = {}
+
+    def update(player, data):
+        pid = player.id_in_group
+        if player not in result:
+            result[pid] = data
+        else:
+            result[pid].update(data)
+
+    for group in filter(lambda k: isinstance(k, BaseGroup), responses.keys()):
+        for player in group.get_players():
+            update(player, responses[group])
+
+    for player in filter(lambda k: isinstance(k, BasePlayer), responses.keys()):
+        update(player, responses[player])
+            
+    return result

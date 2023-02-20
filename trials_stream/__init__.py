@@ -5,12 +5,12 @@ from utils.live_utils import live_page, live_method
 
 
 class C(BaseConstants):
-    NAME_IN_URL = 'trials_live'
+    NAME_IN_URL = 'trials_stream'
     PLAYERS_PER_GROUP = None
     NUM_ROUNDS = 1
-    NUM_TRIALS = 5
+    MAX_FAILURES = 3  # number of failures to stop trials
     TRIAL_DELAY = 500  # ms
-    PAGE_TIMEOUT = 300  # sec
+    PAGE_TIMEOUT = 60  # sec
 
 
 class Subsession(BaseSubsession):
@@ -24,6 +24,7 @@ class Group(BaseGroup):
 class Player(BasePlayer):
     total_trials = models.IntegerField(initial=0)
     total_score = models.IntegerField(initial=0)
+    total_fails = models.IntegerField(initial=0)
 
 
 class Trial(ExtraModel):
@@ -82,7 +83,7 @@ def generate_trials(player: Player):
 
 def creating_session(subsession: Subsession):
     for player in subsession.get_players():
-        generate_trials(player)
+        pass
 
 
 def calc_results(player: Player):
@@ -98,11 +99,6 @@ def format_trial(trial: Trial):
     return {'question': str(trial.question)}
 
 
-def format_trials(trials: list[Trial]):
-    """dictionary of formatted trials indexed by iter number"""
-    return {t.iteration: format_trial(t) for t in trials}
-
-
 def format_feedback(trial):
     return {
         'success': trial.success,
@@ -112,10 +108,12 @@ def format_feedback(trial):
 def format_progress(player, **kwargs):
     data = {
         'completed': player.total_trials,
+        'failed': player.total_fails,
         'score': player.total_score
     }
     data.update(kwargs)
     return data
+
 
 #### PAGES
 
@@ -127,43 +125,66 @@ class Intro(Page):
 @live_page
 class Main(Page):
     """A live page to iterate trials
-    It communicates response, feedback and progress
+    It communicates progress, trial, response and feedback
 
     Scheme of work:
-    - trials should be pregenerated in advance (and numbered from 1)
-    - player.total_trials indicates number of trials completed so far, initially 0
+    - player.total_trials indicate number of trials completed so far, initially 0
+    - js_vars provide currently completed trials and gained score
 
-    - trials data is provided to the client side via js_vars
-    - js_vars also provide currently completed trials and gained score
-    - on-page scripts iterate over the trials starting from currently completed + 1
+    - client requests 'iteration'
+    - server generates new trials and sends them via `trial` message
+    - server also sends an update of iteration via `progress` message
+    - if server decides to stop the iteration, the progress message includes flag `completed`
 
     - client sends `response` messages, including curent iteration
     - server checks if state of iteration matches on server and client
-    - server validates and saves the response and increments total_trials
-    - server sends `feedback` so that client can complete trial
-    - server also sends 'progress' message with update of progress and score
-    - client continues iteration
+    - server validates and saves response and increments total_trials
+    - server sends `feedback` so that client can complete trial and continue iteration loop
+    - server also sends 'progress' message with update of completed trials and total score
 
     - if the page reloads, the process starts from current saved state
     """
-
     timeout_seconds = C.PAGE_TIMEOUT
 
     @staticmethod
     def js_vars(player: Player):
+        # restoring any stalled unanswered trial
+        trial = Trial.select1(player, iteration=player.total_trials+1)
+        if trial is not None and trial.completed:
+            trial = None
+
         return {
-            'trials': format_trials(Trial.select(player)),
-            'num_trials': C.NUM_TRIALS,
             'trial_delay': C.TRIAL_DELAY,
             'current': {
                 'completed': player.total_trials,
+                'failed': player.total_fails,
                 'score': player.total_score,
+                'current': trial.iteration if trial else player.total_trials,
+                'trial': format_trial(trial) if trial else None
             }
         }
 
+    @live_method('iterate')
+    def on_iteration(player: Player, data):
+        next_iteration = player.total_trials+1
+        trial = Trial.select1(player, iteration=next_iteration)
+        if trial is not None:
+            raise RuntimeError("Iterating over existing trial")
+
+        if player.total_fails == C.MAX_FAILURES:
+            yield "progress", format_progress(player, gameover=True)
+            return
+
+        trial = generate_trial(player, next_iteration)
+
+        yield "progress", format_progress(player, current=trial.iteration)
+        yield "trial", format_trial(trial)
+
     @live_method('response')
     def handle_response(player: Player, data: dict):
-        if data['iteration'] != player.total_trials + 1:
+        curr_iteration = player.total_trials + 1
+
+        if data['iteration'] != curr_iteration:
             raise RuntimeError("Iteration mismatch")
 
         trial = Trial.select1(player, iteration=data['iteration'])
@@ -171,7 +192,7 @@ class Main(Page):
         if trial is None:
             raise RuntimeError("Missing trial")
 
-        if trial.completed:
+        if trial.response is not None:
             raise RuntimeError("Trial already responded")
 
         trial.response = data["response"]
@@ -182,6 +203,8 @@ class Main(Page):
 
         player.total_score += trial.score
         player.total_trials += 1
+        if trial.success is False:
+            player.total_fails += 1
 
         yield "progress", format_progress(player)
 

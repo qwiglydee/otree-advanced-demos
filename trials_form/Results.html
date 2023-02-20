@@ -4,7 +4,7 @@
 
 {{ block content }}
 
-<p>You have completed {{ player.total_trials }} trials.</p>
+<p>You have completed {{ player.total_trials }} trials in {{ player.total_time|to1 }} seconds.</p>
 
 <p>Your score is {{ player.total_score }}, payoff is {{ player.payoff }}</p>
 
