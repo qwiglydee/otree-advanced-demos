@@ -46,3 +46,12 @@ An app for infinite or non-linear sequence of trials.
 - iterating runs on server
 - progress is controlled by server and restored when page reloaded
 - responses are communicated to server for validation and saving
+
+## `trials_buttons`
+
+The app provides labeled choices 'A/B/C' for answers.
+Layout is randomized for every player.
+Resposes are recorded with selected label, its position and value.
+
+Based on `trials_live`
+

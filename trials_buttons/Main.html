@@ -1,0 +1,168 @@
+{{ block title }}
+Task
+{{ endblock }}
+
+{{ block content }}
+
+<header>
+    <div my-progress="progress.*"></div>
+    <div class="alert alert-info m-2">Score: <span ot-text="total_score"></span></div>
+</header>
+
+<main ot-class="hiding">
+    <div class="fs-1" ot-text="trial.question"></div>
+
+    <div class="row">
+        <button type="button" class="m-2 w-5 btn" ot-class="styles.1" ot-input="choice = 1" ot-text="labels.1"></button>
+        <button type="button" class="m-2 w-5 btn" ot-class="styles.2" ot-input="choice = 2" ot-text="labels.2"></button>
+        <button type="button" class="m-2 w-5 btn" ot-class="styles.3" ot-input="choice = 3" ot-text="labels.3"></button>
+    </div>
+</main>
+
+<footer>
+    <div>Type solution to the equation and press <kbd>Enter</kbd></div>
+</footer>
+
+{{ endblock }}
+
+{{ block styles }}
+<link rel="stylesheet" href="{{ static 'fullscreen.css' }}">
+<link rel="stylesheet" href="{{ static 'progress2.css' }}">
+<link rel="stylesheet" href="{{ static 'common.css' }}">
+<style>
+    /* make feedback more visible */
+    button.btn-success:disabled,
+    button.btn-danger:disabled
+    {
+        opacity: 1;
+    }
+</style>
+
+{{ endblock }}
+
+{{ block scripts }}
+<script src="{{ static 'otree-front-1.1.1.js' }}"></script>
+<script src="{{ static 'progress2.js' }}"></script>
+
+<script>
+    "use strict";
+
+    const TRIALS = js_vars.trials;
+    const NUM_TRIALS = js_vars.num_trials;
+    const TRIAL_DELAY = js_vars.trial_delay;
+    const LAYOUT = js_vars.layout;
+
+    /* 1|2|3 -> A|B|C */
+    function button_name(idx) { return LAYOUT[idx - 1]; }
+    /* A|B|C -> 1|2|3 */
+    function button_idx(name) { return LAYOUT.indexOf(name) + 1; }
+
+    ot.onLoad(function () {
+        const current = js_vars.current; // restoring current state
+        ot.page.total_score = current.score;
+        ot.page.progress = {
+            total: NUM_TRIALS,
+            completed: current.completed,
+            current: current.completed,
+            ticks: 1
+        };
+
+        ot.freezeInputs();
+        ot.startIteration();
+    });
+
+    ot.onIteration(function () {
+        delete ot.page.trial;
+        delete ot.page.response;
+        delete ot.page.feedback;
+
+        if (ot.page.progress.current != ot.page.progress.completed) {
+            alert("Internal error: messed up with iterations.");
+            return ot.completePage();
+        }
+
+        if (ot.page.progress.current == NUM_TRIALS) {
+            return ot.completePage();
+        }
+
+        ot.page.progress.current += 1;
+        ot.startTrial(TRIALS[ot.page.progress.current]);
+    });
+
+    ot.onLive('progress', function (progress) {
+        ot.page.progress.completed = progress.completed;
+        ot.page.total_score = progress.total_score;
+    });
+
+    ot.onTrial(function (trial) {
+        console.debug("trial", trial);
+        ot.page.trial = trial;
+        delete ot.page.hiding;
+        ot.resetInputs();
+        ot.beginMeasurement();
+    });
+
+    ot.onInput('choice', function (position) {
+        ot.freezeInputs();
+        let response_time = ot.endMeasurement();
+        let choice = button_name(position); // A|B|C
+        ot.page.response = {
+            position: position, // 1|2|3
+            choice: choice, // A|B|C
+            value: ot.page.trial.choices[choice], // actual value from trial data
+        }
+        console.debug('response', ot.page.response);
+        ot.sendLive('response', {
+            iteration: ot.page.progress.current,
+            response: ot.page.response,
+            response_time
+        });
+    });
+
+    function validateInput(val) {
+        let num = parseInt(val);
+        return Number.isNaN(num) ? undefined : num;
+    }
+
+    ot.onLive('feedback', function (data) {
+        ot.completeTrial(data);
+    });
+
+    ot.onComplete(function (feedback) {
+        ot.page.feedback = feedback;
+        ot.delayEvent(TRIAL_DELAY - 200, "fadeout");
+        ot.delayEvent(TRIAL_DELAY, 'startIteration');
+    });
+
+    ot.onEvent('fadeout', function () {
+        ot.page.hiding = "hiding";
+    });
+
+    ot.onLive('failure', function (message) {
+        alert(message);
+        ot.completePage();
+    });
+
+    /** setting up button labels **/
+    ot.onReset('trial', function () {
+        ot.page.labels = {};
+    });
+    ot.onUpdate('trial', function (trial) {
+        ot.page.labels = {
+            1: trial.choices[button_name(1)],
+            2: trial.choices[button_name(2)],
+            3: trial.choices[button_name(3)]
+        };
+    });
+
+    /** converting feedback to button styles */
+    ot.onReset('feedback', function () {
+        ot.page.styles = { 1: 'btn-primary', 2: 'btn-primary', 3: 'btn-primary' };
+    });
+    ot.onUpdate('feedback.success', function (success) {
+        ot.page.styles[ot.page.response.position] = success ? "btn-success" : "btn-danger";
+    });
+
+</script>
+
+{{ endblock }}

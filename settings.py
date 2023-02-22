@@ -13,6 +13,10 @@ SESSION_CONFIGS = [
         name="trials_stream",
         app_sequence=['trials_stream']
     ),
+    dict(
+        name="trials_buttons",
+        app_sequence=['trials_buttons']
+    ),
 ]
 
 SESSION_CONFIG_DEFAULTS = dict(
