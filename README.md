@@ -55,3 +55,10 @@ Resposes are recorded with selected label, its position and value.
 
 Based on `trials_live`
 
+## `trials_choices`
+
+The app provides list of choices for answers.
+Layout is randomized for every trial.
+Resposes are recorded with its position and value.
+
+Based on `trials_live`

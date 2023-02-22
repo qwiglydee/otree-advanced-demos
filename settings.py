@@ -3,19 +3,23 @@ from os import environ
 SESSION_CONFIGS = [
     dict(
         name="trials_form",
-        app_sequence=['trials_form']
+        app_sequence=['trials_form'],
     ),
     dict(
         name="trials_live",
-        app_sequence=['trials_live']
+        app_sequence=['trials_live'],
     ),
     dict(
         name="trials_stream",
-        app_sequence=['trials_stream']
+        app_sequence=['trials_stream'],
     ),
     dict(
         name="trials_buttons",
-        app_sequence=['trials_buttons']
+        app_sequence=['trials_buttons'],
+    ),
+    dict(
+        name="trials_choices",
+        app_sequence=['trials_choices'],
     ),
 ]
 

@@ -31,3 +31,13 @@ input[type=number].form-control {
     grid-template-columns: repeat(3, 1fr);
     gap: 1rem;
 }
+
+/* make feedback more visible */
+button.btn-success:disabled,
+button.btn-danger:disabled,
+.form-check-input.is-valid:disabled,
+.form-check-input.is-valid:disabled ~ .form-check-label,
+.form-check-input.is-invalid:disabled,
+.form-check-input.is-invalid:disabled~.form-check-label {
+    opacity: 1;
+}
