@@ -1,12 +1,12 @@
 /** Custom directive my-progress
- * 
+ *
  * Draws 2 layer progress bar for 'current' and 'completed'
- * 
+ *
  * Usage:
  *   <div my-progress="obj.*"></div>
- * 
+ *
  * The `obj` should reference to an object { total, current, completed, ticks }
- * 
+ *
  */
 class myProgress extends ot.dev.otDirectiveBase {
     /* initialize directive using element attributes */
@@ -14,7 +14,7 @@ class myProgress extends ot.dev.otDirectiveBase {
         super.init(attrs); // initialize base stuff for directives
         this.ref = ot.dev.parseExpr(attrs["my-progress"], [ot.dev.WatchExpr]); // reference to object to watch
 
-        // watch subfields relevant to ticks 
+        // watch subfields relevant to ticks
         this.total_ref = ot.dev.parseExpr(this.ref.var + ".total", [ot.dev.VarExpr]);
         this.ticks_ref = ot.dev.parseExpr(this.ref.var + ".ticks", [ot.dev.VarExpr]);
 
@@ -27,7 +27,7 @@ class myProgress extends ot.dev.otDirectiveBase {
     /* handle variable update, either values or undefined */
     onUpdate(changes) {
         // check if the object or any subfield changed
-        if (this.ref.affected(changes)) { 
+        if (this.ref.affected(changes)) {
             let values = this.ref.eval(ot.page); // get values of the page vars
             this.refresh(values);
         }
@@ -46,8 +46,8 @@ class myProgress extends ot.dev.otDirectiveBase {
         // bootstrap5 progress bar stack
         this.elem.classList.add("progress");
         this.elem.innerHTML = `
-            <div class="progress-completed progress-bar"></div></div>
-            <div class="progress-current progress-bar"></div></div>
+            <div class="progress-completed progress-bar"></div>
+            <div class="progress-current progress-bar"></div>
             <div class="progress-ticks"></div>
         `
         // save references to inner elems
