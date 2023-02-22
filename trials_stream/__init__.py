@@ -9,7 +9,7 @@ class C(BaseConstants):
     PLAYERS_PER_GROUP = None
     NUM_ROUNDS = 1
     MAX_FAILURES = 3  # number of failures to stop trials
-    TRIAL_DELAY = 500  # ms
+    TRIAL_DELAY = 1000  # ms
     PAGE_TIMEOUT = 60  # sec
 
 

@@ -7,7 +7,7 @@ class C(BaseConstants):
     PLAYERS_PER_GROUP = None
     NUM_ROUNDS = 1
     NUM_TRIALS = 5
-    TRIAL_DELAY = 500
+    TRIAL_DELAY = 1000
     PAGE_TIMEOUT = 30
 
 
