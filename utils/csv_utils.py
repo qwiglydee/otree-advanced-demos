@@ -4,9 +4,10 @@ It is loaded into a list of dicts representing all loaded rows and columns as di
 """
 import csv
 from pathlib import Path
+from random import sample
 
 
-def read_csv(filepath, columns):
+def read_csv(filepath: Path, columns):
     """reads data from csv file
 
     Optionally, converts data to specified column types
@@ -20,25 +21,60 @@ def read_csv(filepath, columns):
         columns: set of fields to load, or dict of { fld: type }
 
     Returns:
-        list of dicts 
+        list of dicts
     """
-    fields = {f: str for f in columns} if isinstance(columns, set) else dict(columns)
+    if isinstance(columns, set):
+        fields = {f: str for f in columns}
+    else:
+        fields = dict(columns)
+
+    for k, f in list(fields.items()):
+        if f is bool:
+            fields[k] = parse_bool # type: ignore
 
     def parse(row):
-        return {f: t(row[f]) if row[f] is not None else None for f, t in fields.items()}
+        return {f: t(row[f.strip()]) if row[f] != "" else None for f, t in fields.items()}
 
     with open(filepath, encoding="utf-8-sig") as f:
         reader = csv.DictReader(f, dialect="excel")
 
         headers = reader.fieldnames or []
         if not set(fields.keys()) <= set(headers):
-            missing = set(fields) - set(headers)
+            missing = set(fields.keys()) - set(headers)
             raise RuntimeError(f"missing fields in {filepath}: {missing}")
 
         return [parse(row) for row in reader]
 
 
-def filter_data(data, **filters):
+def parse_bool(val):
+    if val.lower() == 'true':
+        return True
+    elif val.lower() == 'false':
+        return False
+    else:
+        return bool(int(val))
+
+
+def _matching(filters):
     def match(rec):
         return all(rec[key] == val for key, val in filters.items())
-    return list(filter(match, data)) 
+    return match
+
+
+def filter_data(data, **filters):
+    return list(filter(_matching(filters), data))
+
+
+def get_item(data, **filters):
+    [data] = filter(_matching(filters), data)
+    return data
+
+
+def count_data(data, **filters):
+    return sum(map(_matching(filters), data))
+
+
+def sample_data(data, cnt=None, **filters):
+    if cnt is None:
+        cnt = count_data(data, **filters)
+    return list(sample(filter_data(data, **filters), k=cnt))
