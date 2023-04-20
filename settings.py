@@ -21,6 +21,10 @@ SESSION_CONFIGS = [
         name="trials_choices",
         app_sequence=['trials_choices'],
     ),
+    dict(
+        name="dumb",
+        app_sequence=['dumb'],
+    )
 ]
 
 SESSION_CONFIG_DEFAULTS = dict(
