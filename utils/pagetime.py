@@ -1,3 +1,25 @@
+""" Utils to track time spent on a page
+USAGE:
+
+```
+from pagetime import tracktime
+
+
+class Player(BasePlayer):
+  time_somepage = models.IntegerField()  # time spent on SomePage in seconds
+  ...
+
+
+@tracktime
+class SomePage(Page):
+  @staticmethod
+  def before_next_page(player, timeout_happened, time_spent):
+    player.time_somepage = time_spent
+```
+
+NOTE: the time includes all network traffic
+"""
+
 from otree.models import Participant
 
 def last_page_time(participant: Participant):
