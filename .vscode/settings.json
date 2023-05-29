@@ -1,9 +1,12 @@
 {
-"python.formatting.provider": "autopep8",
+"python.formatting.provider": "none",
 "python.linting.pylintArgs": [
     "-d W0237",
     "-d C0111",
     "-d C0103",
     "-d W0613"
-]
+],
+"[python]": {
+    "editor.defaultFormatter": "ms-python.black-formatter"
+}
 }
