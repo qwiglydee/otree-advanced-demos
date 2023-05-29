@@ -1,6 +1,11 @@
 from os import environ
 
-SESSION_CONFIGS = []
+SESSION_CONFIGS = [
+    dict(
+        name="track_page_time",
+        app_sequence=['track_page_time'],
+    )
+]
 
 SESSION_CONFIG_DEFAULTS = dict(
     real_world_currency_per_point=1.00,
