@@ -1,0 +1,14 @@
+/** highlight-group
+ * tweaking bootstrap-5 styles to put focus highlight to input-group instead of input field
+*/
+.input-group {
+    transition: border-color .15s ease-in-out,box-shadow .15s ease-in-out;
+}
+
+.input-group:focus-within {
+    border-color: #86b7fe;
+    box-shadow: 0 0 0 .25rem rgba(13, 110, 253, .25);
+}
+.input-group input:focus {
+    box-shadow: none;
+}

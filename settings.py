@@ -1,10 +1,6 @@
 from os import environ
 
 SESSION_CONFIGS = [
-    dict(
-        name="track_page_time",
-        app_sequence=['track_page_time'],
-    )
 ]
 
 SESSION_CONFIG_DEFAULTS = dict(

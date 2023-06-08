@@ -1,12 +1,4 @@
-/** fullscreen layout for oTree pages.
-
-Content of a page is stretched to full height and centered in a single column.
-
-Sections of a page:
-<header>...</header> -- above main section, content aligned to top 
-<main>...</main> -- in the middle of the screen, content better to be fixed height
-<footer>...</footer> -- below main section, content aligned to bottom
-*/
+/** fullscreen body **/
 
 html,
 body {
@@ -41,6 +33,8 @@ form#liveform {
     top: 1rem;
 }
 
+/** page sections **/
+
 header, footer, main {
     display: flex;
     flex-flow: column nowrap;
@@ -62,24 +56,26 @@ header, footer {
 
 main {
     flex: 0 0 auto;
-}
-
-progress,
-.progress {
     width: 100%;
 }
 
+/* fullscreen overlay */
 
-.flex-row, .flex-column {
+.fullscreen {
+    position: fixed;
+    width: 100%;
+    height: 100%;
     display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
-.flex-row {
-    flex-flow: row nowrap;
-} 
+/** rows and columns **/
 
-.flex-column {
-    flex-flow: column nowrap;
+.f-row, .f-col {
+    display: flex;
+    justify-content: center;
+    align-items: center;
 }
 
 .center {
@@ -87,8 +83,19 @@ progress,
     align-items: center;
 }
 
+.f-row {
+    flex-flow: row nowrap;
+}
 
-/* fixed-size classes */
+.f-col {
+    flex-flow: column nowrap;
+}
+
+.f-spacer {
+    flex: 1 1 100%;
+}
+
+/** fixed sizes **/
 
 .h-1 {
     height: 1rem;
@@ -110,6 +117,14 @@ progress,
     height: 5rem;
 }
 
+.h-10 {
+    height: 10rem;
+}
+
+.h-15 {
+    height: 15rem;
+}
+
 .w-1 {
     width: 1rem;
 }
@@ -129,3 +144,28 @@ progress,
 .w-5 {
     width: 5rem;
 }
+
+.w-6 {
+    width: 6rem;
+}
+
+.w-7 {
+    width: 7rem;
+}
+
+.w-8 {
+    width: 8rem;
+}
+
+.w-9 {
+    width: 9rem;
+}
+
+.w-10 {
+    width: 10rem;
+}
+
+.w-15 {
+    width: 15rem;
+}
+
