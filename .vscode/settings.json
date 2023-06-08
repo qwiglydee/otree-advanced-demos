@@ -1,5 +1,5 @@
 {
-"python.formatting.provider": "none",
+"python.formatting.provider": "black",
 "python.linting.pylintArgs": [
     "-d W0237",
     "-d C0111",
@@ -8,5 +8,7 @@
 ],
 "[python]": {
     "editor.defaultFormatter": "ms-python.black-formatter"
-}
+},
+"python.analysis.enablePytestSupport": false,
+"python.analysis.reportGeneralTypeIssues": false,
 }

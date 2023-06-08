@@ -1,0 +1,38 @@
+my-progress {
+    display: block;
+    position: relative;
+    width: 100%;
+    height: 1rem;
+    --my-progress-1-color: rgba(13, 202, 240, 1.0);
+    --my-progress-2-color: rgba(13, 202, 240, 0.25);
+    --my-progress-tick-color: rgba(0, 0, 0, 0.25);
+    --my-progress-animation: 150ms ease-in-out;
+}
+
+my-progress .progress-bar.progress-1 {
+    background-color: var(--my-progress-1-color);
+}
+
+my-progress .progress-bar.progress-2 {
+    background-color: var(--my-progress-2-color);
+}
+
+my-progress .progress-bar {
+    transition: width var(--my-progress-animation);
+}
+
+my-progress .progress-ticks {
+    position: absolute;
+    width: 100%;
+    top: 0.25rem;
+    bottom: 0.25rem;
+    z-index: 1;
+    pointer-events: none;
+}
+
+my-progress .progress-ticks i {
+    position: absolute;
+    height: 100%;
+    width: 2px;
+    background-color: var(--my-progress-tick-color);
+}

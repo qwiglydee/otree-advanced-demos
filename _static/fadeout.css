@@ -1,6 +1,0 @@
-/* animated fade-out style */
-main.fadeout {
-    opacity: 0;
-    transition: opacity 300ms cubic-bezier(0.3, 0.0, 1.0, 1.0);
-}
-

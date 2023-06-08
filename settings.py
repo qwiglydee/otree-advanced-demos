@@ -1,11 +1,23 @@
 from os import environ
 
 SESSION_CONFIGS = [
+    dict(
+        name="trials_local",
+        app_sequence=["trials_local"],
+    ),
+    dict(
+        name="trials_live",
+        app_sequence=["trials_live"],
+    ),
+    dict(
+        name="trials_infinite",
+        app_sequence=["trials_infinite"],
+    ),
 ]
 
 SESSION_CONFIG_DEFAULTS = dict(
-    real_world_currency_per_point=1.00,
-    participation_fee=0.00,
+    participation_fee=1.00,
+    real_world_currency_per_point=0.1,
     doc="",
     num_demo_participants=1,
 )
