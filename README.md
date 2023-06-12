@@ -2,7 +2,7 @@
 
 # otree-advanced-demos
 
-Apps and snippets for oTree (v5) using some advanced techniques.
+Apps and snippets for [oTree](https://www.otree.org/) (v5) using some advanced techniques.
 
 All the interactive pages constructied with [otree-front](https://github.com/qwiglydee/otree-front) (v1.3.beta1) micro-framework
 
