@@ -13,6 +13,10 @@ SESSION_CONFIGS = [
         name="trials_infinite",
         app_sequence=["trials_infinite"],
     ),
+    dict(
+        name="sliders",
+        app_sequence=["sliders"]
+    )
 ]
 
 SESSION_CONFIG_DEFAULTS = dict(
