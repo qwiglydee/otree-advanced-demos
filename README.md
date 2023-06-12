@@ -10,15 +10,15 @@ All the interactive pages constructied with [otree-front](https://github.com/qwi
 
 - nice progress bar created with the micro-framework
 - some style enhancements
-- smooth trial transitions
 - apps do not reveal correct/best answers on pages making them cheater-proof
-- some apps communicate responses to server in real time
+- some apps communicate responses to server in real time to reduce data loss
 
 # Apps
 
 - [local trials](trials_local): running series of trials on page (no live communication)
 - [live trials](trials_live): running series of trials on page with live communication
 - [infinite trials](trials_infinite): running infinite series of trials generated on demand
+- [sliders](sliders): classic sliders real effort task
 
 # Utils
 
