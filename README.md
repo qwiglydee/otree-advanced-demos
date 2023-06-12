@@ -10,7 +10,9 @@ All the interactive pages constructied with [otree-front](https://github.com/qwi
 
 - nice progress bar created with the micro-framework
 - some style enhancements
-- apps do not reveal cirrect/best answers on pages making them cheater-proof
+- smooth trial transitions
+- apps do not reveal correct/best answers on pages making them cheater-proof
+- some apps communicate responses to server in real time
 
 # Apps
 
