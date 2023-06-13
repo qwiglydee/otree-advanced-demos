@@ -2,8 +2,15 @@
 
 Classic sliders task.
 
-The page contains N randomly shifted sliders and the goal is to put them all in middle position.
+The objective is to put all sliders on page into middle position.
 
+- page shows N sliders with random offset and random initial position
+- user should move slider handle
+- each move is validated on server, and solved sliders are highlighted
+- score is calculated for every move
+- the page terminates when all sliders are solved or page timeout happens
+
+Live interaction scheme:
 - data for sliders is stored in separate data model individually
 - sliders are pregenerated for a session and embedded into the page when it's loaded
 - every slider move is saved to server in real time

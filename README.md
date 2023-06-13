@@ -15,9 +15,9 @@ All the interactive pages constructied with [otree-front](https://github.com/qwi
 
 # Apps
 
-- [local trials](trials_local): running series of trials on page (no live communication)
 - [live trials](trials_live): running series of trials on page with live communication
 - [infinite trials](trials_infinite): running infinite series of trials generated on demand
+- [local trials](trials_local): running series of trials without live communication
 - [sliders](sliders): classic sliders real effort task
 - [captcha](captcha): transcribing distorted text from images, which are generated on demand
 
