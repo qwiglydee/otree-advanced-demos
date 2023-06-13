@@ -14,7 +14,8 @@
     <img ot-src="vars.trial.image">
 
     <div class="input-group w-10">
-        <input type="text" class="form-control" ot-class="vars.feedback_style" ot-input name="response" ot-kbd="Enter" autofocus>
+        <input type="text" class="form-control" ot-class="vars.feedback_style" ot-input name="response" ot-kbd="Enter"
+            autofocus>
     </div>
 </main>
 
@@ -35,6 +36,24 @@
     /* constants used by trials-live.js */
     const TRIAL_DELAY = js_vars.trial_delay;  // delay in ms between iterations
     const FADEOUT_TIME = 100; // duration of fadeout animation from css
+
+    // overriding generic startTrial
+    ot.onStartTrial(async function (trial) {
+        vars.trial = trial;
+        vars.response = null;
+        vars.feedback = null;
+
+        // wait until the image is decoded/cached
+        await ot.preloadImage(trial.image);
+
+        fadein();
+
+        ot.showDisplays();
+        ot.resetInputs();
+        ot.enableInputs();
+        ot.startTimeMeasurement();
+    });
+
 
     ot.onInput('response', function (value) {
         if (value == "") return;

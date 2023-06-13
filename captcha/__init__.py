@@ -18,7 +18,7 @@ class C(BaseConstants):
 
     SYMBOLS = string.ascii_uppercase
     LENGTH = 3
-    TEXT_SIZE = 64
+    TEXT_SIZE = 128
     TEXT_BGCOLOR = "#FFFFFF"
     TEXT_COLOR = "#000000"
     TEXT_FONT = image_utils.font(APPDIR / "assets" / "FreeSerifBold.otf", TEXT_SIZE)  # preload the file
