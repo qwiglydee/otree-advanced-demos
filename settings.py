@@ -24,6 +24,11 @@ SESSION_CONFIGS = [
     dict(
         name="drawing",
         app_sequence=["drawing"]
+    ),
+    dict(
+        name="voting",
+        app_sequence=["voting"],
+        num_demo_participants=3,
     )
 ]
 
