@@ -1,10 +1,12 @@
-# Infinite Trials
+# Captcha
 
 Runs series of trials on page.
-The tasks are simple math expressions to solve.
+The tasks is to transcribe text from distorted images.
+
+Using 'infinite series' scheme.
 
 - data for trials is stored in separate data model individually
-- trials are generated on demand on back-end
+- images are generated on demand on back-end
 - not revealing correct answers to the browser to make pages cheater-proof
 - iteration loop is run by server and synchronized with page
 - responses are sent to server in real time
@@ -14,5 +16,4 @@ The tasks are simple math expressions to solve.
 - the page is generally tolerant to reloading and navigating out
 
 Drawbacks:
-- iteration loop may stuck over unstable network connection
-- which can provoke users to reload page or navigating out, and backing off iteration loop
+- images occupy huge space in database and exported data
