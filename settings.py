@@ -20,6 +20,10 @@ SESSION_CONFIGS = [
     dict(
         name="captcha",
         app_sequence=["captcha"]
+    ),
+    dict(
+        name="drawing",
+        app_sequence=["drawing"]
     )
 ]
 

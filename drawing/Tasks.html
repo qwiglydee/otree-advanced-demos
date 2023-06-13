@@ -1,0 +1,64 @@
+{{ block styles }}
+<link href="{{ static 'fullscreen.css' }}" rel="stylesheet">
+<link href="{{ static 'progress2.css' }}" rel="stylesheet">
+<link href="{{ static 'enhancements.css' }}" rel="stylesheet">
+<style>
+    canvas {
+        border: 1px dashed black;
+        background: #f8f9fa;
+    }
+</style>
+{{ endblock }}
+
+{{ block content }}
+
+<header>
+    <my-progress class="w-100"
+        max="vars.progress.total" ticks="1"
+        value="vars.progress.completed"
+        value2="vars.progress.iteration">
+    </my-progress>
+</header>
+
+<main ot-class="vars.transition" ot-display="main">
+    <img ot-src="vars.trial.image" width="64" height="64" class="m-3">
+
+    <canvas width="512" height="512" my-draw-input name="drawing" feather="4" color="#000000"></canvas>
+
+    <button type="button" class="btn btn-primary m-3" ot-event="submit">Submit</button>
+</main>
+
+<footer ot-class="vars.transition" ot-display="main">
+    <p>Draw your copy of the emoji you see in the dashed area and press <code>Submit</code> button.</p>
+</footer>
+
+{{ endblock }}
+
+{{ block scripts }}
+
+<script src="{{ static 'otree-front-1.3.b1.js' }}"></script>
+<script src="{{ static 'progress2.js' }}"></script>
+<script src="{{ static 'drawing-input.js' }}"></script>
+<script src="{{ static 'trials-live.js' }}"></script>
+
+<script>
+    "use strict";
+
+    /* constants used by trials-live.js */
+    const TRIALS = js_vars.trials;  // pre-generated trials in form { iteration: trial_data }
+    const TRIAL_DELAY = 100;
+    const FADEOUT_TIME = 100; // duration of fadeout animation from css
+
+    ot.onEvent('submit', function() {
+        // force the input to commit it's value
+        ot.commitInput('drawing');
+    });
+
+    ot.onInput('drawing', function (value) {
+        ot.disableInputs();
+        console.debug("image:", value);
+        ot.completeTrial({ drawing: value });
+    });
+</script>
+
+{{ endblock }}
