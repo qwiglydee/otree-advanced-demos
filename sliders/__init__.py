@@ -43,9 +43,23 @@ class Slider(ExtraModel):
     solved = models.BooleanField(initial=False)
 
 
-def evaluate_slider(slider: Slider, response: dict):
-    slider.value = response["value"]
+def evaluate_move(slider: Slider, move: dict):
+    "update state of slider and player and return score for the move"
+    was_solved = slider.solved
+
+    slider.value = move["value"]
     slider.solved = slider.value == 0
+
+    if was_solved != slider.solved:  # status changed
+        if slider.solved:
+            slider.player.sliders_solved += 1
+        else:
+            slider.player.sliders_solved -= 1
+
+    if slider.solved:
+        return C.SCORE_CORRECT_MOVE
+    else:
+        return C.SCORE_INCORRECT_MOVE
 
 
 def generate_slider(player: Player, idx: int):
@@ -128,23 +142,12 @@ class Sliders(Page):
     @live_method("move")
     def handle_move(player: Player, data: dict):
         [slider] = Slider.filter(player=player, name=data["name"])
-        was_solved = slider.solved
-        evaluate_slider(slider, data)
+
+        score = evaluate_move(slider, data)
 
         yield "feedback", format_feedback(slider)
 
-        if was_solved != slider.solved:
-            if slider.solved:
-                player.sliders_solved += 1
-            else:
-                player.sliders_solved -= 1
-            player.terminated = player.sliders_solved == C.NUM_SLIDERS
-
-        if slider.solved:
-            player.total_score += C.SCORE_CORRECT_MOVE
-        else:
-            player.total_score += C.SCORE_INCORRECT_MOVE
-        player.total_score = max(0, player.total_score)
+        player.total_score = max(0, player.total_score + score)
 
         yield "progress", format_progress(player)
 
