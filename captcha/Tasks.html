@@ -1,0 +1,54 @@
+{{ block styles }}
+<link href="{{ static 'fullscreen.css' }}" rel="stylesheet">
+<link href="{{ static 'enhancements.css' }}" rel="stylesheet">
+{{ endblock }}
+
+{{ block content }}
+
+<header class="f-row">
+    <div class="alert alert-info m-2">Completed: <b ot-text="vars.progress.completed"></b></div>
+    <div class="alert alert-info m-2">Total score: <b ot-text="vars.progress.score"></b></div>
+</header>
+
+<main ot-class="vars.transition" ot-display="main">
+    <img ot-src="vars.trial.image">
+
+    <div class="input-group w-10">
+        <input type="text" class="form-control" ot-class="vars.feedback_style" ot-input name="response" ot-kbd="Enter" autofocus>
+    </div>
+</main>
+
+<footer ot-display="main">
+    <p>Enter your answer and press <kbd>Enter</kbd>.</p>
+</footer>
+
+{{ endblock }}
+
+{{ block scripts }}
+
+<script src="{{ static 'otree-front-1.3.b1.js' }}"></script>
+<script src="{{ static 'trials-infinite.js' }}"></script>
+
+<script>
+    "use strict";
+
+    /* constants used by trials-live.js */
+    const TRIAL_DELAY = js_vars.trial_delay;  // delay in ms between iterations
+    const FADEOUT_TIME = 100; // duration of fadeout animation from css
+
+    ot.onInput('response', function (value) {
+        if (value == "") return;
+        ot.disableInputs();
+        ot.completeTrial({ response: value.trim() });
+    });
+
+    /* adjust style when feedback changes */
+    ot.onDelete('vars.feedback', function () {
+        vars.feedback_style = null;
+    });
+    ot.onUpdate('vars.feedback', function (feedback) {
+        vars.feedback_style = feedback.success ? "is-valid" : "is-invalid";
+    });
+</script>
+
+{{ endblock }}

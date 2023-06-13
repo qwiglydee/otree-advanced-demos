@@ -16,6 +16,10 @@ SESSION_CONFIGS = [
     dict(
         name="sliders",
         app_sequence=["sliders"]
+    ),
+    dict(
+        name="captcha",
+        app_sequence=["captcha"]
     )
 ]
 
