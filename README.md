@@ -20,6 +20,7 @@ All the interactive pages constructied with [otree-front](https://github.com/qwi
 - [local trials](trials_local): running series of trials without live communication
 - [sliders](sliders): classic sliders real effort task
 - [captcha](captcha): transcribing distorted text from images, which are generated on demand
+- [drawing](drawing): free-hand drawing tasks
 
 # Utils
 
