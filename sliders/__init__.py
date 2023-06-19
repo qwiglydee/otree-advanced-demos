@@ -13,7 +13,7 @@ class C(BaseConstants):
     NUM_SLIDERS = 32
     SLIDER_RANGE = 10  # from -N to +N, target is always 0
     MAX_OFFSET = 100   # pixels
-    TASK_TIMEOUT = 60000  # seconds
+    TASK_TIMEOUT = 60 # seconds
 
     SCORE_CORRECT_MOVE = +1
     SCORE_INCORRECT_MOVE = -1
