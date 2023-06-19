@@ -43,7 +43,7 @@ class Slider(ExtraModel):
     solved = models.BooleanField(initial=False)
 
 
-def evaluate_move(slider: Slider, move: dict):
+def evaluate_move(player: Player, slider: Slider, move: dict):
     "update state of slider and player and return score for the move"
     was_solved = slider.solved
 
@@ -52,9 +52,12 @@ def evaluate_move(slider: Slider, move: dict):
 
     if was_solved != slider.solved:  # status changed
         if slider.solved:
-            slider.player.sliders_solved += 1
+            player.sliders_solved += 1
         else:
-            slider.player.sliders_solved -= 1
+            player.sliders_solved -= 1
+
+    if player.sliders_solved == C.NUM_SLIDERS:
+        player.terminated = True
 
     if slider.solved:
         return C.SCORE_CORRECT_MOVE
@@ -143,7 +146,7 @@ class Sliders(Page):
     def handle_move(player: Player, data: dict):
         [slider] = Slider.filter(player=player, name=data["name"])
 
-        score = evaluate_move(slider, data)
+        score = evaluate_move(player, slider, data)
 
         yield "feedback", format_feedback(slider)
 
