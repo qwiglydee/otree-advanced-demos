@@ -5,6 +5,7 @@
 {{ block styles }}
 <link rel="stylesheet" href="{{ static 'fullscreen.css' }}">
 <link rel="stylesheet" href="{{ static 'xfade.css' }}">
+<link rel="stylesheet" href="{{ static 'spinner-pulse.css' }}">
 <style>
     main {
         /* --x-fade-out-time: 200ms;
@@ -14,6 +15,13 @@
 
     header, footer {
         background-color: var(--bs-secondary);
+    }
+
+    .h3 {
+        /* need fixed height to avoid page re-aligning */
+        height: 3rem;
+        display: flex;
+        align-items: center;
     }
 </style>
 {{ endblock }}
@@ -40,7 +48,10 @@
 <footer>
     <h3>The footer</h3>
     <p>Some content</p>
-    <button type="button" class="btn btn-primary" ot-input name="next">Next</button>
+    <div class="h3">
+        <button ot-display="nextbtn" type="button" class="btn btn-primary" ot-input name="next">Next</button>
+        <div ot-display="spinner" class="spinner-ellipsis"><i></i><i></i><i></i></div>
+    </div>
 </footer>
 
 {{ endblock }}
@@ -51,8 +62,9 @@
 
 <script>
     ot.onStartPage(function() {
-        vars.counter = 1;
+        vars.counter = 0;
         console.debug("started");
+        ot.emitEvent('start');
     });
 
     ot.onLive("pong", function(data) {
@@ -67,12 +79,22 @@
         console.debug("broadcast:", data)
     });
 
+    ot.onEvent('start', function() {
+        vars.counter += 1;
+        vars.fading = "fadein";
+        ot.showDisplays('spinner');
+        ot.hideDisplays('nextbtn');
+        ot.delayEvent(3000, 'ready');
+    });
+
+    ot.onEvent('ready', function() {
+        ot.hideDisplays('spinner');
+        ot.showDisplays('nextbtn');
+    });
+
     ot.onInput('next', function() {
         vars.fading = "fadeout";
-        ot.delay(200, () => {
-            vars.counter += 1;
-            vars.fading = "fadein";
-        })
+        ot.delayEvent(200, 'start');
     });
 </script>
 
