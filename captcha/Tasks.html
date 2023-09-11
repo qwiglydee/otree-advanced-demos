@@ -1,0 +1,153 @@
+{{ block styles }}
+<link href="{{ static 'fullscreen.css' }}" rel="stylesheet">
+<link href="{{ static 'enhancements.css' }}" rel="stylesheet">
+<link href="{{ static 'xfade.css' }}" rel="stylesheet">
+<link href="{{ static 'progress2.css' }}" rel="stylesheet">
+<link href="{{ static 'spinner-pulse.css' }}" rel="stylesheet">
+<style>
+    /* shuld be fixed size to avoid readjusting page layout when changing */
+    footer {
+        height: 10rem;
+    }
+</style>
+{{ endblock }}
+
+{{ block content }}
+
+<header>
+    <my-progress max="{{C.NUM_TRIALS}}" ticks="1" value="vars.progress.completed"
+        value2="vars.trial.iteration"></my-progress>
+    <div class="alert alert-info m-2">Total score: <b ot-text="vars.progress.score"></b></div>
+</header>
+
+<main ot-class="vars.fading">
+    <img class="m-3" ot-src="vars.trial.image">
+
+    <div class="input-group">
+        <span class="input-group-text">=</span>
+        <input type="number" class="form-control" ot-class="vars.feedback_style" ot-input name="answer" autofocus>
+    </div>
+</main>
+
+<footer>
+    <p ot-display="prompt">Enter your answer and press <kbd ot-kbd="Enter" ot-input name="commit">Enter</kbd>.</p>
+    <p ot-display="feedback">Correct answer is <b ot-text="vars.feedback.expression"></b> = <b ot-text="vars.feedback.solution"></b>.</p>
+    <p ot-display="feedback">You gained <b ot-text="vars.feedback.score"></b> points</p>
+    <p ot-display="retry">Your answer <b ot-text="vars.response"></b> is not accepted, try again.</p>
+    <div ot-display="spinner" class="spinner-ellipsis"><i></i><i></i><i></i></div>
+</footer>
+
+
+{{ endblock }}
+
+{{ block scripts }}
+
+<script src="{{ static 'otree-front-1.5.b.js' }}"></script>
+<script src="{{ static 'progress2.js' }}"></script>
+
+<script>
+    "use strict";
+
+    const FEEDBACK_DELAY = js_vars.feedback_delay;  // delay after a trial
+    const RETRY_DELAY = js_vars.retry_delay;  // delay after a retry
+    const FADEOUT_TIME = 200; // duration of fadeout animation from xfade css
+
+    ot.onStartPage(function () {
+        ot.disableInputs();
+        ot.hideDisplays();
+        vars.progress = {};
+
+        ot.sendLive('next');
+        // expecting live trial and progress, or termination
+    });
+
+    ot.onLive('progress', function (progress) {
+        vars.progress = progress;
+    });
+
+    ot.onLive('trial', async function (trial) {
+        vars.trial = trial;
+        vars.fading = "fadein";
+
+        await ot.preloadImage(trial.image);
+
+        ot.startTimeMeasurement();
+        ot.emitEvent('trial.start');
+    });
+
+    ot.onEvent('trial.start', function() {
+        vars.response = null;
+        vars.feedback = null;
+        ot.switchDisplays({ only: 'prompt' });
+        ot.resetInputs();
+        ot.enableInputs();
+    });
+
+    ot.onInput('commit', function () {
+        ot.commitInput('answer');
+    });
+
+    ot.onInput('answer', function (value) {
+        if (value == "") return;
+        ot.disableInputs();
+        ot.hideDisplays('prompt');
+
+        vars.response = parseInt(value);
+
+        ot.sendLive('response', {
+            iteration: vars.trial.iteration,
+            time: ot.getTimeMeasurement(),
+            response: vars.response
+        });
+        // expecting live feedback and progress
+    });
+
+    ot.onLive('feedback', function (feedback) {
+        vars.feedback = feedback;
+        if (feedback.completed) {
+            ot.emitEvent('trial.complete');
+        } else {
+            ot.emitEvent('trial.resume');
+        }
+    });
+
+    ot.onEvent('trial.resume', function() {
+        ot.showDisplays('retry');
+        ot.showDisplays('spinner');
+        ot.delay(RETRY_DELAY, function() {
+            ot.hideDisplays('spinner');
+            ot.emitEvent('trial.start');
+        });
+    });
+
+    ot.onEvent('trial.complete', function() {
+        ot.showDisplays('feedback');
+        ot.showDisplays('spinner');
+        ot.delay(FEEDBACK_DELAY - FADEOUT_TIME, function () {
+            vars.fading = "fadeout";
+        });
+        ot.delay(FEEDBACK_DELAY, function () {
+            ot.hideDisplays('spinner');
+            ot.sendLive('next');
+        });
+    });
+
+    ot.onLive('terminate', function () {
+        ot.completePage();
+    });
+
+    ot.onLive('failure', function (message) {
+        alert(message);
+        ot.completePage();
+    });
+
+    /* adjust style when feedback changes */
+    ot.onDelete('vars.feedback', function () {
+        vars.feedback_style = null;
+    });
+    ot.onUpdate('vars.feedback', function (feedback) {
+        vars.feedback_style = feedback.success ? "is-valid" : "is-invalid";
+    });
+</script>
+
+{{ endblock }}

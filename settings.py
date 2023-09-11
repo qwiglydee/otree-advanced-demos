@@ -11,13 +11,13 @@ SESSION_CONFIGS = [
         display_name="Simple Trials (infinite)",
         app_sequence=["trials_inf"],
     ),
+    dict(
+        name="captcha",
+        app_sequence=["captcha"]
+    ),
     # dict(
     #     name="sliders",
     #     app_sequence=["sliders"]
-    # ),
-    # dict(
-    #     name="captcha",
-    #     app_sequence=["captcha"]
     # ),
     # dict(
     #     name="drawing",

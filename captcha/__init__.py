@@ -1,12 +1,16 @@
 import random
+import string
+from pathlib import Path
 
 from otree.api import *
 
 from utils.live_utils import live_page
+from utils import image_utils
 
+APPDIR = Path(__file__).parent  # directory of the app
 
 class C(BaseConstants):
-    NAME_IN_URL = "trials_live"
+    NAME_IN_URL = "captcha"
     PLAYERS_PER_GROUP = None
     NUM_ROUNDS = 1
 
@@ -17,6 +21,14 @@ class C(BaseConstants):
     RETRY_DELAY = 1000  # pause (ms) after failed retry
     SCORE_SUCCESS = +1
     SCORE_FAILURE = -1
+
+    SYMBOLS = string.ascii_uppercase
+    LENGTH = 3
+    TEXT_SIZE = 128
+    TEXT_BGCOLOR = "#FFFFFF"
+    TEXT_COLOR = "#000000"
+    TEXT_FONT = image_utils.font(APPDIR / "assets" / "FreeSerifBold.otf", TEXT_SIZE)  # preload the file
+
 
 
 class Subsession(BaseSubsession):
@@ -47,6 +59,7 @@ class Trial(ExtraModel):
 
     # task fields
     expression = models.StringField()
+    image = models.LongStringField()
     solution = models.IntegerField()
 
     # response fields
@@ -66,11 +79,18 @@ def generate_trial(player: Player, iteration: int):
     expr = f"{a} + {b}"
     solution = a + b
 
+    image = image_utils.text(
+        expr, C.TEXT_FONT, size=C.TEXT_SIZE, padding=C.TEXT_SIZE // 2, color=C.TEXT_COLOR, bgcolor=C.TEXT_BGCOLOR
+    )
+    image = image_utils.distort(image)
+    data = image_utils.encode(image)
+
     return Trial.create(
         player=player,
         iteration=iteration,
         expression=expr,
         solution=solution,
+        image=data,
     )
 
 
@@ -151,14 +171,16 @@ def output_progress(player: Player):
 
 
 def output_trial(trial: Trial):
+
     return {
         "iteration": trial.iteration,
-        "expression": trial.expression,
+        "image": trial.image,
     }
 
 
 def output_feedback(trial: Trial):
     return {
+        "expression": trial.expression,
         "solution": trial.solution,
         "success": trial.success,
         "score": trial.score,
@@ -250,6 +272,7 @@ def custom_export(players: list[Player]):
         #
         "trial.iteration",
         "trial.expression",
+        "trial.image",
         "trial.solution",
         "trial.response_time",
         "trial.response",
@@ -271,6 +294,7 @@ def custom_export(players: list[Player]):
             yield player_fields + [
                 trial.iteration,
                 trial.expression,
+                trial.image,
                 trial.solution,
                 trial.response_time,
                 trial.response,
