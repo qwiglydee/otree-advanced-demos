@@ -22,6 +22,12 @@ SESSION_CONFIGS = [
     #     app_sequence=["voting"],
     #     num_demo_participants=3,
     # )
+    dict(
+        name="dumb",
+        display_name="just a dumb app for testing",
+        app_sequence=["dumb"],
+        num_demo_participants=2,
+    ),
 ]
 
 SESSION_CONFIG_DEFAULTS = dict(

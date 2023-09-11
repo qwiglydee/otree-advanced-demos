@@ -1,0 +1,36 @@
+{{ block title }}
+    Page
+{{ endblock }}
+
+
+{{ block content }}
+
+<h1>...</h1>
+
+{{ endblock }}
+
+
+{{ block scripts }}
+<script src="{{ static 'otree-front.js' }}"></script>
+
+
+<script>
+    ot.onStartPage(function() {
+        console.debug("started");
+    });
+
+    ot.onLive("pong", function(data) {
+        console.debug("pong:", data)
+    });
+
+    ot.onLive("feedback", function(data) {
+        console.debug("feedback:", data)
+    });
+
+    ot.onLive("broadcast", function(data) {
+        console.debug("broadcast:", data)
+    });
+</script>
+
+
+{{ endblock }}
