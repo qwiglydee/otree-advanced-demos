@@ -11,6 +11,7 @@ Score is updated for successes and failures.
 
 Workflow:
 - the same as of [`trials_live`](../trials_live)
+- generated images are encoded and saved as "data-urls" into database
 
 Drawbacks:
 - images occupy huge space in database and exported data

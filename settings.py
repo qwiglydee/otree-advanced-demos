@@ -13,15 +13,17 @@ SESSION_CONFIGS = [
     ),
     dict(
         name="captcha",
+        display_name="Captcha (generated images)",
         app_sequence=["captcha"]
+    ),
+    dict(
+        name="drawing",
+        display_name="Drawing (free hand draw input)",
+        app_sequence=["drawing"]
     ),
     # dict(
     #     name="sliders",
     #     app_sequence=["sliders"]
-    # ),
-    # dict(
-    #     name="drawing",
-    #     app_sequence=["drawing"]
     # ),
     # dict(
     #     name="voting",

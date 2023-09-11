@@ -2,11 +2,11 @@
 Utilities to generate and manipulate images
 """
 from io import BytesIO
-from base64 import b64encode
+from base64 import b64decode, b64encode
 
 MSG_NEED_PIL = """
 FAILURE: Before using these real-effort tasks,
-You need to: 
+You need to:
 (1) run "pip install Pillow"
 (2) add Pillow to your requirements.txt
 """
@@ -20,11 +20,19 @@ except ImportError:
     raise SystemExit(MSG_NEED_PIL)
 
 
-def encode(image):
+def encode(image: Image):
     buf = BytesIO()
     image.save(buf, "PNG")
     buf64 = b64encode(buf.getvalue())
     return "data:image/png;base64," + buf64.decode('ascii')
+
+
+def decode(dataurl: str):
+    assert dataurl.startswith("data:image/png;base64,")
+    buf64 = b64decode(dataurl[21:])
+    buf = BytesIO(buf64)
+    image = Image.open(buf)
+    return image
 
 
 def font(filename, size):
