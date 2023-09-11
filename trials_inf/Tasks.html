@@ -59,7 +59,7 @@
         ot.disableInputs();
         ot.hideDisplays();
         vars.progress = {};
-        vars.elapsed_time = js_vars.elapsed_time;
+        vars.elapsed_time = js_vars.elapsed_time - 1; // -1 to compensate initial clock tick
 
         ot.startTimer(1000, 'clock');
         ot.sendLive('next');
@@ -67,7 +67,7 @@
     });
 
     ot.onTimer('clock', function() {
-        vars.elapsed_time += 1;
+        vars.elapsed_time += 1;  // NB: animating towards next time step
         ot.sendLive('elapsed', { elapsed: vars.elapsed_time })
     });
 

@@ -18,6 +18,7 @@ All the interactive pages constructied with [otree-front](https://github.com/qwi
 # Apps
 
 - [live trials](trials_live): running series of pregenerated trials
+- [infinite trials](trials_inf): running series of trials generated on demand
 
 # Utils
 
