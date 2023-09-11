@@ -1,35 +1,27 @@
 from os import environ
 
 SESSION_CONFIGS = [
-    dict(
-        name="trials_local",
-        app_sequence=["trials_local"],
-    ),
-    dict(
-        name="trials_live",
-        app_sequence=["trials_live"],
-    ),
-    dict(
-        name="trials_infinite",
-        app_sequence=["trials_infinite"],
-    ),
-    dict(
-        name="sliders",
-        app_sequence=["sliders"]
-    ),
-    dict(
-        name="captcha",
-        app_sequence=["captcha"]
-    ),
-    dict(
-        name="drawing",
-        app_sequence=["drawing"]
-    ),
-    dict(
-        name="voting",
-        app_sequence=["voting"],
-        num_demo_participants=3,
-    )
+    # dict(
+    #     name="trials",
+    #     app_sequence=["trials"],
+    # ),
+    # dict(
+    #     name="sliders",
+    #     app_sequence=["sliders"]
+    # ),
+    # dict(
+    #     name="captcha",
+    #     app_sequence=["captcha"]
+    # ),
+    # dict(
+    #     name="drawing",
+    #     app_sequence=["drawing"]
+    # ),
+    # dict(
+    #     name="voting",
+    #     app_sequence=["voting"],
+    #     num_demo_participants=3,
+    # )
 ]
 
 SESSION_CONFIG_DEFAULTS = dict(
