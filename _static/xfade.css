@@ -1,0 +1,14 @@
+:root {
+    --x-fade-out-time: 200ms;
+    --x-fade-in-time: 100ms;
+}
+
+.fadeout {
+    opacity: 0;
+    transition: opacity var(--x-fade-out-time) ease-out;
+}
+
+.fadein {
+    opacity: 1;
+    transition: opacity var(--x-fade-in-time) ease-in;
+}

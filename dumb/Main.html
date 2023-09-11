@@ -2,10 +2,46 @@
     Page
 {{ endblock }}
 
+{{ block styles }}
+<link rel="stylesheet" href="{{ static 'fullscreen.css' }}">
+<link rel="stylesheet" href="{{ static 'xfade.css' }}">
+<style>
+    main {
+        /* --x-fade-out-time: 200ms;
+        --x-fade-in-time: 100ms; */
+        background-color: var(--bs-light);
+    }
+
+    header, footer {
+        background-color: var(--bs-secondary);
+    }
+</style>
+{{ endblock }}
+
 
 {{ block content }}
 
-<h1>...</h1>
+<header>
+    <h3>The header</h3>
+    <p>Some content</p>
+</header>
+
+<main ot-class="vars.fading">
+    <h3>The main</h3>
+    <p>Some content <span ot-text="vars.counter"></span></p>
+
+    <div class="d-flex flex-row gap-1">
+        <div class="bg-primary text-light p-3">1</div>
+        <div class="bg-primary text-light p-3">2</div>
+        <div class="bg-primary text-light p-3">3</div>
+    </div>
+</main>
+
+<footer>
+    <h3>The footer</h3>
+    <p>Some content</p>
+    <button type="button" class="btn btn-primary" ot-input name="next">Next</button>
+</footer>
 
 {{ endblock }}
 
@@ -13,9 +49,9 @@
 {{ block scripts }}
 <script src="{{ static 'otree-front.js' }}"></script>
 
-
 <script>
     ot.onStartPage(function() {
+        vars.counter = 1;
         console.debug("started");
     });
 
@@ -29,6 +65,14 @@
 
     ot.onLive("broadcast", function(data) {
         console.debug("broadcast:", data)
+    });
+
+    ot.onInput('next', function() {
+        vars.fading = "fadeout";
+        ot.delay(200, () => {
+            vars.counter += 1;
+            vars.fading = "fadein";
+        })
     });
 </script>
 
