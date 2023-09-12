@@ -1,0 +1,108 @@
+{{ block styles }}
+<link href="{{ static 'fullscreen.css' }}" rel="stylesheet">
+<link href="{{ static 'progress2.css' }}" rel="stylesheet">
+<link href="{{ static 'enhancements.css' }}" rel="stylesheet">
+<style>
+    header,
+    footer {
+        flex: 1 1 auto;
+    }
+
+    main {
+        flex: 0 0 auto;
+        flex-flow: row wrap;
+        align-content: flex-start;
+        gap: 1rem;
+    }
+
+
+    input.slider {
+        width: 300px;
+        height: 30px;
+        border-radius: 15px;
+        padding: 0 7.5px;
+        background: hsl(216, 17%, 98%);
+        border: 1px solid rgba(0, 0, 0, 0.125);
+    }
+
+    input.slider.is-valid {
+        background: hsl(151.2, 71.43%, 93.14%);
+    }
+</style>
+{{ endblock }}
+
+{{ block content }}
+
+<header>
+    <my-progress max="vars.progress.total" ticks="1" value="vars.progress.solved"></my-progress>
+    <div class="alert alert-info m-2">Total score: <b ot-text="vars.progress.score"></b></div>
+</header>
+
+<main class="border rounded bg-light p-3">
+    {{ for slider in sliders }}
+    <input type="range" min="-10" max="10" step="1" class="form-range slider"
+        style="margin-left:{{slider.margins.l}}px; margin-right:{{slider.margins.r}}px"
+        ot-class="vars.classes.{{slider.name}}" ot-input name="{{slider.name}}">
+    {{ endfor }}
+</main>
+
+<footer>
+    <p>Put all sliders into middle position.</p>
+</footer>
+
+{{ endblock }}
+
+{{ block scripts }}
+
+<script src="{{ static 'otree-front-1.5.b.js' }}"></script>
+<script src="{{ static 'progress2.js' }}"></script>
+
+<script>
+    "use strict";
+
+    ot.onStartPage(function () {
+        vars.classes = {};
+        ot.disableInputs();
+        ot.sendLive('load');
+    });
+
+    function markSlider(name, solved) {
+        if (solved) {
+            vars.classes[name] = "is-valid";
+        } else {
+            delete vars.classes[name];
+        }
+    }
+
+    ot.onLive('sliders', function (data) {
+        data.sliders.forEach(slider => {
+            ot.resetInput(slider.name, slider.value);
+            ot.enableInputs(slider.name);
+            markSlider(slider.name, slider.solved);
+        });
+    });
+
+    ot.onLive('progress', function (progress) {
+        vars.progress = progress;
+    });
+
+    ot.onInput(function (name, value) {
+        value = parseInt(value);
+        ot.sendLive("move", { name, value });
+    });
+
+    ot.onLive('feedback', function (feedback) {
+        markSlider(feedback.name, feedback.solved)
+    });
+
+    ot.onLive('terminate', function () {
+        ot.completePage();
+    });
+
+    ot.onLive('failure', function (message) {
+        alert(message);
+        ot.completePage();
+    });
+</script>
+
+{{ endblock }}

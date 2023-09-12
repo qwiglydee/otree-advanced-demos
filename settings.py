@@ -21,10 +21,11 @@ SESSION_CONFIGS = [
         display_name="Drawing (free hand draw input)",
         app_sequence=["drawing"]
     ),
-    # dict(
-    #     name="sliders",
-    #     app_sequence=["sliders"]
-    # ),
+    dict(
+        name="sliders",
+        display_name="Sliders task",
+        app_sequence=["sliders"]
+    ),
     # dict(
     #     name="voting",
     #     app_sequence=["voting"],
