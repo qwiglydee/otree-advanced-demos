@@ -20,6 +20,8 @@ All the interactive pages constructied with [otree-front](https://github.com/qwi
 - [live trials](trials_live): running series of pregenerated trials
 - [infinite trials](trials_inf): running series of trials generated on demand
 - [captcha](captcha): transcribing math from image with distorted font
+- [drawing](drawing): free-hand drawing input
+- [sliders](sliders): sliders task with realtime feedback
 
 # Utils
 
@@ -27,3 +29,4 @@ All the interactive pages constructied with [otree-front](https://github.com/qwi
 - [csv utils](utils/csv_utils.py): to load data from csv with filtering/sampling/etc
 - [image utis](utils/image_utils.py): to generate and encode some simple images
 - [pagetime](utils/pagetime.py): to track time spent on pages
+
