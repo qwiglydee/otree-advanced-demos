@@ -13,14 +13,13 @@ class C(BaseConstants):
     NUM_TRIALS = 10     # total number of trials to generate
     MAX_FAILURES = 5    # num of failures (not counting retries) to abort the game
     TASKS_TIMEOUT = 600  # total time limit for tasks (s)
-    FEEDBACK_DELAY = 3000  # pause (ms) after feedback
-    RETRY_DELAY = 1000  # pause (ms) after failed retry
+    FEEDBACK_DELAY = 1000  # pause (ms) after feedback
     SCORE_SUCCESS = +1
     SCORE_FAILURE = -1
 
     SCHEDULE = {
-        'aim': 500,
-        'stimulus': 1000,
+        'aiming': 3000,
+        'showing': 1000,
         'responding': 3000,
         'timeout': 0
     }
@@ -54,8 +53,8 @@ class Trial(ExtraModel):
 
     # task fields
     expression = models.StringField()
-    suggestion = models.StringField()
     solution = models.IntegerField()
+    suggestion = models.IntegerField()
 
     # response fields
     response = models.StringField()
@@ -66,6 +65,10 @@ class Trial(ExtraModel):
     completed = models.BooleanField()
     success = models.BooleanField()
     score = models.IntegerField(initial=0)
+
+    @property
+    def correct_answer(self):
+        return 'Y' if self.solution == self.suggestion else 'N'
 
 
 def generate_trial(player: Player, iteration: int):
@@ -109,10 +112,7 @@ def evaluate_trial(trial: Trial):
     if trial.response_timeout:
         trial.success = False
     else:
-        if trial.solution == trial.suggestion:
-            trial.success = trial.response == 'Y'
-        else:
-            trial.success = trial.response == 'N'
+        trial.success = (trial.response == trial.correct_answer)
 
     if trial.success:
         trial.score = C.SCORE_SUCCESS
@@ -200,6 +200,7 @@ class Tasks(Page):
     @staticmethod
     def js_vars(player: Player):
         return {
+            'feedback_delay': C.FEEDBACK_DELAY,
             'schedule': C.SCHEDULE
         }
 

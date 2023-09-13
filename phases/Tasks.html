@@ -5,9 +5,8 @@
 <link href="{{ static 'progress2.css' }}" rel="stylesheet">
 <link href="{{ static 'spinner-pulse.css' }}" rel="stylesheet">
 <style>
-    /* shuld be fixed size to avoid readjusting page layout when changing */
-    footer {
-        height: 10rem;
+    .icon {
+        font-size: xxx-large;
     }
 </style>
 {{ endblock }}
@@ -21,13 +20,16 @@
 </header>
 
 <main ot-class="vars.fading">
-    <div ot-display="aim" class="fs-1">✛</div>
-    <div ot-display="stimulus" class="fs-2">
+    <div ot-display="aiming" class="icon">✛</div>
+    <div ot-display="showing" class="fs-2">
         <span ot-text="vars.trial.expression"></span>
         =
         <span ot-text="vars.trial.suggestion"></span>
     </div>
-    <div ot-display="responding" class="fs-1">?</div>
+    <div ot-display="responding" class="icon">?</div>
+    <div ot-display="success" class="icon">✔</div>
+    <div ot-display="failure" class="icon">✘</div>
+    <div ot-display="timeout" class="icon">⌛</div>
 </main>
 
 <footer>
@@ -50,6 +52,7 @@
     "use strict";
 
     const SCHEDULE = js_vars.schedule;
+    const FEEDBACK_DELAY = js_vars.feedback_delay;
     const FADEOUT_TIME = 200; // duration of fadeout animation from xfade css
 
     ot.onStartPage(function () {
@@ -70,32 +73,33 @@
 
         vars.response = null;
         vars.feedback = null;
+        vars.timeouted = false;
         vars.fading = "fadein";
+
         ot.hideDisplays();
         ot.resetInputs();
         ot.startPhases(SCHEDULE);
     });
 
-    ot.onPhase('aim', function() {
-        console.debug("aim");
-        ot.switchDisplays({ only: 'aim' });
+    ot.onPhase('aiming', function() {
+        ot.switchDisplays({ only: 'aiming' });
     });
 
-    ot.onPhase('stimulus', function() {
-        console.debug("stimulus");
-        ot.switchDisplays({ only: 'stimulus' });
+    ot.onPhase('showing', function() {
+        ot.switchDisplays({ only: 'showing' });
     });
 
     ot.onPhase('responding', function() {
-        console.debug("response");
         ot.switchDisplays({ only: 'responding' });
         ot.enableInputs();
         ot.startTimeMeasurement();
     });
 
     ot.onPhase('timeout', function() {
-        console.debug("timeout");
+        vars.timeouted = true;
+        ot.switchDisplays({ only: 'timeout' });
         ot.disableInputs();
+
         ot.sendLive('timeout', {
             iteration: vars.trial.iteration,
             time: ot.getTimeMeasurement(),
@@ -105,6 +109,7 @@
     ot.onInput('answer', function (answer) {
         ot.disableInputs();
         ot.cancelPhases();
+        ot.switchDisplays({ off: 'responding' });
 
         ot.sendLive('response', {
             iteration: vars.trial.iteration,
@@ -115,8 +120,16 @@
 
     ot.onLive('feedback', function (feedback) {
         vars.feedback = feedback;
-        vars.fading = "fadeout";
-        ot.delay(FADEOUT_TIME, function () {
+
+        if (!vars.timeouted) {
+            ot.switchDisplays({ only: feedback.success ? 'success' : 'failure' });
+        }
+
+        ot.delay(FEEDBACK_DELAY - FADEOUT_TIME, function () {
+            vars.fading = "fadeout";
+        });
+
+        ot.delay(FEEDBACK_DELAY, function () {
             ot.sendLive('next');
         });
     });
@@ -128,14 +141,6 @@
     ot.onLive('failure', function (message) {
         alert(message);
         ot.completePage();
-    });
-
-    /* adjust style when feedback changes */
-    ot.onDelete('vars.feedback', function () {
-        vars.feedback_style = null;
-    });
-    ot.onUpdate('vars.feedback', function (feedback) {
-        vars.feedback_style = feedback.success ? "is-valid" : "is-invalid";
     });
 </script>
 
