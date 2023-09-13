@@ -17,11 +17,13 @@ All the interactive pages constructied with [otree-front](https://github.com/qwi
 
 # Apps
 
-- [live trials](trials_live): running series of pregenerated trials
+- [live trials](trials_live): running series of pregenerated trials on a live page
 - [infinite trials](trials_inf): running series of trials generated on demand
 - [captcha](captcha): transcribing math from image with distorted font
 - [drawing](drawing): free-hand drawing input
 - [sliders](sliders): sliders task with realtime feedback
+- [voting](voting): real-time chat and group voting
+- [phases](phases): timer-scheduled phases of trials
 
 # Utils
 
