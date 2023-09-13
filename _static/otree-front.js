@@ -1,5 +1,5 @@
 /*!
-otree-front v1.5.b
+otree-front v1.5.b2
 microframework for interactive pages for oTree platform
 (C) qwiglydee@gmail.com
 https://github.com/qwiglydee/otree-front
@@ -431,7 +431,8 @@ var ot = (function (exports) {
     function completePage() {
       assertArgs("completePage", arguments, []);
       handle$1("completePage");
-      setTimeout(() => document.querySelector("form#form").submit());
+      // this simulates submit button, including 'submit' event
+      setTimeout(() => document.getElementById("form").requestSubmit());
     }
     function onNextIteration(handler) {
       assertArgs("onNextIteration", arguments, ['function']);
