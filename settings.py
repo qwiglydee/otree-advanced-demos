@@ -3,22 +3,22 @@ from os import environ
 SESSION_CONFIGS = [
     dict(
         name="trials_live",
-        display_name="Simple Trials (live)",
+        display_name="Simple Trials",
         app_sequence=["trials_live"],
     ),
     dict(
         name="trials_inf",
-        display_name="Simple Trials (infinite)",
+        display_name="Simple Trials (infinite series)",
         app_sequence=["trials_inf"],
     ),
     dict(
         name="captcha",
-        display_name="Captcha (generated images)",
+        display_name="Captcha: generated images",
         app_sequence=["captcha"]
     ),
     dict(
         name="drawing",
-        display_name="Drawing (free hand draw input)",
+        display_name="Drawing: free hand draw input",
         app_sequence=["drawing"]
     ),
     dict(
@@ -28,8 +28,14 @@ SESSION_CONFIGS = [
     ),
     dict(
         name="voting",
+        display_name="Real-time voting and chatting",
         app_sequence=["voting"],
         num_demo_participants=3,
+    ),
+    dict(
+        name="phases",
+        display_name="Phases: time schedued trial phases",
+        app_sequence=["phases"],
     ),
     dict(
         name="dumb",
