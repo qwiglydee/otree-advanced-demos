@@ -24,13 +24,13 @@ SESSION_CONFIGS = [
     dict(
         name="sliders",
         display_name="Sliders task",
-        app_sequence=["sliders"]
+        app_sequence=["sliders"],
     ),
-    # dict(
-    #     name="voting",
-    #     app_sequence=["voting"],
-    #     num_demo_participants=3,
-    # )
+    dict(
+        name="voting",
+        app_sequence=["voting"],
+        num_demo_participants=3,
+    ),
     dict(
         name="dumb",
         display_name="just a dumb app for testing",

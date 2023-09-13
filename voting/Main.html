@@ -1,0 +1,119 @@
+{{ block title }}
+Voting
+{{ endblock }}
+
+{{ block styles }}
+<link href="{{ static 'fullscreen.css' }}" rel="stylesheet">
+<style>
+    .chat {
+        width: 400px;
+        height: 400px;
+        display: flex;
+        flex-flow: column;
+        justify-content: flex-end;
+        justify-items: left;
+    }
+</style>
+{{ endblock }}
+
+{{ block content }}
+
+<header class="alert alert-info">
+    <h4>Group votes:</h4>
+    <ul class="votes">
+        {{ for p in group.get_players }}
+        <li>{{p.name}}: <b ot-text="vars.votes.{{p.id}}"></b></li>
+        {{ endfor }}
+    </ul>
+</header>
+
+<main>
+    <div class="alert alert-primary">
+        <label class="col">Your vote:</label>
+        <select class="col form-select" name="vote" ot-input>
+            <option></option>
+            {{ for i, option in options }}
+            <option>{{option}}</option>
+            {{ endfor }}
+        </select>
+    </div>
+    <div class="flex-fill"></div>
+    <div class="chat rounded border m-3 pt-3">
+        <!-- otree-front is limited to fixed structure of html -->
+        <div class="message mx-3" ot-html="vars.chat.0"></div>
+        <div class="message mx-3" ot-html="vars.chat.1"></div>
+        <div class="message mx-3" ot-html="vars.chat.2"></div>
+        <div class="message mx-3" ot-html="vars.chat.3"></div>
+        <div class="message mx-3" ot-html="vars.chat.4"></div>
+        <div class="message mx-3" ot-html="vars.chat.5"></div>
+        <div class="message mx-3" ot-html="vars.chat.6"></div>
+        <div class="message mx-3" ot-html="vars.chat.7"></div>
+        <div class="message mx-3" ot-html="vars.chat.8"></div>
+        <div class="message mx-3" ot-html="vars.chat.9"></div>
+        <div class="flex-fill"></div>
+        <div class="input-group w-100">
+            <input type="text" class="form-control" ot-input name="message" autofocus
+                placeholder="type a message to send to chat">
+            <button type="button" class="btn btn-primary" name="submit" ot-input ot-kbd="Enter">Send</button>
+        </div>
+    </div>
+</main>
+
+<footer class="f-row">
+</footer>
+
+{{ endblock }}
+
+
+{{ block scripts }}
+
+<script src="{{ static 'otree-front-1.5.b2.js' }}"></script>
+
+<script>
+    const CHAT_SIZE = 10;
+
+    ot.onStartPage(function () {
+        ot.enableInputs();
+        vars.chat = [];
+        vars.votes = {};
+    });
+
+    ot.onInput('submit', function (text) {
+        ot.commitInput("message");
+    });
+
+    ot.onInput('message', function (text) {
+        ot.sendLive('chat', { text });
+        ot.resetInput('message', "");
+    });
+
+    ot.onLive('chat', function (data) {
+        if (data.text) {
+            vars.chat.push(`<b>${data.player}:</b> ${data.text}`);
+        }
+        if (data.vote) {
+            vars.chat.push(`<b>* ${data.player} votes:</b> ${data.vote}`);
+        }
+        vars.chat = vars.chat.splice(-CHAT_SIZE);
+    });
+
+    ot.onInput('vote', function (value) {
+        ot.sendLive('vote', { vote: value });
+    });
+
+    ot.onLive('votes', function (data) {
+        vars.votes = data;
+    });
+
+    ot.onLive('terminate', function () {
+        console.debug("terminated");
+        ot.completePage();
+    });
+
+    ot.onLive('failure', function (message) {
+        alert(message);
+        ot.completePage();
+    });
+</script>
+
+{{ endblock }}
