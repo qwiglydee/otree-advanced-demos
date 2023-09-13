@@ -35,7 +35,6 @@ SESSION_CONFIGS = [
         name="dumb",
         display_name="just a dumb app for testing",
         app_sequence=["dumb"],
-        num_demo_participants=2,
     ),
 ]
 

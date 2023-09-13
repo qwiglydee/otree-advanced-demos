@@ -5,7 +5,7 @@ from utils.live_utils import live_page
 
 class C(BaseConstants):
     NAME_IN_URL = "dumb"
-    PLAYERS_PER_GROUP = 2
+    PLAYERS_PER_GROUP = None
     NUM_ROUNDS = 1
 
 
@@ -23,9 +23,13 @@ class Player(BasePlayer):
 
 # PAGES
 
+class Intro(Page):
+    pass
 
 @live_page
 class Main(Page):
+    timeout_seconds = 30
+
     @staticmethod
     def live_ping(player: Player, data: dict):
         yield "pong"
@@ -45,4 +49,4 @@ class Main(Page):
         yield player, "pong"
         yield "all", "broadcast", {"ack": True}
 
-page_sequence = [Main]
+page_sequence = [Intro, Main]

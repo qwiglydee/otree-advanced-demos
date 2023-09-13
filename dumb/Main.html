@@ -4,17 +4,19 @@
 
 {{ block styles }}
 <link rel="stylesheet" href="{{ static 'fullscreen.css' }}">
+<link href="{{ static 'framed.css' }}" rel="stylesheet">
 <link rel="stylesheet" href="{{ static 'xfade.css' }}">
 <link rel="stylesheet" href="{{ static 'spinner-pulse.css' }}">
 <style>
+    .otree-body {
+        border: 1px solid #dee2e6;
+        border-radius: .25rem;
+    }
+
     main {
         /* --x-fade-out-time: 200ms;
         --x-fade-in-time: 100ms; */
         background-color: var(--bs-light);
-    }
-
-    header, footer {
-        background-color: var(--bs-secondary);
     }
 
     .h3 {

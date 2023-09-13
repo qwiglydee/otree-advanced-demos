@@ -1,8 +1,13 @@
 {{ block styles }}
 <link href="{{ static 'fullscreen.css' }}" rel="stylesheet">
 <link href="{{ static 'progress2.css' }}" rel="stylesheet">
-<link href="{{ static 'enhancements.css' }}" rel="stylesheet">
 <style>
+    .otree-body {
+        border: 1px solid #dee2e6;
+        border-radius: .25rem;
+    }
+
+
     header,
     footer {
         flex: 1 1 auto;
@@ -38,7 +43,7 @@
     <div class="alert alert-info m-2">Total score: <b ot-text="vars.progress.score"></b></div>
 </header>
 
-<main class="border rounded bg-light p-3">
+<main>
     {{ for slider in sliders }}
     <input type="range" min="-10" max="10" step="1" class="form-range slider"
         style="margin-left:{{slider.margins.l}}px; margin-right:{{slider.margins.r}}px"
