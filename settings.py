@@ -38,6 +38,11 @@ SESSION_CONFIGS = [
         app_sequence=["phases"],
     ),
     dict(
+        name="multistage",
+        display_name="Multistage trials",
+        app_sequence=["multistage"],
+    ),
+    dict(
         name="dumb",
         display_name="just a dumb app for testing",
         app_sequence=["dumb"],
