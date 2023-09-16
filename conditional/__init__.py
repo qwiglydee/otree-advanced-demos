@@ -1,4 +1,5 @@
 import random
+import json
 
 from otree.api import *
 
@@ -15,8 +16,13 @@ class C(BaseConstants):
     TASKS_TIMEOUT = 600  # total time limit for tasks (s)
     FEEDBACK_DELAY = 3000  # pause (ms) after feedback
     RETRY_DELAY = 1000  # pause (ms) after failed retry
-    SCORE_SUCCESS = +1
-    SCORE_FAILURE = -1
+
+    SCORE_SUCCESS = +10
+    SCORE_FAILURE = -10
+    SCORE_SKIP = 0
+    SCORE_REDUCE = -5
+
+    STRATEGIES = ['choose', 'reduce', 'skip']
 
 
 class Subsession(BaseSubsession):
@@ -52,22 +58,18 @@ class Trial(ExtraModel):
     choice_2 = models.IntegerField()
     choice_3 = models.IntegerField()
     choice_4 = models.IntegerField()
+    choices = models.StringField()
 
     # response fields
+    strategy = models.IntegerField(choices=C.STRATEGIES)
     choice = models.IntegerField()     # position
     response = models.IntegerField()   # value
-    confidence = models.IntegerField(min=1, max=5)
     response_time = models.IntegerField()
 
     # status fields
     completed = models.BooleanField()
     success = models.BooleanField()
     score = models.IntegerField(initial=0)
-
-    @property
-    def partial(self):
-        "indicate that the trial is partially answered"
-        return not self.completed and (self.response is not None or self.confidence is not None)
 
 
 def generate_trial(player: Player, iteration: int):
@@ -94,7 +96,16 @@ def generate_trial(player: Player, iteration: int):
         choice_2=choices[1],
         choice_3=choices[2],
         choice_4=choices[3],
+        choices="1234",
     )
+
+def reduce_choices(trial: Trial):
+    solution_idx = [trial.choice_1, trial.choice_2, trial.choice_3, trial.choice_4].index(trial.solution) + 1
+    reduced = random.sample([1, 2, 3, 4], k=2)
+    if solution_idx not in reduced:
+        reduced[0] = solution_idx
+
+    trial.choices = "".join([str(r) for r in reduced])
 
 
 def generate_trials(player: Player):
@@ -112,15 +123,35 @@ def evaluate_trial(trial: Trial):
     """evaluate trial status and score
     using already answered trial
     """
+
     assert trial.response is not None
 
+    trial.completed = True
     trial.success = trial.response == trial.solution
+
     if trial.success:
         trial.score = C.SCORE_SUCCESS
     else:
         trial.score = C.SCORE_FAILURE
 
-    trial.completed = trial.response is not None and trial.confidence is not None
+    if trial.strategy == 'reduce':
+        trial.score += C.SCORE_REDUCE
+
+    trial.completed = True
+
+
+def evaluate_strategy(trial: Trial):
+    assert trial.strategy is not None
+
+    if trial.strategy == 'choose':
+        return
+
+    if trial.strategy == 'skip':
+        trial.score = C.SCORE_SKIP
+        trial.completed = True
+
+    if trial.strategy == 'reduce':
+        reduce_choices(trial)
 
 
 def update_progress(player: Player, trial: Trial):
@@ -178,10 +209,11 @@ def output_trial(trial: Trial):
             3: trial.choice_3,
             4: trial.choice_4,
         },
+        "enabled": tuple(trial.choices),
         # possible partial inputs
+        "strategy": trial.strategy,
         "choice": trial.choice,
         "response": trial.response,
-        "confidence": trial.confidence,
     }
 
 
@@ -191,7 +223,12 @@ def output_feedback(trial: Trial):
             "solution": trial.solution,
             "success": trial.success,
             "score": trial.score,
-            "completed": trial.completed,
+            "completed": True,
+        }
+    elif trial.strategy == 'reduce':
+        return {
+            'enabled': tuple(trial.choices),
+            "completed": False,
         }
     else:
         return {
@@ -247,6 +284,25 @@ class Tasks(Page):
         yield "trial", output_trial(trial)
 
     @staticmethod
+    def live_strategy(player: Player, data: dict):
+        assert not player.terminated
+        assert data["iteration"] == player.current_iter
+
+        trial = current_trial(player)
+
+        assert trial.strategy is None
+        assert data["strategy"] in C.STRATEGIES
+        trial.strategy = data["strategy"]
+
+        evaluate_strategy(trial)
+
+        yield "feedback", output_feedback(trial)
+
+        if trial.completed:
+            update_progress(player, trial)
+            yield "progress", output_progress(player)
+
+    @staticmethod
     def live_response(player: Player, data: dict):
         "handle response from player"
         assert not player.terminated
@@ -254,14 +310,10 @@ class Tasks(Page):
 
         trial = current_trial(player)
 
-        if "response" in data:
-            assert trial.response is None
-            trial.choice = data["choice"]
-            trial.response = data["response"]
-            trial.response_time = data["time"]
-        if "confidence" in data:
-            assert trial.confidence is None
-            trial.confidence = data["confidence"]
+        assert trial.response is None
+        trial.choice = data["choice"]
+        trial.response = data["response"]
+        trial.response_time = data["time"]
 
         evaluate_trial(trial)
         yield "feedback", output_feedback(trial)

@@ -22,6 +22,16 @@ SESSION_CONFIGS = [
         app_sequence=["drawing"]
     ),
     dict(
+        name="multistep",
+        display_name="Multiple inputs in trials",
+        app_sequence=["multistep"],
+    ),
+    dict(
+        name="conditional",
+        display_name="Conditional trial workflow",
+        app_sequence=["conditional"],
+    ),
+    dict(
         name="sliders",
         display_name="Sliders task",
         app_sequence=["sliders"],
@@ -36,11 +46,6 @@ SESSION_CONFIGS = [
         name="phases",
         display_name="Phases: time schedued trial phases",
         app_sequence=["phases"],
-    ),
-    dict(
-        name="multistage",
-        display_name="Multistage trials",
-        app_sequence=["multistage"],
     ),
     dict(
         name="dumb",

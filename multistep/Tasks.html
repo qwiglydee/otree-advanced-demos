@@ -146,15 +146,15 @@
         switch (stage) {
             case 1:
                 ot.switchDisplays({ only: 'stage1' });
-                ot.enableInputs('choice');
+                ot.switchInputs({ only: 'choice' });
                 break;
             case 2:
                 ot.switchDisplays({ only: 'stage2' });
-                ot.enableInputs('confidence');
+                ot.switchInputs({ only: 'confidence' });
                 break;
             case 3:
                 ot.switchDisplays({ only: ['feedback', 'continue'] });
-                ot.enableInputs('continue');
+                ot.switchInputs({ only: 'continue' });
                 break;
         }
     });
