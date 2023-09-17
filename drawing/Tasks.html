@@ -37,7 +37,7 @@
 
 <footer>
     <p ot-display="prompt">Draw your answer on the canvas and press <kbd>Submit</kbd>.</p>
-    <p ot-display="feedback">You gained <b ot-text="vars.feedback.score"></b> points</p>
+    <p ot-display="feedback">You <i ot-text="vars.gain_txt"></i></p>
     <p ot-display="retry">Your answer <b ot-text="vars.response"></b> is not accepted, try again.</p>
     <div ot-display="spinner" class="spinner-ellipsis"><i></i><i></i><i></i></div>
 </footer>
@@ -50,6 +50,7 @@
 <script src="{{ static 'otree-front-1.5.b2.js' }}"></script>
 <script src="{{ static 'progress2.js' }}"></script>
 <script src="{{ static 'drawing-input.js' }}"></script>
+<script src="{{ static 'format_score.js' }}"></script>
 
 <script>
     "use strict";
@@ -147,6 +148,7 @@
     });
     ot.onUpdate('vars.feedback', function (feedback) {
         vars.feedback_style = feedback.success ? "is-valid" : "is-invalid";
+        vars.gain_txt = format_gain(feedback.score);
     });
 </script>
 

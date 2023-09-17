@@ -93,7 +93,7 @@
 
 <footer>
     <p ot-display="feedback">Correct answer is <b ot-text="vars.feedback.solution"></b>.</p>
-    <p ot-display="feedback">You gained <b ot-text="vars.feedback.score"></b> points</p>
+    <p ot-display="feedback">You <i ot-text="vars.gain_txt"></i></p>
     <button ot-display="continue" type="button" class="btn btn-primary" ot-input name="continue">Continue</button>
 </footer>
 
@@ -104,6 +104,7 @@
 
 <script src="{{ static 'otree-front-1.5.b2.js' }}"></script>
 <script src="{{ static 'progress2.js' }}"></script>
+<script src="{{ static 'format_score.js' }}"></script>
 
 <script>
     "use strict";
@@ -218,6 +219,7 @@
         if ('success' in feedback) {
             vars.styles[vars.choice] = feedback.success ? "btn-success" : "btn-danger";
         }
+        vars.gain_txt = format_gain(feedback.score);
     });
 
     ot.onUpdate('vars.choice', function (choice) {

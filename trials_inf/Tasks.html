@@ -35,7 +35,7 @@
 <footer>
     <p ot-display="prompt">Enter your answer and press <kbd ot-kbd="Enter" ot-input name="commit">Enter</kbd>.</p>
     <p ot-display="feedback">Correct answer is <b ot-text="vars.feedback.solution"></b>.</p>
-    <p ot-display="feedback">You gained <b ot-text="vars.feedback.score"></b> points</p>
+    <p ot-display="feedback">You <i ot-text="vars.gain_txt"></i></p>
     <p ot-display="retry">Your answer <b ot-text="vars.response"></b> is not accepted, try again.</p>
     <div ot-display="spinner" class="spinner-ellipsis"><i></i><i></i><i></i></div>
 </footer>
@@ -47,6 +47,7 @@
 
 <script src="{{ static 'otree-front-1.5.b2.js' }}"></script>
 <script src="{{ static 'progress2.js' }}"></script>
+<script src="{{ static 'format_score.js' }}"></script>
 
 <script>
     "use strict";
@@ -154,6 +155,7 @@
     });
     ot.onUpdate('vars.feedback', function (feedback) {
         vars.feedback_style = feedback.success ? "is-valid" : "is-invalid";
+        vars.gain_txt = format_gain(feedback.score);
     });
 </script>
 
