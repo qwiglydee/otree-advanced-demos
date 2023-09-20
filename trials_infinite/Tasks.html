@@ -5,11 +5,12 @@
 <link href="{{ static 'progress2.css' }}" rel="stylesheet">
 <link href="{{ static 'spinner-pulse.css' }}" rel="stylesheet">
 <style>
-    canvas {
-        border: 2px solid rgba(0, 0, 0, .5);
-        border-radius: .25rem;
-        background: #f8f9fa;
-        box-shadow: 0 3px 1px -2px rgba(0,0,0,.2),0 2px 2px 0 rgba(0,0,0,.14),0 1px 5px 0 rgba(0,0,0,.12);
+    my-progress {
+        --my-progress-animation: 1000ms linear;
+    }
+
+    .otree-timer {
+        display: none;
     }
 </style>
 {{ endblock }}
@@ -17,24 +18,24 @@
 {{ block content }}
 
 <header>
-    <my-progress ticks="1" max="vars.progress.total" value="vars.progress.completed" value2="vars.trial.iteration">
-    </my-progress>
+    <my-progress max="vars.total_time" value="vars.elapsed_time"></my-progress>
     <div class="alert alert-info m-2">Total score: <b ot-text="vars.progress.score"></b></div>
 </header>
 
 <main ot-class="vars.fading">
     <div class="fs-1 m-3" ot-text="vars.trial.expression"></div>
 
-    <canvas class="m-3" width="{{C.CANVAS_SIZE.0}}" height="{{C.CANVAS_SIZE.1}}"
-            my-draw-input name="answer" feather="{{C.CANVAS_FEATHER}}" color="#000000"></canvas>
-
-    <button type="button" class="btn btn-primary" ot-input name="commit">Submit</button>
+    <div class="input-group">
+        <span class="input-group-text">=</span>
+        <input type="number" class="form-control" ot-class="vars.feedback_style" ot-input name="answer" autofocus>
+    </div>
 </main>
 
 <footer>
-    <p ot-display="prompt">Draw your answer on the canvas and press <kbd>Submit</kbd>.</p>
+    <p ot-display="prompt">Enter your answer and press <kbd ot-kbd="Enter" ot-input name="commit">Enter</kbd>.</p>
+    <p ot-display="feedback">Correct answer is <b ot-text="vars.feedback.solution"></b>.</p>
     <p ot-display="feedback">You <i ot-text="vars.gain_txt"></i></p>
-    <p ot-display="retry">Your answer is not accepted, try again.</p>
+    <p ot-display="retry">Your answer <b ot-text="vars.response"></b> is not accepted, try again.</p>
     <div ot-display="spinner" class="spinner-ellipsis"><i></i><i></i><i></i></div>
 </footer>
 
@@ -45,44 +46,55 @@
 
 <script src="{{ static 'otree-front-1.5.b2.js' }}"></script>
 <script src="{{ static 'progress2.js' }}"></script>
-<script src="{{ static 'drawing-input.js' }}"></script>
 <script src="{{ static 'format_score.js' }}"></script>
+
 
 <script>
     "use strict";
 
     const TRIAL_DELAY = js_vars.C.TRIAL_DELAY;
     const RETRY_DELAY = js_vars.C.RETRY_DELAY;
+    const PAGE_TIMEOUT = js_vars.C.TASKS_TIMEOUT;
     const FADEOUT_TIME = 200; // duration of fadeout animation from xfade.css
 
     ot.onStartPage(startGame);
     ot.onLive('progress', updateProgress);
     ot.onLive('trial', startTrial);
     ot.onInput('answer', inputAnswer);
-    ot.onInput('commit', function() { ot.commitInput('answer'); });
+    ot.onInput('commit', commitAnswer);
     ot.onLive('feedback', completeTrial);
     ot.onDelete('vars.feedback', displayFeedback);
     ot.onUpdate('vars.feedback', displayFeedback);
     ot.onLive('failure', function (message) { alert(message); ot.completePage(); });
 
+    $('.otree-timer__time-left').on('update.countdown', updateClock); // using built-in otree timer
+
     function startGame() {
         ot.disableInputs();
         ot.hideDisplays();
-        vars.progress = {};
         vars.fading = "hidden";
+        vars.progress = {};
+        vars.total_time = PAGE_TIMEOUT;
+        // vars.elapsed_time = 0;
         nextIter();
     };
 
     function updateProgress(progress) {
         if (vars.progress.terminated === undefined && progress.terminated) ot.completePage(); // occasionally reloaded alreay completed page
         vars.progress = progress;
+    }
+
+    function updateClock(event) {
+        console.debug(event.offset.totalSeconds);
+        vars.elapsed_time = PAGE_TIMEOUT - event.offset.totalSeconds + 1;
+        ot.updatePage();
     };
 
     function nextIter() {
         if (vars.progress.terminated) {
             ot.completePage();
         } else {
-            ot.sendLive('iter'); // expecting live progress and trial
+            ot.sendLive('iter');
         }
     }
 
@@ -105,19 +117,24 @@
         ot.enableInputs();
     };
 
-    function inputAnswer(image) {
+    function commitAnswer() {
+        ot.commitInput('answer');
+    };
+
+    function inputAnswer(value) {
+        if (value == "") return;
         ot.disableInputs();
         ot.hideDisplays('prompt');
 
-        vars.response = image;
+        vars.response = parseInt(value);
 
         ot.sendLive('response', { // expecting live feedback and progress
             iteration: vars.trial.iteration,
             time: ot.getTimeMeasurement(),
-            response: image,
+            response: vars.response
         });
-    };
 
+    };
     function completeTrial(feedback) {
         vars.feedback = feedback;
 
@@ -134,8 +151,10 @@
     /** adjusting styles and text for feedback */
     function displayFeedback(feedback) {
         if (feedback) {
+            vars.feedback_style = feedback.success ? "is-valid" : "is-invalid";
             vars.gain_txt = format_gain(feedback.score);
         } else {
+            vars.feedback_style = null;
             vars.gain_txt = null;
         }
     }

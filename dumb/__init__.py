@@ -28,7 +28,7 @@ class Intro(Page):
 
 @live_page
 class Main(Page):
-    timeout_seconds = 30
+    # timeout_seconds = 30
 
     @staticmethod
     def live_ping(player: Player, data: dict):

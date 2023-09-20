@@ -4,26 +4,18 @@
 
 {{ block styles }}
 <link rel="stylesheet" href="{{ static 'fullscreen.css' }}">
-<link href="{{ static 'framed.css' }}" rel="stylesheet">
+<link rel="stylesheet" href="{{ static 'framed.css' }}">
 <link rel="stylesheet" href="{{ static 'xfade.css' }}">
 <link rel="stylesheet" href="{{ static 'spinner-pulse.css' }}">
 <style>
-    .otree-body {
-        border: 1px solid #dee2e6;
-        border-radius: .25rem;
-    }
-
     main {
-        /* --x-fade-out-time: 200ms;
-        --x-fade-in-time: 100ms; */
         background-color: var(--bs-light);
     }
 
-    .h3 {
-        /* need fixed height to avoid page re-aligning */
-        height: 3rem;
-        display: flex;
-        align-items: center;
+    /* a trick to avoid content realignment */
+    section[hidden] {
+        display: initial !important;
+        opacity: 0.25;
     }
 </style>
 {{ endblock }}
@@ -33,27 +25,41 @@
 
 <header>
     <h3>The header</h3>
-    <p>Some content</p>
+    <p>Page reloaded <b ot-text="vars.counter"></b> times</p>
 </header>
 
 <main ot-class="vars.fading">
-    <h3>The main</h3>
-    <p>Some content <span ot-text="vars.counter"></span></p>
+    <h3>The main section</h3>
 
     <div class="d-flex flex-row gap-1">
-        <div class="bg-primary text-light p-3">1</div>
-        <div class="bg-primary text-light p-3">2</div>
-        <div class="bg-primary text-light p-3">3</div>
+        <button type="button" class="btn btn-primary m-1" ot-input name="switch" value="1">1</button>
+        <button type="button" class="btn btn-primary m-1" ot-input name="switch" value="2">2</button>
+        <button type="button" class="btn btn-primary m-1" ot-input name="switch" value="3">3</button>
     </div>
+
+    <section ot-display="section-1" class="rounded border m-2 p-3" hidden>
+        <h4>Section 1</h4>
+        <p>Content 1</p>
+        <p>Content 2</p>
+        <p>Content 3</p>
+    </section>
+
+    <section ot-display="section-2" class="rounded border m-2 p-3"  hidden>
+        <h4>Section 2</h4>
+        <p>Content 1</p>
+        <p>Content 2</p>
+        <p>Content 3</p>
+        <p>Content 4</p>
+        <p>Content 5</p>
+    </section>
 </main>
 
 <footer>
     <h3>The footer</h3>
     <p>Some content</p>
-    <div class="h3">
-        <button ot-display="nextbtn" type="button" class="btn btn-primary" ot-input name="next">Next</button>
-        <div ot-display="spinner" class="spinner-ellipsis"><i></i><i></i><i></i></div>
-    </div>
+    <div class="flex-fill"></div>
+    <button ot-display="next" type="button" class="btn btn-primary" ot-input name="next">Next</button>
+    <div ot-display="spinner" class="spinner-ellipsis"><i></i><i></i><i></i></div>
 </footer>
 
 {{ endblock }}
@@ -65,38 +71,35 @@
 <script>
     ot.onStartPage(function() {
         vars.counter = 0;
-        console.debug("started");
-        ot.emitEvent('start');
+        vars.fading = "hidden";
+        ot.hideDisplays();
+        nextIter();
     });
 
-    ot.onLive("pong", function(data) {
-        console.debug("pong:", data)
-    });
-
-    ot.onLive("feedback", function(data) {
-        console.debug("feedback:", data)
-    });
-
-    ot.onLive("broadcast", function(data) {
-        console.debug("broadcast:", data)
-    });
-
-    ot.onEvent('start', function() {
+    function nextIter() {
         vars.counter += 1;
         vars.fading = "fadein";
-        ot.showDisplays('spinner');
-        ot.hideDisplays('nextbtn');
-        ot.delayEvent(3000, 'ready');
-    });
-
-    ot.onEvent('ready', function() {
-        ot.hideDisplays('spinner');
-        ot.showDisplays('nextbtn');
-    });
+        ot.switchDisplays({ only: 'next' });
+    }
 
     ot.onInput('next', function() {
-        vars.fading = "fadeout";
-        ot.delayEvent(200, 'start');
+        ot.disableInputs();
+        ot.switchDisplays({ off: 'next', on: 'spinner'});
+
+        ot.delay(1000 - 200, function() {
+            vars.fading = "fadeout";
+        });
+        ot.delay(1000, function() {
+            nextIter();
+        });
+    });
+
+    ot.onInput('switch', function(i) {
+        if (i == 3) {
+            ot.switchDisplays({ on: ['section-1', 'section-2'] })
+        } else {
+            ot.switchDisplays({ off: ['section-1', 'section-2'], on: `section-${i}` })
+        }
     });
 </script>
 

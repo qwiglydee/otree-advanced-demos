@@ -14,7 +14,7 @@
 {{ block content }}
 
 <header>
-    <my-progress max="{{C.NUM_TRIALS}}" ticks="1" value="vars.progress.completed"
+    <my-progress max="vars.progress.total" ticks="1" value="vars.progress.completed"
         value2="vars.trial.iteration"></my-progress>
     <div class="alert alert-info m-2">Total score: <b ot-text="vars.progress.score"></b></div>
 </header>
@@ -27,15 +27,16 @@
         <span ot-text="vars.trial.suggestion"></span>
     </div>
     <div ot-display="responding" class="icon">?</div>
-    <div ot-display="success" class="icon">✔</div>
-    <div ot-display="failure" class="icon">✘</div>
-    <div ot-display="timeout" class="icon">⌛</div>
+    <div ot-display="feedback-success" class="icon">✔</div>
+    <div ot-display="feedback-failure" class="icon">✘</div>
+    <div ot-display="feedback-timeout" class="icon">⌛</div>
 </main>
 
 <footer>
     <p>
-        Press <kbd ot-enable="responding" ot-input name="answer" value="Y" ot-kbd="y">Y</kbd> if the expression is correct,
-        press <kbd ot-enable="responding" ot-input name="answer" value="N" ot-kbd="n">N</kbd> if it's not,
+        Press <kbd ot-enable="responding" ot-input name="response" value="Y" ot-kbd="y">Y</kbd> if the expression is
+        correct,
+        press <kbd ot-enable="responding" ot-input name="response" value="N" ot-kbd="n">N</kbd> if it's not,
     </p>
     <p>Only answer when you see <code>?</code></p>
 </footer>
@@ -52,97 +53,119 @@
 <script>
     "use strict";
 
-    const SCHEDULE = js_vars.schedule;
-    const FEEDBACK_DELAY = js_vars.feedback_delay;
+    const SCHEDULE = js_vars.C.SCHEDULE;
+    const TRIAL_DELAY = js_vars.C.TRIAL_DELAY;
     const FADEOUT_TIME = 200; // duration of fadeout animation from xfade css
 
-    ot.onStartPage(function () {
+    ot.onStartPage(startGame);
+    ot.onLive('progress', updateProgress);
+    ot.onLive('trial', startTrial);
+    ot.onPhase('aiming', switchAiming);
+    ot.onPhase('showing', switchShowing);
+    ot.onPhase('responding', switchResponding);
+    ot.onPhase('timeout', inputTimeout);
+    ot.onInput('response', inputResponse);
+    ot.onLive('feedback', completeTrial);
+    ot.onDelete('vars.feedback', displayFeedback);
+    ot.onUpdate('vars.feedback', displayFeedback);
+    ot.onUpdate('vars.timeout', displayFeedback);
+    ot.onLive('failure', function (message) { alert(message); ot.completePage(); });
+
+
+    function startGame() {
         ot.disableInputs();
         ot.hideDisplays();
         vars.progress = {};
+        vars.fading = "hidden";
+        nextIter();
+    };
 
-        ot.sendLive('next');
-        // expecting live trial and progress, or termination
-    });
-
-    ot.onLive('progress', function (progress) {
+    function updateProgress(progress) {
+        if (vars.progress.terminated === undefined && progress.terminated) ot.completePage(); // occasionally reloaded alreay completed page
         vars.progress = progress;
-    });
+    };
 
-    ot.onLive('trial', function (trial) {
+    function nextIter() {
+        if (vars.progress.terminated) {
+            ot.completePage();
+        } else {
+            ot.sendLive('iter'); // expecting live progress and trial
+        }
+    }
+
+    function startTrial(trial) {
         vars.trial = trial;
-
         vars.response = null;
         vars.feedback = null;
-        vars.timeouted = false;
-        vars.fading = "fadein";
+        vars.timeout = false;
 
         ot.hideDisplays();
         ot.resetInputs();
         ot.startPhases(SCHEDULE);
-    });
+        vars.fading = "fadein";
+    };
 
-    ot.onPhase('aiming', function() {
+    function switchAiming() {
         ot.switchDisplays({ only: 'aiming' });
-    });
+    };
 
-    ot.onPhase('showing', function() {
+    function switchShowing() {
         ot.switchDisplays({ only: 'showing' });
-    });
+    };
 
-    ot.onPhase('responding', function() {
+    function switchResponding() {
         ot.switchDisplays({ only: 'responding' });
         ot.enableInputs();
         ot.startTimeMeasurement();
-    });
+    };
 
-    ot.onPhase('timeout', function() {
-        vars.timeouted = true;
-        ot.switchDisplays({ only: 'timeout' });
+    function inputTimeout() {
         ot.disableInputs();
+        ot.switchDisplays({ off: 'responding' });
+
+        vars.timeout = true;
 
         ot.sendLive('timeout', {
             iteration: vars.trial.iteration,
             time: ot.getTimeMeasurement(),
         });
-    });
+    };
 
-    ot.onInput('answer', function (answer) {
+    function inputResponse(value) {
         ot.disableInputs();
-        ot.cancelPhases();
         ot.switchDisplays({ off: 'responding' });
+        ot.cancelPhases();
+
+        vars.response = value;
 
         ot.sendLive('response', {
             iteration: vars.trial.iteration,
             time: ot.getTimeMeasurement(),
-            response: answer
+            response: vars.response,
         });
-    });
+    };
 
-    ot.onLive('feedback', function (feedback) {
+    function completeTrial(feedback) {
         vars.feedback = feedback;
 
-        if (!vars.timeouted) {
-            ot.switchDisplays({ only: feedback.success ? 'success' : 'failure' });
-        }
-
-        ot.delay(FEEDBACK_DELAY - FADEOUT_TIME, function () {
+        ot.delay(TRIAL_DELAY - FADEOUT_TIME, function () {
             vars.fading = "fadeout";
         });
-
-        ot.delay(FEEDBACK_DELAY, function () {
-            ot.sendLive('next');
+        ot.delay(TRIAL_DELAY, function () {
+            nextIter();
         });
-    });
+    };
 
-    ot.onLive('terminate', function () {
-        ot.completePage();
-    });
+    function displayFeedback() {
+        if (vars.timeout) {
+            ot.switchDisplays({ on: 'feedback-timeout' });
+        } else if (vars.feedback !== null) {
+            ot.switchDisplays({ on: vars.feedback.success ? 'feedback-success' : 'feedback-failure' });
+        } else {
+            ot.switchDisplays({ off: ['feedback-timeout', 'feedback-success', 'feedback-failure'] });
+        }
+    }
 
-    ot.onLive('failure', function (message) {
-        alert(message);
-        ot.completePage();
-    });
 </script>
 
 {{ endblock }}

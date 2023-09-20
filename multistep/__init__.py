@@ -11,12 +11,12 @@ class C(BaseConstants):
     NUM_ROUNDS = 1
 
     NUM_TRIALS = 10  # total number of trials to generate
-    MAX_FAILURES = 5  # num of failures (not counting retries) to abort the game
-    TASKS_TIMEOUT = 600  # total time limit for tasks (s)
-    FEEDBACK_DELAY = 3000  # pause (ms) after feedback
-    RETRY_DELAY = 1000  # pause (ms) after failed retry
-    SCORE_SUCCESS = +1
-    SCORE_FAILURE = -1
+    MAX_FAILURES = 3  # num of failures to abort the game
+    TASKS_TIMEOUT = 600  # total time limit for tasks (seconds)
+    TRIAL_DELAY = 2000  # pause (ms) after trial
+    RETRY_DELAY = 1000  # pause (ms) before retry
+    SCORE_SUCCESS = +10
+    SCORE_FAILURE = -10
 
 
 class Subsession(BaseSubsession):
@@ -32,13 +32,7 @@ class Player(BasePlayer):
     trials_solved = models.IntegerField(initial=0)
     trials_failed = models.IntegerField(initial=0)
     total_score = models.IntegerField(initial=0)
-
     terminated = models.BooleanField(initial=False)
-
-    @property
-    def current_iter(self):
-        "current iteration is always 1 forward of completed"
-        return self.trials_completed + 1
 
 
 class Trial(ExtraModel):
@@ -48,10 +42,10 @@ class Trial(ExtraModel):
     # task fields
     expression = models.StringField()
     solution = models.IntegerField()
-    choice_1 = models.IntegerField()
-    choice_2 = models.IntegerField()
-    choice_3 = models.IntegerField()
-    choice_4 = models.IntegerField()
+    option_1 = models.IntegerField()
+    option_2 = models.IntegerField()
+    option_3 = models.IntegerField()
+    option_4 = models.IntegerField()
 
     # response fields
     choice = models.IntegerField()     # position
@@ -64,10 +58,14 @@ class Trial(ExtraModel):
     success = models.BooleanField()
     score = models.IntegerField(initial=0)
 
-    @property
-    def partial(self):
-        "indicate that the trial is partially answered"
-        return not self.completed and (self.response is not None or self.confidence is not None)
+    def option(self, num):
+        "get an option by number"
+        options = (self.option_1, self.option_2, self.option_3, self.option_4)
+        return options[num-1]
+
+    def correct_choice(self):
+        options = (self.option_1, self.option_2, self.option_3, self.option_4)
+        return options.index(self.solution) + 1
 
 
 def generate_trial(player: Player, iteration: int):
@@ -77,23 +75,23 @@ def generate_trial(player: Player, iteration: int):
     expr = f"{a} + {b}"
     solution = a + b
 
-    choices = [
+    options = [
         solution,
         solution + 10,
         solution - 10,
         random.randint(solution - 10, solution + 10),
     ]
-    random.shuffle(choices)
+    random.shuffle(options)
 
     return Trial.create(
         player=player,
         iteration=iteration,
         expression=expr,
         solution=solution,
-        choice_1=choices[0],
-        choice_2=choices[1],
-        choice_3=choices[2],
-        choice_4=choices[3],
+        option_1=options[0],
+        option_2=options[1],
+        option_3=options[2],
+        option_4=options[3],
     )
 
 
@@ -103,7 +101,8 @@ def generate_trials(player: Player):
 
 def current_trial(player: Player):
     """retrieve current trial"""
-    trials = Trial.filter(player=player, iteration=player.current_iter)
+    assert not player.terminated
+    trials = Trial.filter(player=player, iteration=player.trials_completed + 1)
     assert len(trials) == 1
     return trials[0]
 
@@ -163,8 +162,10 @@ def set_payoff(player: Player):
 
 def output_progress(player: Player):
     return {
+        "total": C.NUM_TRIALS,
         "completed": player.trials_completed,
         "score": player.total_score,
+        "terminated": player.terminated,
     }
 
 
@@ -172,11 +173,11 @@ def output_trial(trial: Trial):
     return {
         "iteration": trial.iteration,
         "expression": trial.expression,
-        "choices": {
-            1: trial.choice_1,
-            2: trial.choice_2,
-            3: trial.choice_3,
-            4: trial.choice_4,
+        "options": {
+            1: trial.option_1,
+            2: trial.option_2,
+            3: trial.option_3,
+            4: trial.option_4,
         },
         # possible partial inputs
         "choice": trial.choice,
@@ -214,53 +215,33 @@ class Tasks(Page):
 
     @staticmethod
     def js_vars(player: Player):
-        return {
-            "feedback_delay": C.FEEDBACK_DELAY,
-            "retry_delay": C.RETRY_DELAY,
-        }
-
+        return { 'C': dict(vars(C)) }
 
     @staticmethod
-    def live_start(player: Player, data):
-        "send inital (restored) state"
+    def live_iter(player: Player, data):
+        """retrieve current progress and trial"""
 
         yield "progress", output_progress(player)
-
-        if player.terminated:
-            yield "terminate"
-            return
-
-        trial = current_trial(player)
-        yield "trial", output_trial(trial)
-
-
-    @staticmethod
-    def live_next(player: Player, data):
-        "send next (or current) trial"
-        yield "progress", output_progress(player)
-
-        if player.terminated:
-            yield "terminate"
-            return
-
-        trial = current_trial(player)
-        yield "trial", output_trial(trial)
+        if not player.terminated:
+            trial = current_trial(player)
+            yield "trial", output_trial(trial)
 
     @staticmethod
     def live_response(player: Player, data: dict):
-        "handle response from player"
+        """handle response from player"""
+
         assert not player.terminated
-        assert data["iteration"] == player.current_iter
 
         trial = current_trial(player)
+        assert data["iteration"] == trial.iteration
 
-        if "response" in data:
+        if "choice" in data:
             assert trial.response is None
             trial.choice = data["choice"]
-            trial.response = data["response"]
+            trial.response = trial.option(trial.choice)
             trial.response_time = data["time"]
         if "confidence" in data:
-            assert trial.confidence is None
+            assert trial.confidence is None and trial.response is not None
             trial.confidence = data["confidence"]
 
         evaluate_trial(trial)
@@ -269,7 +250,6 @@ class Tasks(Page):
         if trial.completed:
             update_progress(player, trial)
             yield "progress", output_progress(player)
-
 
     @staticmethod
     def before_next_page(player: Player, timeout_happened):
@@ -302,8 +282,14 @@ def custom_export(players: list[Player]):
         "trial.iteration",
         "trial.expression",
         "trial.solution",
+        "trial.options.1",
+        "trial.options.2",
+        "trial.options.3",
+        "trial.options.4",
         "trial.response_time",
+        "trial.choice",
         "trial.response",
+        "trial.confidence",
         "trial.success",
         "trial.score",
     ]
@@ -323,8 +309,14 @@ def custom_export(players: list[Player]):
                 trial.iteration,
                 trial.expression,
                 trial.solution,
+                trial.option_1,
+                trial.option_2,
+                trial.option_3,
+                trial.option_4,
                 trial.response_time,
+                trial.choice,
                 trial.response,
+                trial.confidence,
                 trial.success,
                 trial.score,
             ]

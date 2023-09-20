@@ -6,17 +6,17 @@ from utils.live_utils import live_page
 
 
 class C(BaseConstants):
-    NAME_IN_URL = "trials_inf"
+    NAME_IN_URL = "trials_ondemand"
     PLAYERS_PER_GROUP = None
     NUM_ROUNDS = 1
 
-    MAX_TRIALS = 100    # max number of trials to generate
-    TASKS_TIMEOUT = 60     # total time for tasks (s)
-    MAX_FAILURES = 5    # num of failures (not counting retries) to abort the game
-    FEEDBACK_DELAY = 1000  # pause (ms) after feedback
-    RETRY_DELAY = 1000  # pause (ms) after failed retry
-    SCORE_SUCCESS = +1
-    SCORE_FAILURE = -1
+    MAX_TRIALS = 100    # max number of trials to run
+    MAX_FAILURES = 5    # num of failures to abort the game
+    TASKS_TIMEOUT = 60  # total time for tasks (s)
+    TRIAL_DELAY = 1000  # pause (ms) after trial
+    RETRY_DELAY = 1000  # pause (ms) before retry
+    SCORE_SUCCESS = +10
+    SCORE_FAILURE = -10
 
 
 class Subsession(BaseSubsession):
@@ -32,15 +32,7 @@ class Player(BasePlayer):
     trials_solved = models.IntegerField(initial=0)
     trials_failed = models.IntegerField(initial=0)
     total_score = models.IntegerField(initial=0)
-
     terminated = models.BooleanField(initial=False)
-
-    @property
-    def current_iter(self):
-        "current iteration is always 1 forward of completed"
-        return self.trials_completed + 1
-
-    elapsed_time = models.IntegerField(initial=0)
 
 
 class Trial(ExtraModel):
@@ -76,13 +68,6 @@ def generate_trial(player: Player, iteration: int):
     )
 
 
-def current_trial(player: Player):
-    """retrieve current trial or generate new"""
-    trials = Trial.filter(player=player, iteration=player.current_iter)
-    if len(trials) == 1:
-        return trials[0]
-
-
 def evaluate_trial(trial: Trial):
     """evaluate trial status and score
     using already answered trial
@@ -90,16 +75,15 @@ def evaluate_trial(trial: Trial):
     assert trial.response is not None
 
     if trial.response == 0:
-        # not accepting 0 and not competing
+        # not accepting 0 and not completing
         trial.success = False
-        return
-
-    trial.success = trial.response == trial.solution
-    if trial.success:
-        trial.score = C.SCORE_SUCCESS
     else:
-        trial.score = C.SCORE_FAILURE
-    trial.completed = True
+        trial.success = trial.response == trial.solution
+        if trial.success:
+            trial.score = C.SCORE_SUCCESS
+        else:
+            trial.score = C.SCORE_FAILURE
+        trial.completed = True
 
 
 def update_progress(player: Player, trial: Trial):
@@ -117,7 +101,17 @@ def update_progress(player: Player, trial: Trial):
     else:
         player.trials_failed += 1
 
-    player.terminated = player.trials_completed == C.MAX_TRIALS or player.trials_failed == C.MAX_FAILURES
+    player.terminated = player.trials_completed >= C.MAX_TRIALS or player.trials_failed == C.MAX_FAILURES
+
+
+def current_trial(player: Player):
+    """retrieve current trial (maybe incomplete) or generate a new trial"""
+    assert not player.terminated
+    trials = Trial.filter(player=player, iteration=player.trials_completed + 1)
+    if len(trials) == 1:
+        return trials[0]
+    else:
+        return generate_trial(player, player.trials_completed + 1)
 
 
 #### INIT ####
@@ -144,6 +138,7 @@ def output_progress(player: Player):
     return {
         "completed": player.trials_completed,
         "score": player.total_score,
+        "terminated": player.terminated,
     }
 
 
@@ -178,41 +173,29 @@ class Tasks(Page):
 
     @staticmethod
     def js_vars(player: Player):
-        return {
-            "page_time": C.TASKS_TIMEOUT,
-            "feedback_delay": C.FEEDBACK_DELAY,
-            "retry_delay": C.RETRY_DELAY,
-            "elapsed_time": player.elapsed_time,
-        }
+        return { 'C': dict(vars(C)) }
 
     @staticmethod
-    def live_next(player: Player, data):
-        "send current or new trial"
-
-        if player.terminated:
-            yield "terminate"
-            return
+    def live_iter(player: Player, data):
+        """retrieve current progress and trial"""
 
         yield "progress", output_progress(player)
 
-        trial = current_trial(player)
-        if trial is None:
-            trial = generate_trial(player, player.current_iter)
-
-        yield "trial", output_trial(trial)
+        if not player.terminated:
+            trial = current_trial(player)
+            yield "trial", output_trial(trial)
 
     @staticmethod
     def live_response(player: Player, data: dict):
-        "handle response from player"
+        """handle response from player"""
 
         assert not player.terminated
-        assert data['iteration'] == player.current_iter
 
         trial = current_trial(player)
-        assert trial is not None
 
+        assert data["iteration"] == trial.iteration
         trial.response_time = data["time"]
-        trial.response = data['response']
+        trial.response = data["response"]
 
         evaluate_trial(trial)
         yield "feedback", output_feedback(trial)
@@ -220,12 +203,6 @@ class Tasks(Page):
         if trial.completed:
             update_progress(player, trial)
             yield "progress", output_progress(player)
-
-
-    @staticmethod
-    def live_elapsed(player: Player, data: dict):
-        player.elapsed_time = data['elapsed']
-        yield "ok"
 
     @staticmethod
     def before_next_page(player: Player, timeout_happened):

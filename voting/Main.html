@@ -22,7 +22,7 @@ Voting
     <h4>Group votes:</h4>
     <ul class="votes">
         {{ for p in group.get_players }}
-        <li>{{p.name}}: <b ot-text="vars.votes.{{p.id}}"></b></li>
+        <li>{{p.name}}: <b ot-text="vars.votes.{{p.id_in_group}}"></b></li>
         {{ endfor }}
     </ul>
 </header>
@@ -59,7 +59,7 @@ Voting
     </div>
 </main>
 
-<footer class="f-row">
+<footer>
 </footer>
 
 {{ endblock }}
@@ -72,22 +72,33 @@ Voting
 <script>
     const CHAT_SIZE = 10;
 
-    ot.onStartPage(function () {
-        ot.enableInputs();
+    ot.onStartPage(initPage);
+    ot.onInput('vote', sendVote);
+    ot.onInput('message', sendMessage);
+    ot.onInput('submit', function () { ot.commitInput("message"); });
+    ot.onLive('votes', receiveVotes);
+    ot.onLive('chat', receiveMessage);
+    ot.onLive('failure', function (message) { alert(message); ot.completePage(); });
+
+    function initPage() {
         vars.chat = [];
         vars.votes = {};
-    });
+        ot.sendLive('start');
+    };
 
-    ot.onInput('submit', function (text) {
-        ot.commitInput("message");
-    });
-
-    ot.onInput('message', function (text) {
+    function sendMessage(text) {
         ot.sendLive('chat', { text });
         ot.resetInput('message', "");
-    });
+    };
 
-    ot.onLive('chat', function (data) {
+    function receiveVotes(data) {
+        vars.votes = data.votes;
+        if (data.consensus) {
+            ot.delay(1000, ot.completePage);
+        }
+    };
+
+    function receiveMessage(data) {
         if (data.text) {
             vars.chat.push(`<b>${data.player}:</b> ${data.text}`);
         }
@@ -95,25 +106,12 @@ Voting
             vars.chat.push(`<b>* ${data.player} votes:</b> ${data.vote}`);
         }
         vars.chat = vars.chat.splice(-CHAT_SIZE);
-    });
+    };
 
-    ot.onInput('vote', function (value) {
+    function sendVote(value) {
         ot.sendLive('vote', { vote: value });
-    });
+    };
 
-    ot.onLive('votes', function (data) {
-        vars.votes = data;
-    });
-
-    ot.onLive('terminate', function () {
-        console.debug("terminated");
-        ot.completePage();
-    });
-
-    ot.onLive('failure', function (message) {
-        alert(message);
-        ot.completePage();
-    });
 </script>
 
 {{ endblock }}

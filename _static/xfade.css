@@ -12,3 +12,7 @@
     opacity: 1;
     transition: opacity var(--x-fade-in-time) ease-in;
 }
+
+.hidden {
+    opacity: 0;
+}

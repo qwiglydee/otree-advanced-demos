@@ -7,19 +7,11 @@
         border-radius: .25rem;
     }
 
-
-    header,
-    footer {
-        flex: 1 1 auto;
-    }
-
     main {
-        flex: 0 0 auto;
         flex-flow: row wrap;
         align-content: flex-start;
         gap: 1rem;
     }
-
 
     input.slider {
         width: 300px;
@@ -45,9 +37,8 @@
 
 <main>
     {{ for slider in sliders }}
-    <input type="range" min="-10" max="10" step="1" class="form-range slider"
-        style="margin-left:{{slider.margins.l}}px; margin-right:{{slider.margins.r}}px"
-        ot-class="vars.classes.{{slider.name}}" ot-input name="{{slider.name}}">
+    <input type="range" min="-10" max="10" step="1" class="form-range slider" ot-class="vars.styles.{{slider.id}}"
+        style="margin-left:{{slider.offset.L}}px; margin-right:{{slider.offset.R}}px" ot-input name="slider_{{slider.id}}">
     {{ endfor }}
 </main>
 
@@ -65,50 +56,48 @@
 
 <script>
     "use strict";
+    ot.onStartPage(initPage);
+    ot.onLive('sliders', resetSliders);
+    ot.onLive('progress', updateProgress);
+    ot.onInput(inputSlider);
+    ot.onLive('feedback', receiveFeedback);
+    ot.onLive('failure', function (message) { alert(message); ot.completePage(); });
 
-    ot.onStartPage(function () {
-        vars.classes = {};
+
+    function initPage() {
+        vars.styles = {};
         ot.disableInputs();
-        ot.sendLive('load');
-    });
+        ot.sendLive('start');
+    };
 
-    function markSlider(name, solved) {
-        if (solved) {
-            vars.classes[name] = "is-valid";
-        } else {
-            delete vars.classes[name];
+    function updateProgress(progress) {
+        vars.progress = progress;
+        if (progress.terminated) {
+            ot.delay(1000, ot.completePage);
         }
+    };
+
+    function highlightClass(solved) {
+        return solved ? "is-valid" : null;
     }
 
-    ot.onLive('sliders', function (data) {
+    function resetSliders(data) {
         data.sliders.forEach(slider => {
-            ot.resetInput(slider.name, slider.value);
-            ot.enableInputs(slider.name);
-            markSlider(slider.name, slider.solved);
+            ot.resetInput(`slider_${slider.id}`, slider.value);
+            vars.styles[slider.id] = highlightClass(slider.solved);
         });
-    });
+        ot.enableInputs();
+    };
 
-    ot.onLive('progress', function (progress) {
-        vars.progress = progress;
-    });
-
-    ot.onInput(function (name, value) {
+    function inputSlider(name, value) {
+        let id = name.split('_')[1]
         value = parseInt(value);
-        ot.sendLive("move", { name, value });
-    });
+        ot.sendLive("slider", { id, value });
+    };
 
-    ot.onLive('feedback', function (feedback) {
-        markSlider(feedback.name, feedback.solved)
-    });
-
-    ot.onLive('terminate', function () {
-        ot.completePage();
-    });
-
-    ot.onLive('failure', function (message) {
-        alert(message);
-        ot.completePage();
-    });
+    function receiveFeedback(feedback) {
+        vars.styles[feedback.slider] = highlightClass(feedback.solved);
+    };
 </script>
 
 {{ endblock }}

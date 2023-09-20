@@ -6,7 +6,7 @@ from utils.live_utils import live_page
 
 
 class C(BaseConstants):
-    NAME_IN_URL = "phases"
+    NAME_IN_URL = "trials_simple"
     PLAYERS_PER_GROUP = None
     NUM_ROUNDS = 1
 
@@ -15,15 +15,9 @@ class C(BaseConstants):
     TASKS_TIMEOUT = 600  # total time limit for tasks (seconds)
     TRIAL_DELAY = 2000  # pause (ms) after trial
     RETRY_DELAY = 1000  # pause (ms) before retry
-    SCORE_SUCCESS = +1
-    SCORE_FAILURE = 0
+    SCORE_SUCCESS = +10
+    SCORE_FAILURE = -10
 
-    SCHEDULE = {
-        'aiming': 3000,
-        'showing': 1000,
-        'responding': 3000,
-        'timeout': 0
-    }
 
 class Subsession(BaseSubsession):
     pass
@@ -48,21 +42,15 @@ class Trial(ExtraModel):
     # task fields
     expression = models.StringField()
     solution = models.IntegerField()
-    suggestion = models.IntegerField()
 
     # response fields
     response = models.StringField()
     response_time = models.IntegerField()
-    response_timeout = models.BooleanField()
 
     # status fields
     completed = models.BooleanField()
     success = models.BooleanField()
     score = models.IntegerField(initial=0)
-
-    @property
-    def correct_answer(self):
-        return 'Y' if self.solution == self.suggestion else 'N'
 
 
 def generate_trial(player: Player, iteration: int):
@@ -72,17 +60,11 @@ def generate_trial(player: Player, iteration: int):
     expr = f"{a} + {b}"
     solution = a + b
 
-    if random.random() < 0.5:
-        suggestion = solution
-    else:
-        suggestion = solution + random.choice([-10, +10])
-
     return Trial.create(
         player=player,
         iteration=iteration,
         expression=expr,
         solution=solution,
-        suggestion=suggestion,
     )
 
 
@@ -94,19 +76,18 @@ def evaluate_trial(trial: Trial):
     """evaluate trial status and score
     using already answered trial
     """
-    assert trial.response is not None or trial.response_timeout
+    assert trial.response is not None
 
-    if trial.response_timeout:
+    if trial.response == 0:
+        # not accepting 0 and not completing
         trial.success = False
     else:
-        trial.success = (trial.response == trial.correct_answer)
-
-    if trial.success:
-        trial.score = C.SCORE_SUCCESS
-    else:
-        trial.score = C.SCORE_FAILURE
-
-    trial.completed = True
+        trial.success = trial.response == trial.solution
+        if trial.success:
+            trial.score = C.SCORE_SUCCESS
+        else:
+            trial.score = C.SCORE_FAILURE
+        trial.completed = True
 
 
 def update_progress(player: Player, trial: Trial):
@@ -168,7 +149,6 @@ def output_trial(trial: Trial):
     return {
         "iteration": trial.iteration,
         "expression": trial.expression,
-        "suggestion": trial.suggestion,
     }
 
 
@@ -218,32 +198,14 @@ class Tasks(Page):
 
         assert data["iteration"] == trial.iteration
         trial.response_time = data["time"]
-        trial.response_timeout = False
         trial.response = data["response"]
 
         evaluate_trial(trial)
         yield "feedback", output_feedback(trial)
 
-        update_progress(player, trial)
-        yield "progress", output_progress(player)
-
-    @staticmethod
-    def live_timeout(player: Player, data: dict):
-        """handle response timeout"""
-
-        assert not player.terminated
-
-        trial = current_trial(player)
-
-        assert data["iteration"] == trial.iteration
-        trial.response_time = data["time"]
-        trial.response_timeout = True
-
-        evaluate_trial(trial)
-        yield "feedback", output_feedback(trial)
-
-        update_progress(player, trial)
-        yield "progress", output_progress(player)
+        if trial.completed:
+            update_progress(player, trial)
+            yield "progress", output_progress(player)
 
     @staticmethod
     def before_next_page(player: Player, timeout_happened):
@@ -276,9 +238,7 @@ def custom_export(players: list[Player]):
         "trial.iteration",
         "trial.expression",
         "trial.solution",
-        "trial.suggestion",
         "trial.response_time",
-        "trial.response_timeout",
         "trial.response",
         "trial.success",
         "trial.score",
@@ -299,9 +259,7 @@ def custom_export(players: list[Player]):
                 trial.iteration,
                 trial.expression,
                 trial.solution,
-                trial.suggestion,
                 trial.response_time,
-                trial.response_timeout,
                 trial.response,
                 trial.success,
                 trial.score,

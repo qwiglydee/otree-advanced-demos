@@ -7,28 +7,28 @@ from otree.api import *
 from utils.live_utils import live_page
 from utils import image_utils
 
-APPDIR = Path(__file__).parent  # directory of the app
-
 class C(BaseConstants):
     NAME_IN_URL = "captcha"
     PLAYERS_PER_GROUP = None
     NUM_ROUNDS = 1
 
-    NUM_TRIALS = 10     # total number of trials to generate
-    MAX_FAILURES = 5    # num of failures (not counting retries) to abort the game
-    TASKS_TIMEOUT = 600  # total time limit for tasks (s)
-    FEEDBACK_DELAY = 3000  # pause (ms) after feedback
-    RETRY_DELAY = 1000  # pause (ms) after failed retry
-    SCORE_SUCCESS = +1
-    SCORE_FAILURE = -1
+    NUM_TRIALS = 10  # total number of trials to generate
+    MAX_FAILURES = 3  # num of failures to abort the game
+    TASKS_TIMEOUT = 600  # total time limit for tasks (seconds)
+    TRIAL_DELAY = 2000  # pause (ms) after trial
+    RETRY_DELAY = 1000  # pause (ms) before retry
+    SCORE_SUCCESS = +10
+    SCORE_FAILURE = -10
 
     SYMBOLS = string.ascii_uppercase
     LENGTH = 3
     TEXT_SIZE = 128
     TEXT_BGCOLOR = "#FFFFFF"
     TEXT_COLOR = "#000000"
-    TEXT_FONT = image_utils.font(APPDIR / "assets" / "FreeSerifBold.otf", TEXT_SIZE)  # preload the file
 
+
+APPDIR = Path(__file__).parent  # directory of the app
+TEXT_FONT = image_utils.font(APPDIR / "assets" / "FreeSerifBold.otf", C.TEXT_SIZE)  # preload the file
 
 
 class Subsession(BaseSubsession):
@@ -44,13 +44,7 @@ class Player(BasePlayer):
     trials_solved = models.IntegerField(initial=0)
     trials_failed = models.IntegerField(initial=0)
     total_score = models.IntegerField(initial=0)
-
     terminated = models.BooleanField(initial=False)
-
-    @property
-    def current_iter(self):
-        "current iteration is always 1 forward of completed"
-        return self.trials_completed + 1
 
 
 class Trial(ExtraModel):
@@ -80,7 +74,7 @@ def generate_trial(player: Player, iteration: int):
     solution = a + b
 
     image = image_utils.text(
-        expr, C.TEXT_FONT, size=C.TEXT_SIZE, padding=C.TEXT_SIZE // 2, color=C.TEXT_COLOR, bgcolor=C.TEXT_BGCOLOR
+        expr, TEXT_FONT, size=C.TEXT_SIZE, padding=C.TEXT_SIZE // 2, color=C.TEXT_COLOR, bgcolor=C.TEXT_BGCOLOR
     )
     image = image_utils.distort(image)
     data = image_utils.encode(image)
@@ -95,14 +89,7 @@ def generate_trial(player: Player, iteration: int):
 
 
 def generate_trials(player: Player):
-    return [generate_trial(player, i) for i in range(1, 1+C.NUM_TRIALS)]
-
-
-def current_trial(player: Player):
-    """retrieve current trial"""
-    trials = Trial.filter(player=player, iteration=player.current_iter)
-    if len(trials) == 1:
-        return trials[0]
+    return [generate_trial(player, i) for i in range(1, 1 + C.NUM_TRIALS)]
 
 
 def evaluate_trial(trial: Trial):
@@ -112,16 +99,15 @@ def evaluate_trial(trial: Trial):
     assert trial.response is not None
 
     if trial.response == 0:
-        # not accepting 0 and not competing
+        # not accepting 0 and not completing
         trial.success = False
-        return
-
-    trial.success = trial.response == trial.solution
-    if trial.success:
-        trial.score = C.SCORE_SUCCESS
     else:
-        trial.score = C.SCORE_FAILURE
-    trial.completed = True
+        trial.success = trial.response == trial.solution
+        if trial.success:
+            trial.score = C.SCORE_SUCCESS
+        else:
+            trial.score = C.SCORE_FAILURE
+        trial.completed = True
 
 
 def update_progress(player: Player, trial: Trial):
@@ -141,6 +127,13 @@ def update_progress(player: Player, trial: Trial):
 
     player.terminated = player.trials_completed == C.NUM_TRIALS or player.trials_failed == C.MAX_FAILURES
 
+
+def current_trial(player: Player):
+    """retrieve current trial"""
+    assert not player.terminated
+    trials = Trial.filter(player=player, iteration=player.trials_completed + 1)
+    assert len(trials) == 1
+    return trials[0]
 
 
 #### INIT ####
@@ -165,13 +158,14 @@ def set_payoff(player: Player):
 
 def output_progress(player: Player):
     return {
+        "total": C.NUM_TRIALS,
         "completed": player.trials_completed,
         "score": player.total_score,
+        "terminated": player.terminated,
     }
 
 
 def output_trial(trial: Trial):
-
     return {
         "iteration": trial.iteration,
         "image": trial.image,
@@ -198,41 +192,34 @@ class Intro(Page):
 @live_page
 class Tasks(Page):
     """Live page with series of trials"""
+
     timeout_seconds = C.TASKS_TIMEOUT
 
     @staticmethod
     def js_vars(player: Player):
-        return {
-            "feedback_delay": C.FEEDBACK_DELAY,
-            "retry_delay": C.RETRY_DELAY,
-        }
+        return { 'C': dict(vars(C)) }
 
     @staticmethod
-    def live_next(player: Player, data):
-        "send next (or current) trial"
-
-        if player.terminated:
-            yield "terminate"
-            return
+    def live_iter(player: Player, data):
+        """retrieve current progress and trial"""
 
         yield "progress", output_progress(player)
 
-        trial = current_trial(player)
-        assert trial is not None
-        yield "trial", output_trial(trial)
+        if not player.terminated:
+            trial = current_trial(player)
+            yield "trial", output_trial(trial)
 
     @staticmethod
     def live_response(player: Player, data: dict):
-        "handle response from player"
+        """handle response from player"""
 
         assert not player.terminated
-        assert data['iteration'] == player.current_iter
 
         trial = current_trial(player)
-        assert trial is not None
 
+        assert data["iteration"] == trial.iteration
         trial.response_time = data["time"]
-        trial.response = data['response']
+        trial.response = data["response"]
 
         evaluate_trial(trial)
         yield "feedback", output_feedback(trial)
@@ -240,7 +227,6 @@ class Tasks(Page):
         if trial.completed:
             update_progress(player, trial)
             yield "progress", output_progress(player)
-
 
     @staticmethod
     def before_next_page(player: Player, timeout_happened):

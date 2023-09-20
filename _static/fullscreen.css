@@ -1,7 +1,20 @@
 /** fullscreen responsive page layout
  *
- * Stretches page to full screen height and bootstrap-provided container width.
- * Content is centered and aligned according to section
+ * Stretches page to full screen height.
+ * Width is defined according to bootstrap container adaptive style.
+ *
+ * The stylesheet defineds elements <header> <main> <footer> to be aligned at top/middle/bottom of the page.
+ *
+ * Content is centered horizontally and aligned to top/center/bottom in corresponding sections.
+ *
+ * WARNING:
+ *
+ * When content is changed dynamically (via ot.switchDisplays),
+ * that involves content realignment and breaks visual stability.
+ *
+ * Use tricks like inserting <div class="flex-fill">,
+ * Or redefining hidden styles like CSS: section[hidden] { display: initial !important; opacity: 0.25; }
+ *
  */
 
 .otree-body>h2,
@@ -95,11 +108,11 @@ main {
 
 header,
 footer {
-    flex: 0 0 auto;
+    flex: 1 1 25%;
 }
 
 main {
-    flex: 1 1 auto;
+    flex: 1 1 50%;
 }
 
 /* clean up header and paragraph margins */

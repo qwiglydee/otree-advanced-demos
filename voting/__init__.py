@@ -22,8 +22,11 @@ class Group(BaseGroup):
     # majority = models.BooleanField(initial=False)
 
     def get_votes(self):
-        return { p.id_in_group: p.vote for p in self.get_players() if p.field_maybe_none('vote') is not None }
-
+        """return non-null votes as dictionary"""
+        return {
+            p.id_in_group: p.vote
+            for p in self.get_players() if p.field_maybe_none('vote') is not None
+        }
 
 class Player(BasePlayer):
     vote = models.StringField(chocie=C.CHOICES)
@@ -41,6 +44,14 @@ def evaluate_votes(group):
     if len(voted) == C.PLAYERS_PER_GROUP and len(voteset) == 1:
         group.consensus = True
         group.decision = voteset.pop()
+
+# OUTPUT
+
+def output_votes(group: Group):
+    return {
+        'votes': group.get_votes(),
+        'consensus': group.consensus,
+    }
 
 # PAGES
 
@@ -64,24 +75,24 @@ class Main(Page):
         }
 
     @staticmethod
-    def live_chat(player: Player, data: dict):
-        # broadcast the message to all the group
-        yield "all", "chat", {"player": player.name, "text": data["text"]}
+    def live_start(player: Player, data):
+        """send votes to a reloaded page"""
+        yield "votes", output_votes(player.group)
 
     @staticmethod
     def live_vote(player: Player, data: dict):
-        group = player.group
-
-        # save the vote
+        """accept a vote"""
         player.vote = data['vote']
 
-        evaluate_votes(group)
+        evaluate_votes(player.group)
 
-        yield "all", "votes", group.get_votes()
         yield "all", "chat", { "player": player.name, "vote": player.vote }
+        yield "all", "votes", output_votes(player.group)
 
-        if group.consensus:
-            yield "all", "terminate"
+    @staticmethod
+    def live_chat(player: Player, data: dict):
+        """just broadcast the message to everyone"""
+        yield "all", "chat", {"player": player.name, "text": data["text"]}
 
 
 class Results(Page):

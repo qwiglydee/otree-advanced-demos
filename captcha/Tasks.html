@@ -4,24 +4,18 @@
 <link href="{{ static 'xfade.css' }}" rel="stylesheet">
 <link href="{{ static 'progress2.css' }}" rel="stylesheet">
 <link href="{{ static 'spinner-pulse.css' }}" rel="stylesheet">
-<style>
-    /* shuld be fixed size to avoid readjusting page layout when changing */
-    footer {
-        height: 10rem;
-    }
-</style>
 {{ endblock }}
 
 {{ block content }}
 
 <header>
-    <my-progress max="{{C.NUM_TRIALS}}" ticks="1" value="vars.progress.completed"
-        value2="vars.trial.iteration"></my-progress>
+    <my-progress ticks="1" max="vars.progress.total" value="vars.progress.completed" value2="vars.trial.iteration">
+    </my-progress>
     <div class="alert alert-info m-2">Total score: <b ot-text="vars.progress.score"></b></div>
 </header>
 
 <main ot-class="vars.fading">
-    <img class="m-3" ot-src="vars.trial.image">
+    <img class="m-3 rounded border" ot-src="vars.trial.image">
 
     <div class="input-group">
         <span class="input-group-text">=</span>
@@ -49,108 +43,98 @@
 <script>
     "use strict";
 
-    const FEEDBACK_DELAY = js_vars.feedback_delay;  // delay after a trial
-    const RETRY_DELAY = js_vars.retry_delay;  // delay after a retry
-    const FADEOUT_TIME = 200; // duration of fadeout animation from xfade css
+    const TRIAL_DELAY = js_vars.C.TRIAL_DELAY;
+    const RETRY_DELAY = js_vars.C.RETRY_DELAY;
+    const FADEOUT_TIME = 200; // duration of fadeout animation from xfade.css
 
-    ot.onStartPage(function () {
+    ot.onStartPage(startGame);
+    ot.onLive('progress', updateProgress);
+    ot.onLive('trial', startTrial);
+    ot.onInput('answer', inputAnswer);
+    ot.onInput('commit', function() { ot.commitInput('answer'); });
+    ot.onLive('feedback', completeTrial);
+    ot.onDelete('vars.feedback', displayFeedback);
+    ot.onUpdate('vars.feedback', displayFeedback);
+    ot.onLive('failure', function (message) { alert(message); ot.completePage(); });
+
+    function startGame() {
         ot.disableInputs();
         ot.hideDisplays();
         vars.progress = {};
+        vars.fading = "hidden";
+        nextIter();
+    };
 
-        ot.sendLive('next');
-        // expecting live trial and progress, or termination
-    });
-
-    ot.onLive('progress', function (progress) {
+    function updateProgress(progress) {
+        if (vars.progress.terminated === undefined && progress.terminated) ot.completePage(); // occasionally reloaded alreay completed page
         vars.progress = progress;
-    });
+    };
 
-    ot.onLive('trial', async function (trial) {
+    function nextIter() {
+        if (vars.progress.terminated) {
+            ot.completePage();
+        } else {
+            ot.sendLive('iter'); // expecting live progress and trial
+        }
+    }
+
+    function startTrial(trial) {
         vars.trial = trial;
-        vars.fading = "fadein";
-
-        await ot.preloadImage(trial.image);
-
-        ot.startTimeMeasurement();
-        ot.emitEvent('trial.start');
-    });
-
-    ot.onEvent('trial.start', function() {
         vars.response = null;
         vars.feedback = null;
         ot.switchDisplays({ only: 'prompt' });
         ot.resetInputs();
         ot.enableInputs();
-    });
+        ot.startTimeMeasurement();
+        vars.fading = "fadein";
+    };
 
-    ot.onInput('commit', function () {
-        ot.commitInput('answer');
-    });
+    function retryTrial() {
+        vars.response = null;
+        vars.feedback = null;
+        ot.switchDisplays({ only: 'prompt' });
+        ot.resetInputs();
+        ot.enableInputs();
+    };
 
-    ot.onInput('answer', function (value) {
+    function inputAnswer(value) {
         if (value == "") return;
         ot.disableInputs();
         ot.hideDisplays('prompt');
 
         vars.response = parseInt(value);
 
-        ot.sendLive('response', {
+        ot.sendLive('response', { // expecting live feedback and progress
             iteration: vars.trial.iteration,
             time: ot.getTimeMeasurement(),
             response: vars.response
         });
-        // expecting live feedback and progress
-    });
 
-    ot.onLive('feedback', function (feedback) {
+    };
+
+    function completeTrial(feedback) {
         vars.feedback = feedback;
+
         if (feedback.completed) {
-            ot.emitEvent('trial.complete');
+            ot.showDisplays(['feedback', 'spinner']);
+            ot.delay(TRIAL_DELAY - FADEOUT_TIME, function () { ot.hideDisplays(['feedback', 'spinner']); vars.fading = "fadeout"; });
+            ot.delay(TRIAL_DELAY, function () { nextIter(); });
         } else {
-            ot.emitEvent('trial.resume');
+            ot.showDisplays(['retry', 'spinner']);
+            ot.delay(RETRY_DELAY, function () {  ot.hideDisplays(['retry', 'spinner']); retryTrial(); });
         }
-    });
+    };
 
-    ot.onEvent('trial.resume', function() {
-        ot.showDisplays('retry');
-        ot.showDisplays('spinner');
-        ot.delay(RETRY_DELAY, function() {
-            ot.hideDisplays('spinner');
-            ot.emitEvent('trial.start');
-        });
-    });
-
-    ot.onEvent('trial.complete', function() {
-        ot.showDisplays('feedback');
-        ot.showDisplays('spinner');
-        ot.delay(FEEDBACK_DELAY - FADEOUT_TIME, function () {
-            vars.fading = "fadeout";
-        });
-        ot.delay(FEEDBACK_DELAY, function () {
-            ot.hideDisplays('spinner');
-            ot.sendLive('next');
-        });
-    });
-
-    ot.onLive('terminate', function () {
-        ot.completePage();
-    });
-
-    ot.onLive('failure', function (message) {
-        alert(message);
-        ot.completePage();
-    });
-
-    /* adjust style when feedback changes */
-    ot.onDelete('vars.feedback', function () {
-        vars.feedback_style = null;
-    });
-    ot.onUpdate('vars.feedback', function (feedback) {
-        vars.feedback_style = feedback.success ? "is-valid" : "is-invalid";
-        vars.gain_txt = format_gain(feedback.score);
-    });
-
+    /** adjusting styles and text for feedback */
+    function displayFeedback(feedback) {
+        if (feedback) {
+            vars.feedback_style = feedback.success ? "is-valid" : "is-invalid";
+            vars.gain_txt = format_gain(feedback.score);
+        } else {
+            vars.feedback_style = null;
+            vars.gain_txt = null;
+        }
+    }
 </script>
 
 {{ endblock }}

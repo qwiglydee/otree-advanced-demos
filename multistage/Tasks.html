@@ -16,10 +16,9 @@
         transition: opacity 150ms ease-in-out;
     }
 
-    .range-check {
-        display: flex;
-        flex-flow: column;
-        align-items: center;
+    .btn-big {
+        height: 5rem;
+        width: 5rem;
     }
 </style>
 {{ endblock }}
@@ -39,49 +38,29 @@
         <span ot-text="vars.response" ot-class="vars.feedback_style"></span>
     </div>
 
-
-    <section ot-display="stage1" rounded class="rounded border bg-light p-3 m-3">
-        <p>Select your answer</p>
+    <section ot-display="strategy" rounded class="rounded border bg-light p-3 m-3">
         <div class="d-flex flex-row gap-3 justify-content-evenly">
-            <button type="button" class="btn" ot-class="vars.styles.1" ot-input name="choice" value="1"
-                ot-enable="choice" ot-text="vars.trial.options.1">
-            </button>
-            <button type="button" class="btn" ot-class="vars.styles.2" ot-input name="choice" value="2"
-                ot-enable="choice" ot-text="vars.trial.options.2">
-            </button>
-            <button type="button" class="btn" ot-class="vars.styles.3" ot-input name="choice" value="3"
-                ot-enable="choice" ot-text="vars.trial.options.3">
-            </button>
-            <button type="button" class="btn" ot-class="vars.styles.4" ot-input name="choice" value="4"
-                ot-enable="choice" ot-text="vars.trial.options.4">
-            </button>
+            <button type="button" class="btn btn-primary" ot-input name="strategy" value="choose" ot-enable="strategy">Choose</button>
+            <button type="button" class="btn btn-primary" ot-input name="strategy" value="reduce" ot-enable="strategy">50:50</button>
+            <button type="button" class="btn btn-primary" ot-input name="strategy" value="skip" ot-enable="strategy">Skip</button>
         </div>
     </section>
 
-    <section ot-display="stage2" class="rounded border bg-light p-3 m-3">
-        <p>How confident are you in your answer?</p>
-
+    <section ot-display="choices" class="rounded border bg-light p-3 m-3">
+        <p>Select your answer</p>
         <div class="d-flex flex-row gap-3 justify-content-evenly">
-            <div class="range-check">
-                <label for="c1">1</label>
-                <input id="c1" class="form-check-input" type="radio" ot-input name="confidence" value="1" ot-enable="confidence">
-            </div>
-            <div class="range-check">
-                <label for="c2">2</label>
-                <input id="c2" class="form-check-input" type="radio" ot-input name="confidence" value="2" ot-enable="confidence">
-            </div>
-            <div class="range-check">
-                <label for="c3">3</label>
-                <input id="c3" class="form-check-input" type="radio" ot-input name="confidence" value="3" ot-enable="confidence">
-            </div>
-            <div class="range-check">
-                <label for="c4">4</label>
-                <input id="c4" class="form-check-input" type="radio" ot-input name="confidence" value="4" ot-enable="confidence">
-            </div>
-            <div class="range-check">
-                <label for="c5">5</label>
-                <input id="c5" class="form-check-input" type="radio" ot-input name="confidence" value="5">
-            </div>
+            <button type="button" class="btn btn-big" ot-class="vars.styles.1" ot-input name="choice" value="1"
+                ot-enable="choice-1" ot-text="vars.trial.options.1">
+            </button>
+            <button type="button" class="btn btn-big" ot-class="vars.styles.2" ot-input name="choice" value="2"
+                ot-enable="choice-2" ot-text="vars.trial.options.2">
+            </button>
+            <button type="button" class="btn btn-big" ot-class="vars.styles.3" ot-input name="choice" value="3"
+                ot-enable="choice-3" ot-text="vars.trial.options.3">
+            </button>
+            <button type="button" class="btn btn-big" ot-class="vars.styles.4" ot-input name="choice" value="4"
+                ot-enable="choice-4" ot-text="vars.trial.options.4">
+            </button>
         </div>
     </section>
 </main>
@@ -110,10 +89,10 @@
     ot.onLive('progress', updateProgress);
     ot.onLive('trial', startTrial);
     ot.onInput('choice', inputChoice);
-    ot.onInput('confidence', inputConfidence);
+    ot.onInput('strategy', inputStrategy);
     ot.onLive('feedback', continueTrial);
     ot.onInput('complete', completeIter);
-    ot.onUpdate('vars.stage', switchStages);
+    ot.onUpdate('vars.stage', switchStage);
     ot.onDelete('vars.choice', highlightChoice);
     ot.onUpdate('vars.choice', highlightChoice);
     ot.onDelete('vars.feedback', displayFeedback);
@@ -146,39 +125,52 @@
         vars.choice = null;
         vars.response = null;
         vars.feedback = null;
+        vars.choices = null;
         ot.resetInputs();
         ot.startTimeMeasurement();
         vars.fading = "fadein";
 
-        if (trial.response != null) {
-            vars.choice = trial.choice;
-            vars.response = trial.response;
-            vars.stage = 2;
+        if (trial.strategy == 'skip') {
+            vars.stage = 'feedback';
+        } else if (trial.strategy !== null) {
+            vars.strategy = trial.strategy;
+            vars.choices = trial.choices;
+            vars.stage = 'choices';
         } else {
-            vars.stage = 1;
+            vars.stage = 'strategy';
         }
     };
 
-    function switchStages(stage) {
+    function switchStage(stage) {
         switch (stage) {
-            case 1:
-                ot.switchDisplays({ only: 'stage1' });
-                ot.switchInputs({ only: 'choice' });
+            case 'strategy':
+                ot.switchDisplays({ only: ['strategy', 'choices'] });
+                ot.switchInputs({ only: 'strategy' });
                 break;
-            case 2:
-                ot.switchDisplays({ only: 'stage2' });
-                ot.switchInputs({ only: 'confidence' });
+            case 'choices':
+                ot.switchDisplays({ only: 'choices' });
+                ot.switchInputs({ only: vars.choices.map((i) => `choice-${i}`) });
                 break;
-            case 3:
+            case 'feedback':
                 ot.switchDisplays({ only: ['feedback', 'complete'] });
                 ot.switchInputs({ only: 'complete' });
                 break;
         }
     };
 
+    function inputStrategy(strategy) {
+        ot.disableInputs();
+
+        vars.strategy = strategy
+
+        ot.sendLive('strategy', {
+            iteration: vars.trial.iteration,
+            strategy: vars.strategy,
+        });
+    };
+
     function inputChoice(position) {
         ot.disableInputs();
-        ot.hideDisplays('prompt');
 
         vars.choice = parseInt(position);
         vars.response = vars.trial.options[vars.choice];
@@ -190,20 +182,18 @@
         });
     };
 
-    function inputConfidence(value) {
-        ot.disableInputs();
-
-        vars.confidence = parseInt(value);
-
-        ot.sendLive('response', {
-            iteration: vars.trial.iteration,
-            confidence: vars.confidence
-        });
-    };
-
     function continueTrial(feedback) {
         vars.feedback = feedback;
-        vars.stage += 1;
+
+        if (feedback.choices !== undefined) {
+            vars.choices = feedback.choices;
+        }
+
+        if (feedback.completed) {
+            vars.stage = 'feedback';
+        } else {
+            vars.stage = 'choices';
+        }
     };
 
     function completeIter() {

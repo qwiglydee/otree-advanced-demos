@@ -2,14 +2,19 @@ from os import environ
 
 SESSION_CONFIGS = [
     dict(
-        name="trials_live",
-        display_name="Simple Trials",
-        app_sequence=["trials_live"],
+        name="trials_simple",
+        display_name="Simple Trials (pregenerated)",
+        app_sequence=["trials_simple"],
     ),
     dict(
-        name="trials_inf",
+        name="trials_infinite",
         display_name="Simple Trials (infinite series)",
-        app_sequence=["trials_inf"],
+        app_sequence=["trials_infinite"],
+    ),
+    dict(
+        name="trials_choices",
+        display_name="Choices: answering options",
+        app_sequence=["trials_choices"],
     ),
     dict(
         name="captcha",
@@ -18,18 +23,18 @@ SESSION_CONFIGS = [
     ),
     dict(
         name="drawing",
-        display_name="Drawing: free hand draw input",
+        display_name="Drawing: freehand drawing input",
         app_sequence=["drawing"]
     ),
     dict(
         name="multistep",
-        display_name="Multiple inputs in trials",
+        display_name="Multiple inputs",
         app_sequence=["multistep"],
     ),
     dict(
-        name="conditional",
-        display_name="Conditional trial workflow",
-        app_sequence=["conditional"],
+        name="multistage",
+        display_name="Multiple stages with conditional workflow",
+        app_sequence=["multistage"],
     ),
     dict(
         name="sliders",
@@ -56,8 +61,7 @@ SESSION_CONFIGS = [
 
 SESSION_CONFIG_DEFAULTS = dict(
     participation_fee=1.00,
-    real_world_currency_per_point=0.1,
-    doc="",
+    real_world_currency_per_point=0.01,
     num_demo_participants=1,
 )
 

@@ -10,16 +10,17 @@ class C(BaseConstants):
     PLAYERS_PER_GROUP = None
     NUM_ROUNDS = 1
 
-    NUM_TRIALS = 10     # total number of trials to generate
-    MAX_FAILURES = 5    # num of failures (not counting retries) to abort the game
-    TASKS_TIMEOUT = 600  # total time limit for tasks (s)
-    FEEDBACK_DELAY = 1000  # pause (ms) after feedback
-    RETRY_DELAY = 1000  # pause (ms) after failed retry
-    SCORE_SUCCESS = +1
-    SCORE_FAILURE = 0
+    NUM_TRIALS = 10  # total number of trials to generate
+    MAX_FAILURES = 3  # num of failures to abort the game
+    TASKS_TIMEOUT = 600  # total time limit for tasks (seconds)
+    TRIAL_DELAY = 2000  # pause (ms) after trial
+    RETRY_DELAY = 1000  # pause (ms) before retry
+    SCORE_SUCCESS = +10
+    SCORE_FAILURE = -10
 
     CANVAS_SIZE = (256, 256)
     CANVAS_FEATHER = 4
+
 
 class Subsession(BaseSubsession):
     pass
@@ -34,13 +35,7 @@ class Player(BasePlayer):
     trials_solved = models.IntegerField(initial=0)
     trials_failed = models.IntegerField(initial=0)
     total_score = models.IntegerField(initial=0)
-
     terminated = models.BooleanField(initial=False)
-
-    @property
-    def current_iter(self):
-        "current iteration is always 1 forward of completed"
-        return self.trials_completed + 1
 
 
 class Trial(ExtraModel):
@@ -77,14 +72,7 @@ def generate_trial(player: Player, iteration: int):
 
 
 def generate_trials(player: Player):
-    return [generate_trial(player, i) for i in range(1, 1+C.NUM_TRIALS)]
-
-
-def current_trial(player: Player):
-    """retrieve current trial"""
-    trials = Trial.filter(player=player, iteration=player.current_iter)
-    if len(trials) == 1:
-        return trials[0]
+    return [generate_trial(player, i) for i in range(1, 1 + C.NUM_TRIALS)]
 
 
 def evaluate_trial(trial: Trial):
@@ -124,6 +112,14 @@ def update_progress(player: Player, trial: Trial):
     player.terminated = player.trials_completed == C.NUM_TRIALS
 
 
+def current_trial(player: Player):
+    """retrieve current trial"""
+    assert not player.terminated
+    trials = Trial.filter(player=player, iteration=player.trials_completed + 1)
+    assert len(trials) == 1
+    return trials[0]
+
+
 #### INIT ####
 
 
@@ -146,8 +142,10 @@ def set_payoff(player: Player):
 
 def output_progress(player: Player):
     return {
+        "total": C.NUM_TRIALS,
         "completed": player.trials_completed,
         "score": player.total_score,
+        "terminated": player.terminated,
     }
 
 
@@ -177,41 +175,34 @@ class Intro(Page):
 @live_page
 class Tasks(Page):
     """Live page with series of trials"""
+
     timeout_seconds = C.TASKS_TIMEOUT
 
     @staticmethod
     def js_vars(player: Player):
-        return {
-            "feedback_delay": C.FEEDBACK_DELAY,
-            "retry_delay": C.RETRY_DELAY,
-        }
+        return { 'C': dict(vars(C)) }
 
     @staticmethod
-    def live_next(player: Player, data):
-        "send next (or current) trial"
-
-        if player.terminated:
-            yield "terminate"
-            return
+    def live_iter(player: Player, data):
+        """retrieve current progress and trial"""
 
         yield "progress", output_progress(player)
 
-        trial = current_trial(player)
-        assert trial is not None
-        yield "trial", output_trial(trial)
+        if not player.terminated:
+            trial = current_trial(player)
+            yield "trial", output_trial(trial)
 
     @staticmethod
     def live_response(player: Player, data: dict):
-        "handle response from player"
+        """handle response from player"""
 
         assert not player.terminated
-        assert data['iteration'] == player.current_iter
 
         trial = current_trial(player)
-        assert trial is not None
 
+        assert data["iteration"] == trial.iteration
         trial.response_time = data["time"]
-        trial.response_image = data['image']
+        trial.response_image = data['response']
 
         evaluate_trial(trial)
         yield "feedback", output_feedback(trial)
@@ -219,7 +210,6 @@ class Tasks(Page):
         if trial.completed:
             update_progress(player, trial)
             yield "progress", output_progress(player)
-
 
     @staticmethod
     def before_next_page(player: Player, timeout_happened):

@@ -10,10 +10,10 @@ class C(BaseConstants):
     PLAYERS_PER_GROUP = None
     NUM_ROUNDS = 1
 
-    NUM_SLIDERS = 32
+    NUM_SLIDERS = 7
     SLIDER_RANGE = 10  # from -N to +N, target is always 0
     MAX_OFFSET = 100   # pixels
-    TASK_TIMEOUT = None # 60 # seconds
+    TASK_TIMEOUT = 600  # seconds
 
     SCORE_CORRECT_MOVE = +5
     SCORE_INCORRECT_MOVE = -1
@@ -36,7 +36,6 @@ class Player(BasePlayer):
 class Slider(ExtraModel):
     player = models.Link(Player)
 
-    name = models.StringField()  # should be id-like string to fit better into input names
     offset = models.IntegerField()
     initial = models.IntegerField()
 
@@ -50,7 +49,6 @@ def generate_slider(player: Player, idx: int):
 
     return Slider.create(
         player=player,
-        name=f"s{idx}",
         offset=offset,
         initial=value,
         value=value,
@@ -90,7 +88,7 @@ def set_payoff(player):
     player.payoff = player.total_score * player.session.config["real_world_currency_per_point"]
 
 
-#### FORMAT ####
+#### OUTPUTS ####
 
 
 def output_progress(player: Player):
@@ -104,11 +102,11 @@ def output_progress(player: Player):
 
 def output_slider(slider: Slider):
     return {
-        "name": slider.name,
+        "id": slider.id,
         "value": slider.value,
-        "margins": {
-            'l': slider.offset,
-            'r': C.MAX_OFFSET - slider.offset
+        "offset": {
+            'L': slider.offset,
+            'R': C.MAX_OFFSET - slider.offset
         },
         "solved": slider.solved,
     }
@@ -119,7 +117,7 @@ def output_sliders(player: Player):
 
 
 def output_feedback(slider: Slider):
-    return {"name": slider.name, "solved": slider.solved}
+    return {"slider": slider.id, "solved": slider.solved}
 
 
 #### PAGES ####
@@ -141,19 +139,17 @@ class Sliders(Page):
         }
 
     @staticmethod
-    def live_load(player: Player, data):
-        if player.terminated:
-            yield "terminate"
-            return
-
+    def live_start(player: Player, data):
         yield "progress", output_progress(player)
-        yield "sliders", { 'sliders': output_sliders(player) }
+
+        if not player.terminated:
+            yield "sliders", { 'sliders': output_sliders(player) }
 
     @staticmethod
-    def live_move(player: Player, data: dict):
+    def live_slider(player: Player, data: dict):
         assert not player.terminated
 
-        [slider] = Slider.filter(player=player, name=data["name"])
+        [slider] = Slider.filter(player=player, id=data["id"])
 
         slider.value = data['value']
 
@@ -205,7 +201,7 @@ def custom_export(players: list[Player]):
         ]
         for slider in Slider.filter(player=player):
             yield player_fields + [
-                slider.name,
+                slider.id,
                 slider.initial,
                 slider.value,
                 slider.solved,
