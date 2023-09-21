@@ -1,12 +1,28 @@
-# Live Trials
+# Phases
 
-The task is to solve simple math expressions. The expressions are generated randomly.
+The task is to decide if math expressions are correct, in very limited time.
 
-Task shows suggested answer, player press 'Y' or 'N keys if the suggestion is correct or not.
+Each trial is scheduled into phases:
 
-Score is updated for successes and failures.
+1. aiming with a cross in center
+2. short exposure of the stimuus (the task expression)
+3. some time to response
+4. when time runs out trial completes with failure
 
-Workflow:
-- the same as of [`trials_live`](../trials_live)
-- trial is scheduled by 3 phases: aiming, showing task, responding
-- also scheduling response timeout
+## Workflow
+
+- The tasks are randomly pre-generated for each player when session is initialized.
+- Trial is displayed according to scheduled phases
+- Answer is taken from keypress 'Y' or 'N'
+- If an answer is not given in scheduled time, trial is failed.
+- The answer is evaluated and score is assigned for correct, incorrect answers, or timeouted trials.
+- Feedback is given for each trial, including correct answer and resulting score
+- Trial sequence automatically advances after some delay
+- The page completes when all trials are completed or the page timeouts
+
+
+## Features
+- scheduling phases
+- response timeout
+- input from keypresses
+- measuring response time

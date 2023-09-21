@@ -1,14 +1,14 @@
 # Drawing
 
-The task is to solve simple math expressions. The expressions are generated randomly.
+The task is to solve a simple math expression and hand-write answer.
 
-Response is hand-drawn on a canvas.
+## Workflow
 
-Response images are analized for painted area, scarse painted answers not accepted.
+- Basically, same as of `trials_simple`
+- Answer is taken from hand-drawn image
+- Answers are not actually evaluated and scored
+- Empty responses or responses with too few paint are not accepted and another retry is allowed
 
-Workflow:
-- the same as of [`trials_live`](../trials_live)
-- response images are encoded and saved as "data-urls" into database
+## Features
 
-Drawbacks:
-- images occupy huge space in database and exported data
+- input free-hand images

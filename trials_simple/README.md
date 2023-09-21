@@ -1,18 +1,23 @@
-# Live Trials
+# Simple Trials
 
-The task is to solve simple math expressions.
-The expressions are generated randomly.
+The task is to solve a simple math expression.
 
-Response is entered into text field.
+## Workflow
 
-Score is updated for successes and failures.
+- The tasks are randomly pre-generated for each player when session is initialized.
+- Task is given as plain text on the page
+- Answer is taken from text input field
+- The answer is evaluated and score is assigned for correct and incorrect answers
+- If the answer is 0 it is not accepted and more retries are allowed
+- Feedback is given for each trial, including correct answer and resulting score
+- Trial sequence automatically advances after some delay
+- The page completes when all trials are completed or the page timeouts
 
-Workflow:
-- trials are pregenerated during session initialization
-- trials are retrieved from server one by one
-- responses are sent to server for each trial
-- responses are validated and evaluated on server
-- score calculated for each trial
-- feedback is shown for every response
-- answer 0 is not accepted and more retries allowed
-- series terminate when all trials completed or after N failures
+## Features
+
+- pre-generating all trials
+- basic dynamic content on the page
+- native text input field
+- key input (for handling 'Enter')
+- measuring response time
+- custom widget for progress

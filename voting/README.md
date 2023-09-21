@@ -1,5 +1,14 @@
 # Voting
 
-Real-time multiplayer app for voting and chatting.
+The objective is to reach consensus among colleagues in participant groups.
 
-Players vote for the options and objective is to reach consensus withing limited time.
+## Workflow
+
+- Page shows current votes in a group
+- Players can vote via selecting an option of decision
+- Players can chat in a online chat window
+- Page completes when consensus is reached, or when page time run out
+
+## Features
+
+- real-time multiplayer communication

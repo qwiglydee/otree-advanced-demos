@@ -1,17 +1,13 @@
 # Captcha
 
-The task is to solve simple math expressions.
-The expressions are generated randomly.
+The task is to read text from image and solve encoded math expression.
 
-Each task is encoded as image with distorted font
+## Workflow
 
-Response is entered into text field.
+- Basically, same as of `trials_simple`
+- Each task is rendered as an image with distorted text
+- The task is rendered as image
 
-Score is updated for successes and failures.
+## Features
 
-Workflow:
-- the same as of [`trials_live`](../trials_live)
-- generated images are encoded and saved as "data-urls" into database
-
-Drawbacks:
-- images occupy huge space in database and exported data
+- generating images from text

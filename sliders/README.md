@@ -1,16 +1,21 @@
 # Sliders
 
-Classic sliders task.
+Classic sliders task. Objective is to move all sliders on page in central position.
 
-The objective is to put all sliders on page into middle position.
 
-Player should drag slider handle or use keyboard.
+## Workflow
 
-Each move is evaluated to gain score.
+- Sliders are pregenerated for each player, with some initial positions and offsets
+- Sliders are displayed all at once on the page
+- Player can move sliders by mouse or keyboard (using tab key and arrows)
+- Each move is evaluated (but not recorded)
+- Each slider is evaluated after every move
+- Feedback is given by highlighting correct sliders in green and advancing progress
+- The page completes when all sliders are solved, or page timeout reached
 
-Workflow:
-- sliders are pregenerated during session initialization
-- sliders are embedded into page when it's reloading
-- each move is sent to server for evaluation
-- score calculated for each move
-- feedback is reported for every slider after every move to indicate status
+
+## Features
+
+- combining static html otree templates and dynamic otree-front content
+- input from native `range` field, with custom style
+- adjusting css of sliders

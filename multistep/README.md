@@ -1,11 +1,20 @@
-# Live Trials
+# Multistep Trials
 
-The task is to solve simple math expressions. The expressions are generated randomly.
+The task is to solve a simple math expression and to indicate confidence in given answers.
 
-Answer is selected from provided choices.
-After answer player also selects their confidence in the answer.
+The task is of 2 stages:
+1. player selects an answer from available options
+2. player indicates confidence in the answer
 
-Score is updated for successes and failures.
+## Workflow
 
-Workflow:
-- the same as of [`trials_live`](../trials_live)
+- Basically, the same as of `trials_choices`
+- Answer is selected from provided options
+- Confidence is selected using radio buttons
+- Trial sequence advances manually by 'continue' button available after feedback
+
+## Features
+
+- multiple input fields and partially complete trials
+- restoring trial state when page is loaded
+- switching input fields and page fragments according to active stage
