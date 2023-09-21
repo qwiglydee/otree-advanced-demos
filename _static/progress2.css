@@ -1,3 +1,7 @@
+/** Styles for directive my-progress
+ *
+ * To tweak appearence, define --my-progress-something in main css on a page
+ */
 my-progress {
     display: block;
     position: relative;

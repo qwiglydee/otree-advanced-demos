@@ -1,9 +1,12 @@
 /** Directive my-progress
  *
- * Draws progress with two layers using bootstrap-5 styles.
+ * Draws progress with two layers and smooth transitions.
+ * Use together with progress2.css
  *
  * Usage:
  * <my-progress max="..." ticks="..." value="..." value2="..."></my-progress>
+ *
+ * The values can be constants or variable references.
  */
 class myProgress extends ot.otDirectiveBase {
 

@@ -1,34 +1,60 @@
-> :warning: work in progress
-
 # otree-advanced-demos
 
 Apps and snippets for [oTree](https://www.otree.org/) (v5) using some advanced techniques.
 
-All the interactive pages constructied with [otree-front](https://github.com/qwiglydee/otree-front) (v1.5.beta) micro-framework
+The demo applications utilize [**live page**](https://otree.readthedocs.io/en/latest/live.html) channel to communicate with server in real time with low network latency.
+
+The applications pages are created using [**otree-front**](https://github.com/qwiglydee/otree-front) (v1.5.beta) to provide interactive interface and dynamic content.
+
+The combined approach allows to run unlimited number of same-type tasks on the same page.
+
+Together with some style extensions, that also gives the apps quite modern look-and-feel.
 
 # Features
 
-- most apps run on live pages with realtime communication
-- trials are stored in separate data model
-- results for all trials are available via custom export
-- precise response time (ms) is measured and recorded
-- correct answers are not revealed to pages (except in feedback) making the game cheater-proof
-- the pages are generally tolerant to reloading or navigating out (except reloading while network failure)
+Most of the demos run series of trials of a simple math task.
+The trials can be either pre-generated of a given number, or infinitely generated on-demand.
+Difference in approach is a matter of changing few lines of code (see `trials_simple` and `trials_infinite`)
 
-# Apps
+The trials are stored in a separate data model, and can be exported via 'custom export' page.
 
-- [live trials](trials_live): running series of pregenerated trials on a live page
-- [infinite trials](trials_inf): running series of trials generated on demand
-- [captcha](captcha): transcribing math from image with distorted font
-- [drawing](drawing): free-hand drawing input
-- [sliders](sliders): sliders task with realtime feedback
-- [voting](voting): real-time chat and group voting
-- [phases](phases): timer-scheduled phases of trials
+All the responses are immediately sent to server for saving and evaluation.
+When a page gets reloaded by a participant for some reason, the progress of an app is restored to the last saved state.
 
-# Utils
+Evaluating answers and responses are performed on server side.
+Correct answers are not revealed into page, so that any scrip-based cheating is basically not possible.
 
-- [live utils](utils/live_utils.py): for advanced live real-time comunication with pages
-- [csv utils](utils/csv_utils.py): to load data from csv with filtering/sampling/etc
-- [image utis](utils/image_utils.py): to generate and encode some simple images
-- [pagetime](utils/pagetime.py): to track time spent on pages
+Most demos measure precise response time with milliseconds presicion (not affected by network latency).
 
+# Demos
+
+- [simple trials](trials_simle): pregenerated series of simple trials with text task and text input
+- [infinite trials](trials_infinite): infinite series of trials generated on-demand, limited by page timer
+- [choices](trials_choices): answer is selected from predefined randomized options
+- [multistep](multistep): each trial consist of 2 sequential stages of inputs
+- [multistage](multistage): each trial consist of 2 stages in a conditional flow
+- [phases](phases): each trial runs through timer-controlled phases
+- [sliders](sliders): classic sliders task, with real-time feedback
+- [captcha](captcha): encoding tasks as distorted images
+- [drawing](drawing): taking input as free-hand drawing
+- [voting](voting): multiple participants voting with real-time chat
+
+
+# Back-end utilities
+
+Some python snippets that can be reused in other applications.
+
+- [live utils](utils/live_utils.py): convenient alternative API for live channel communication
+- [pagetime](utils/pagetime.py): to measure time spent on pages
+- [csv utils](utils/csv_utils.py): to load and filter data from csv files
+- [image utils](utils/image_utils.py): to generate images from text
+
+# Front-end utilities
+
+Some javascript and css snippets to extend page content and style.
+
+- [fullscreen.css](_static/fullscreen.css): a stylesheet for full-screen centered layout
+- [progress2.js](_static/progress2.js): a nice progress bar widget
+- [spinner-pulse.css](_static/spinner-pulse.css): the pulsating dots to indicate waiting pauses
+- [xfade.css](_static/xfade.css): styles make implement smooth cross-fade trials transitions
+- [drawing-input.js](drawing/static/drawing-input.js): the widget for free-hand drawing
