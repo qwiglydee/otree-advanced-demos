@@ -1,6 +1,27 @@
+{{ block content }}
+
+<header>
+    <my-progress max="vars.progress.total" ticks="1" value="vars.progress.solved"></my-progress>
+    <div class="alert alert-info m-2">Total score: <b ot-text="vars.progress.score"></b></div>
+</header>
+
+<main>
+    {{ for slider in sliders }}
+    <input type="range" min="-10" max="10" step="1" class="form-range slider" ot-class="vars.styles.{{slider.id}}"
+        style="margin-left:{{slider.offset.L}}px; margin-right:{{slider.offset.R}}px" ot-input
+        name="slider_{{slider.id}}">
+    {{ endfor }}
+</main>
+
+<footer>
+    <p>Put all sliders into middle position.</p>
+</footer>
+
+{{ endblock }}
+
 {{ block styles }}
-<link href="{{ static 'fullscreen.css' }}" rel="stylesheet">
-<link href="{{ static 'progress2.css' }}" rel="stylesheet">
+<link rel="stylesheet" href="{{ static 'fullscreen.css' }}">
+<link rel="stylesheet" href="{{ static 'progress2.css' }}">
 <style>
     .otree-body {
         border: 1px solid #dee2e6;
@@ -28,32 +49,10 @@
 </style>
 {{ endblock }}
 
-{{ block content }}
-
-<header>
-    <my-progress max="vars.progress.total" ticks="1" value="vars.progress.solved"></my-progress>
-    <div class="alert alert-info m-2">Total score: <b ot-text="vars.progress.score"></b></div>
-</header>
-
-<main>
-    {{ for slider in sliders }}
-    <input type="range" min="-10" max="10" step="1" class="form-range slider" ot-class="vars.styles.{{slider.id}}"
-        style="margin-left:{{slider.offset.L}}px; margin-right:{{slider.offset.R}}px" ot-input name="slider_{{slider.id}}">
-    {{ endfor }}
-</main>
-
-<footer>
-    <p>Put all sliders into middle position.</p>
-</footer>
-
-{{ endblock }}
-
 {{ block scripts }}
-
 <script src="{{ static 'otree-front-1.5.b2.js' }}"></script>
 <script src="{{ static 'progress2.js' }}"></script>
 <script src="{{ static 'format_score.js' }}"></script>
-
 <script>
     "use strict";
     ot.onStartPage(initPage);
@@ -99,5 +98,4 @@
         vars.styles[feedback.slider] = highlightClass(feedback.solved);
     };
 </script>
-
 {{ endblock }}

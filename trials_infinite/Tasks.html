@@ -1,20 +1,3 @@
-{{ block styles }}
-<link href="{{ static 'fullscreen.css' }}" rel="stylesheet">
-<link href="{{ static 'enhancements.css' }}" rel="stylesheet">
-<link href="{{ static 'xfade.css' }}" rel="stylesheet">
-<link href="{{ static 'progress2.css' }}" rel="stylesheet">
-<link href="{{ static 'spinner-pulse.css' }}" rel="stylesheet">
-<style>
-    my-progress {
-        --my-progress-animation: 1000ms linear;
-    }
-
-    .otree-timer {
-        display: none;
-    }
-</style>
-{{ endblock }}
-
 {{ block content }}
 
 <header>
@@ -39,16 +22,29 @@
     <div ot-display="spinner" class="spinner-ellipsis"><i></i><i></i><i></i></div>
 </footer>
 
+{{ endblock }}
 
+{{ block styles }}
+<link rel="stylesheet" href="{{ static 'fullscreen.css' }}">
+<link rel="stylesheet" href="{{ static 'enhancements.css' }}">
+<link rel="stylesheet" href="{{ static 'xfade.css' }}">
+<link rel="stylesheet" href="{{ static 'progress2.css' }}">
+<link rel="stylesheet" href="{{ static 'spinner-pulse.css' }}">
+<style>
+    my-progress {
+        --my-progress-animation: 1000ms linear;
+    }
+
+    .otree-timer {
+        display: none;
+    }
+</style>
 {{ endblock }}
 
 {{ block scripts }}
-
 <script src="{{ static 'otree-front-1.5.b2.js' }}"></script>
 <script src="{{ static 'progress2.js' }}"></script>
 <script src="{{ static 'format_score.js' }}"></script>
-
-
 <script>
     "use strict";
 
@@ -159,5 +155,4 @@
         }
     }
 </script>
-
 {{ endblock }}
