@@ -2,7 +2,7 @@
 
 <header>
     <h3>The header</h3>
-    <p>Page reloaded <b ot-text="vars.counter"></b> times</p>
+    <p>Page iterated <b ot-text="vars.counter"></b> times</p>
 </header>
 
 <main ot-class="vars.fading">
@@ -14,21 +14,26 @@
         <button type="button" class="btn btn-primary m-1" ot-input name="switch" value="3">3</button>
     </div>
 
-    <section ot-display="section-1" class="rounded border m-2 p-3" hidden>
-        <h4>Section 1</h4>
-        <p>Content 1</p>
-        <p>Content 2</p>
-        <p>Content 3</p>
-    </section>
+    <div class="x-stack">
 
-    <section ot-display="section-2" class="rounded border m-2 p-3"  hidden>
-        <h4>Section 2</h4>
-        <p>Content 1</p>
-        <p>Content 2</p>
-        <p>Content 3</p>
-        <p>Content 4</p>
-        <p>Content 5</p>
-    </section>
+        <section ot-display="section-1" class="x-stacked rounded border m-2 p-3" hidden>
+            <h4>Foo</h4>
+            <p>Foo 1</p>
+        </section>
+
+        <section ot-display="section-2" class="x-stacked rounded border m-2 p-3" hidden>
+            <h4>Bar</h4>
+            <p>Bar 1 Bar 1</p>
+            <p>Bar 2 Bar 2</p>
+        </section>
+
+        <section ot-display="section-3" class="x-stacked rounded border m-2 p-3" hidden>
+            <h4>Baz</h4>
+            <p>Baz 1 Baz 1 Baz 1</p>
+            <p>Baz 2 Baz 2 Baz 2</p>
+            <p>Baz 3 Baz 3 Baz 3</p>
+        </section>
+    </div>
 </main>
 
 <footer>
@@ -45,6 +50,7 @@
 <link rel="stylesheet" href="{{ static 'fullscreen.css' }}">
 <link rel="stylesheet" href="{{ static 'enhancements.css' }}">
 <link rel="stylesheet" href="{{ static 'xfade.css' }}">
+<link rel="stylesheet" href="{{ static 'xstack.css' }}">
 <link rel="stylesheet" href="{{ static 'progress2.css' }}">
 <link rel="stylesheet" href="{{ static 'spinner-pulse.css' }}">
 {{ endblock }}
@@ -53,7 +59,7 @@
 <script src="{{ static 'otree-front-1.5.b2.js' }}"></script>
 
 <script>
-    ot.onStartPage(function() {
+    ot.onStartPage(function () {
         vars.counter = 0;
         vars.fading = "hidden";
         ot.hideDisplays();
@@ -66,24 +72,21 @@
         ot.switchDisplays({ only: 'next' });
     }
 
-    ot.onInput('next', function() {
+    ot.onInput('next', function () {
         ot.disableInputs();
-        ot.switchDisplays({ off: 'next', on: 'spinner'});
+        ot.switchDisplays({ off: 'next', on: 'spinner' });
+        ot.switchDisplays({ off: ['section-1', 'section-2', 'section-3'] })
 
-        ot.delay(1000 - 200, function() {
+        ot.delay(1000 - 200, function () {
             vars.fading = "fadeout";
         });
-        ot.delay(1000, function() {
+        ot.delay(1000, function () {
             nextIter();
         });
     });
 
-    ot.onInput('switch', function(i) {
-        if (i == 3) {
-            ot.switchDisplays({ on: ['section-1', 'section-2'] })
-        } else {
-            ot.switchDisplays({ off: ['section-1', 'section-2'], on: `section-${i}` })
-        }
+    ot.onInput('switch', function (i) {
+        ot.switchDisplays({ off: ['section-1', 'section-2', 'section-3'], on: `section-${i}` })
     });
 </script>
 {{ endblock }}

@@ -1,0 +1,46 @@
+/** Stacked sections
+  *
+  * Styles for stacked overlaying section with cross-fade.
+  *
+  * Usage:
+  * <whatever class="x-stack">
+  *   <whatever class="x-stacked" ot-display="foo-1" hidden>...</whatever>
+  *   <whatever class="x-stacked" ot-display="foo-2" hidden>...</whatever>
+  *   <whatever class="x-stacked" ot-display="foo-3">...</whatever>
+  * </whatever>
+  *
+  * The nested divs are rendered on top of each other overlapping.
+  * Switching 'hidden' attribute with `switchDisplays` makes them cross-fade its opacity.
+  *
+  * Adding 'disabled' without hidden makes them dimmed.
+  *
+  * Duration of the animation can be adjusted by --x-stack-switch-time on page css
+  */
+:root {
+    --x-stack-switch-time: 300ms;
+}
+
+.x-stack {
+    display: grid !important;
+    grid-template: "content";
+}
+
+.x-stack > .x-stacked {
+    grid-area: content;
+    transition: opacity var(--x-stack-switch-time) ease-in-out;
+    opacity: 1;
+    pointer-events: none;
+}
+
+.x-stack > .x-stacked.inputs {
+    pointer-events: auto;
+}
+
+.x-stack > .x-stacked[hidden] {
+    display: initial !important;
+    opacity: 0;
+}
+
+.x-stack > .x-stacked[disabled] {
+    opacity: 0.75;
+}
