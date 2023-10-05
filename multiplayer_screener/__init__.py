@@ -24,6 +24,7 @@ class Player(BasePlayer):
         widget=widgets.RadioSelectHorizontal,
     )
     nickname = models.StringField()
+
     timeouted = models.BooleanField(initial=False)
 
 
@@ -38,6 +39,10 @@ class Screener(Page):
     form_fields = ["gender", "nickname"]
 
     timeout_seconds = C.SCREENER_TIMEOUT
+
+    @staticmethod
+    def before_next_page(player: Player, timeout_happened):
+        player.timeouted = timeout_happened
 
 
 class Dropout(Page):

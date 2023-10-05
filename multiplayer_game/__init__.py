@@ -30,6 +30,7 @@ class Player(BasePlayer):
     gender = models.StringField() # from screener
     nickname = models.StringField() # from screener
     response = models.StringField()
+
     timeouted = models.BooleanField(initial=False) # indicates that the player reached timeout on the game page
     completed = models.BooleanField(initial=False) # indicates that the player has reached checkin page
 
@@ -91,8 +92,7 @@ class Game(Page):
     @staticmethod
     def before_next_page(player: Player, timeout_happened):
         assert not player.group.passed, "A participant is way too late"
-        if timeout_happened:
-            player.timeouted = True
+        player.timeouted = timeout_happened
 
 
 class Dropout(Page):
