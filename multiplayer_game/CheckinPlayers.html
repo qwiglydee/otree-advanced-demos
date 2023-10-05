@@ -10,10 +10,8 @@
 {{ endblock }}
 
 {{ block scripts }}
-<script src="{{ static 'otree-front-1.5.b2.js' }}"></script>
 <script>
-    ot.onStartPage(function() { ot.sendLive("checkin") });
-    ot.onLive("wait", function() {});
-    ot.onLive("cancel", function() { ot.completePage() });
+    window.addEventListener('load', function() { liveSend('checkout') });
+    window.liveRecv = function(data) { if (data == "cancel") $('#form').submit(); }
 </script>
 {{ endblock }}
