@@ -12,8 +12,8 @@
 {{ block scripts }}
 <script src="{{ static 'otree-front-1.5.b2.js' }}"></script>
 <script>
-    ot.onStartPage(function() { ot.sendLive("join") });
+    ot.onStartPage(function() { ot.sendLive("checkin") });
     ot.onLive("wait", function() {});
-    ot.onLive("complete", function() { ot.completePage() });
+    ot.onLive("cancel", function() { ot.completePage() });
 </script>
 {{ endblock }}

@@ -1,4 +1,5 @@
 from otree.api import *
+from otree.database import NoResultFound
 
 from utils.live_utils import live_page
 
@@ -7,11 +8,11 @@ import multiplayer_screener as screener_app
 
 class C(BaseConstants):
     NAME_IN_URL = "multiplayer_game"
-    PLAYERS_PER_GROUP = 2
+    PLAYERS_PER_GROUP = 3
     NUM_ROUNDS = 1
 
-    GAME_TIMEOUT = 10
-    WAIT_TIMEOUT = 20
+    GAME_TIMEOUT = 20
+    WAIT_TIMEOUT = GAME_TIMEOUT + 10
 
     BONUS_FUND = 100
 
@@ -21,15 +22,16 @@ class Subsession(BaseSubsession):
 
 
 class Group(BaseGroup):
-    has_dropout = models.BooleanField() # indicates some players had dropped out (and others left)
+    completed = models.IntegerField(initial=0)  # number of players checked in on checkin page
+    passed = models.BooleanField(initial=False)  # the party has already passed the checkin page
 
 
 class Player(BasePlayer):
     gender = models.StringField() # from screener
     nickname = models.StringField() # from screener
     response = models.StringField()
-    timeouted = models.BooleanField(initial=False) # indicates that timeout happened on the game page
-    completed = models.BooleanField(initial=False) # indicates that player has reached next waiting page
+    timeouted = models.BooleanField(initial=False) # indicates that the player reached timeout on the game page
+    completed = models.BooleanField(initial=False) # indicates that the player has reached checkin page
 
 
 def creating_session(subsession: Subsession):
@@ -47,23 +49,27 @@ def group_by_arrival_time_method(subsession, waiting_players):
 
 def init_player(player: Player):
     """initializing player from corresponding player of screener app"""
-    screener_player = screener_app.Player.objects_get(participant=player.participant)
-    player.gender = screener_player.gender
-    player.nickname = screener_player.nickname
+    try:
+        screener_player = screener_app.Player.objects_get(participant=player.participant)
+        player.gender = screener_player.gender
+        player.nickname = screener_player.nickname
+    except NoResultFound:
+        player.gender = 'N'
+        player.nickname = "Anonymous"
 
 
-def count_total_players(group: Group):
-    return group.player_set.count()
-
-
-def count_completed_players(group: Group):
-    return group.player_set.filter_by(completed=True).count()
+def checkin_player(player: Player, group: Group):
+    """check in a player as completed the game"""
+    player.completed = True
+    player.group.completed += 1
 
 
 def set_payoff(player: Player):
-    """calculating payoff, for completed players only"""
+    """calculating payoff, for completed players only, when checkin page is passed"""
     assert player.completed
-    player.payoff = C.BONUS_FUND / count_completed_players(player.group)
+    assert player.group.passed
+
+    player.payoff = C.BONUS_FUND / player.group.completed
 
 
 #### PAGES
@@ -76,6 +82,7 @@ class GatherPlayers(WaitPage):
 class Intro(Page):
     pass
 
+
 class Game(Page):
     form_model = "player"
     form_fields = ["response"]
@@ -83,21 +90,21 @@ class Game(Page):
 
     @staticmethod
     def before_next_page(player: Player, timeout_happened):
+        assert not player.group.passed, "A participant is way too late"
         if timeout_happened:
-            player.group.has_dropout = True
             player.timeouted = True
 
 
 class Dropout(Page):
-    """A page to display to players who left browser and reached game timeout"""
+    """A dead-end page for players who reached game timeout"""
     @staticmethod
     def is_displayed(player: Player):
         return player.timeouted
 
 
 @live_page
-class WaitPlayers(Page):
-    """A page to collect players who haven't left or timeouted"""
+class CheckinPlayers(Page):
+    """A page to wait for all players to complete the game page"""
     timeout_seconds = C.WAIT_TIMEOUT
 
     @staticmethod
@@ -105,30 +112,24 @@ class WaitPlayers(Page):
         return not player.timeouted
 
     @staticmethod
-    def live_join(player: Player, data):
-        player.completed = True
+    def live_checkin(player: Player, data):
+        group = player.group
 
-        total = count_total_players(player.group)
-        completed = count_completed_players(player.group)
+        checkin_player(player, group)
 
-        if completed == total:
-            yield "all", "complete"
+        if group.completed == group.player_set.count():
+            yield "all", "cancel"
         else:
             yield "wait"
 
     @staticmethod
     def before_next_page(player: Player, timeout_happened):
-        if timeout_happened:
-            player.group.has_dropout = True
+        player.group.passed = True
         set_payoff(player)
 
 
 class Results(Page):
-    @staticmethod
-    def vars_for_template(player: Player):
-        return {
-            'completed': count_completed_players(player.group)
-        }
+    pass
 
 
 page_sequence = [
@@ -136,6 +137,6 @@ page_sequence = [
     Intro,
     Game,
     Dropout,
-    WaitPlayers,
+    CheckinPlayers,
     Results,
 ]
