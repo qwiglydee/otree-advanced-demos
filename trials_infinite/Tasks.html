@@ -1,7 +1,7 @@
 {{ block content }}
 
 <header>
-    <my-progress max="vars.total_time" value="vars.elapsed_time"></my-progress>
+    <my-progress max="vars.timer.total" value="vars.timer.elapsed"></my-progress>
     <div class="alert alert-info m-2">Total score: <b ot-text="vars.progress.score"></b></div>
 </header>
 
@@ -63,15 +63,23 @@
     ot.onUpdate('vars.feedback', displayFeedback);
     ot.onLive('failure', function (message) { alert(message); ot.completePage(); });
 
-    $('.otree-timer__time-left').on('update.countdown', updateClock); // using built-in otree timer
+    function startTimer() {
+        // using built-in otree timer
+        $('.otree-timer__time-left').on('update.countdown', function(event) {
+            vars.timer = {
+                total: PAGE_TIMEOUT,
+                elapsed: PAGE_TIMEOUT - event.offset.totalSeconds + 1
+            }
+            ot.updatePage();
+        });
+    }
 
     function startGame() {
         ot.disableInputs();
         ot.hideDisplays();
         vars.fading = "hidden";
         vars.progress = {};
-        vars.total_time = PAGE_TIMEOUT;
-        // vars.elapsed_time = 0;
+        startTimer();
         nextIter();
     };
 
@@ -79,12 +87,6 @@
         if (vars.progress.terminated === undefined && progress.terminated) ot.completePage(); // occasionally reloaded alreay completed page
         vars.progress = progress;
     }
-
-    function updateClock(event) {
-        console.debug(event.offset.totalSeconds);
-        vars.elapsed_time = PAGE_TIMEOUT - event.offset.totalSeconds + 1;
-        ot.updatePage();
-    };
 
     function nextIter() {
         if (vars.progress.terminated) {
