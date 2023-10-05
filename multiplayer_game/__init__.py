@@ -59,6 +59,8 @@ def init_player(player: Player):
 
 def checkin_player(player: Player, group: Group):
     """check in a player as completed the game"""
+    if player.completed:
+        return
     player.completed = True
     player.group.completed += 1
 
