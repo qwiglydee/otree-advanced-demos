@@ -1,0 +1,19 @@
+{{ block content }}
+<p>Waiting for other participants...</p>
+
+<div class="spinner-ellipsis"><i></i><i></i><i></i></div>
+
+{{ endblock }}
+
+{{ block styles }}
+<link rel="stylesheet" href="{{ static 'spinner-pulse.css' }}">
+{{ endblock }}
+
+{{ block scripts }}
+<script src="{{ static 'otree-front-1.5.b2.js' }}"></script>
+<script>
+    ot.onStartPage(function() { ot.sendLive("join") });
+    ot.onLive("wait", function() {});
+    ot.onLive("complete", function() { ot.completePage() });
+</script>
+{{ endblock }}

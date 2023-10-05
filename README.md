@@ -38,6 +38,7 @@ Most demos measure precise response time with milliseconds presicion (not affect
 - [captcha](captcha): encoding tasks as distorted images
 - [drawing](drawing): taking input as free-hand drawing
 - [voting](voting): multiple participants voting with real-time chat
+- [multiplayer](multiplayer_game): multiplayer game with separate screener app, regrouping participants, and handling dropouts
 
 
 # Back-end utilities
