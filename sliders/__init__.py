@@ -59,16 +59,23 @@ def generate_sliders(player):
     return [generate_slider(player, i) for i in range(1, 1+C.NUM_SLIDERS)]
 
 
-def evaluate_slider(slider: Slider):
+def evaluate_move(slider: Slider, value: int):
+    """evaluate a move of a slider and update, return feedback including score for a move"""
+    slider.value = value
     slider.solved = (slider.value == 0)
 
+    score = C.SCORE_CORRECT_MOVE if slider.solved else C.SCORE_INCORRECT_MOVE
 
-def update_progress(player: Player, slider: Slider):
-    if slider.solved:
-        player.total_score += C.SCORE_CORRECT_MOVE
-    else:
-        player.total_score += C.SCORE_INCORRECT_MOVE
+    return {
+        "slider": slider.id,
+        "solved": slider.solved,
+        "score": score
+    }
 
+
+def update_progress(player: Player, score: int):
+    """update players progress"""
+    player.total_score += score
     player.sliders_solved = len(Slider.filter(player=player, solved=True))
     player.terminated = player.sliders_solved == C.NUM_SLIDERS
 
@@ -116,10 +123,6 @@ def output_sliders(player: Player):
     return [output_slider(s) for s in Slider.filter(player=player)]
 
 
-def output_feedback(slider: Slider):
-    return {"slider": slider.id, "solved": slider.solved}
-
-
 #### PAGES ####
 
 
@@ -151,14 +154,10 @@ class Sliders(Page):
 
         [slider] = Slider.filter(player=player, id=data["id"])
 
-        slider.value = data['value']
+        feedback = evaluate_move(slider, data['value'])
+        yield "feedback", feedback
 
-        evaluate_slider(slider)
-
-        yield "feedback", output_feedback(slider)
-
-        update_progress(player, slider)
-
+        update_progress(player, feedback['score'])
         yield "progress", output_progress(player)
 
     @staticmethod

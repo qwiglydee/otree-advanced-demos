@@ -41,15 +41,15 @@ class Trial(ExtraModel):
 
     # task fields
     expression = models.StringField()
-    solution = models.IntegerField()
-    option_1 = models.IntegerField()
-    option_2 = models.IntegerField()
-    option_3 = models.IntegerField()
-    option_4 = models.IntegerField()
+    solution = models.StringField()
+    option_1 = models.StringField()
+    option_2 = models.StringField()
+    option_3 = models.StringField()
+    option_4 = models.StringField()
 
     # response fields
-    choice = models.IntegerField()     # position
-    response = models.IntegerField()   # value
+    choice = models.IntegerField()   # position
+    response = models.StringField()   # value
     confidence = models.IntegerField(min=1, max=5)
     response_time = models.IntegerField()
 
@@ -58,14 +58,13 @@ class Trial(ExtraModel):
     success = models.BooleanField()
     score = models.IntegerField(initial=0)
 
-    def option(self, num):
-        "get an option by number"
-        options = (self.option_1, self.option_2, self.option_3, self.option_4)
-        return options[num-1]
+    def option(self, pos):
+        """get an option value by its position"""
+        return (self.option_1, self.option_2, self.option_3, self.option_4)[pos-1]
 
     def correct_choice(self):
-        options = (self.option_1, self.option_2, self.option_3, self.option_4)
-        return options.index(self.solution) + 1
+        """return position of the correct answer"""
+        return (self.option_1, self.option_2, self.option_3, self.option_4).index(self.solution) + 1
 
 
 def generate_trial(player: Player, iteration: int):
@@ -106,11 +105,11 @@ def current_trial(player: Player):
     return trial
 
 
-def evaluate_trial(trial: Trial):
-    """evaluate trial status and score
-    using already answered trial
-    """
-    assert trial.response is not None
+def evaluate_response(trial: Trial, choice: int):
+    """evaluate response and update trial status and score, return incomplete feedback"""
+
+    trial.choice = choice
+    trial.response = trial.option(trial.choice)
 
     trial.success = trial.response == trial.solution
     if trial.success:
@@ -118,7 +117,23 @@ def evaluate_trial(trial: Trial):
     else:
         trial.score = C.SCORE_FAILURE
 
-    trial.completed = trial.response is not None and trial.confidence is not None
+    return {
+        "completed": False,
+    }
+
+
+def evaluate_confidence(trial: Trial, confidence: str):
+    """save second stage response, return complete feedback"""
+
+    trial.confidence = confidence
+    trial.completed = True
+
+    return {
+        "solution": trial.solution,
+        "success": trial.success,
+        "score": trial.score,
+        "completed": True,
+    }
 
 
 def update_progress(player: Player, trial: Trial):
@@ -185,20 +200,6 @@ def output_trial(trial: Trial):
     }
 
 
-def output_feedback(trial: Trial):
-    if trial.completed:
-        return {
-            "solution": trial.solution,
-            "success": trial.success,
-            "score": trial.score,
-            "completed": trial.completed,
-        }
-    else:
-        return {
-            "completed": False,
-        }
-
-
 #### PAGES ####
 
 
@@ -227,28 +228,34 @@ class Tasks(Page):
 
     @staticmethod
     def live_response(player: Player, data: dict):
-        """handle response from player"""
+        """handle 1st step response from player"""
 
         assert not player.terminated
 
         trial = current_trial(player)
 
         assert data["iteration"] == trial.iteration
-        if "choice" in data:
-            assert trial.response is None
-            trial.choice = data["choice"]
-            trial.response = trial.option(trial.choice)
-            trial.response_time = data["time"]
-        if "confidence" in data:
-            assert trial.confidence is None and trial.response is not None
-            trial.confidence = data["confidence"]
 
-        evaluate_trial(trial)
-        yield "feedback", output_feedback(trial)
+        trial.response_time = data["time"]
 
-        if trial.completed:
-            update_progress(player, trial)
-            yield "progress", output_progress(player)
+        feedback = evaluate_response(trial, data["choice"])
+        yield "feedback", feedback
+
+    @staticmethod
+    def live_confidence(player: Player, data: dict):
+        """handle 2nd step response from player"""
+
+        assert not player.terminated
+
+        trial = current_trial(player)
+
+        assert data["iteration"] == trial.iteration
+
+        feedback = evaluate_confidence(trial, data["confidence"])
+        yield "feedback", feedback
+
+        update_progress(player, trial)
+        yield "progress", output_progress(player)
 
     @staticmethod
     def before_next_page(player: Player, timeout_happened):

@@ -55,6 +55,16 @@
 <link rel="stylesheet" href="{{ static 'progress2.css' }}">
 <link rel="stylesheet" href="{{ static 'spinner-pulse.css' }}">
 <style>
+    /* redefine hidden style for sections to make it dimmed */
+    section[hidden] {
+        display: initial !important;
+        opacity: 0.5;
+    }
+    section {
+        opacity: 1.0;
+        transition: opacity 150ms ease-in-out;
+    }
+
     canvas {
         border: 2px solid rgba(0, 0, 0, .5);
         border-radius: .25rem;
@@ -153,6 +163,7 @@
 
         ot.sendLive('strategy', {
             iteration: vars.trial.iteration,
+            time: ot.getTimeMeasurement(),
             strategy: vars.strategy,
         });
     };

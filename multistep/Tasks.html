@@ -78,9 +78,8 @@
     /* redefine hidden style for sections to make it dimmed */
     section[hidden] {
         display: initial !important;
-        opacity: 0.5;
+        opacity: 0.7;
     }
-
     section {
         opacity: 1.0;
         transition: opacity 150ms ease-in-out;
@@ -192,7 +191,7 @@
 
         vars.confidence = parseInt(value);
 
-        ot.sendLive('response', {
+        ot.sendLive('confidence', {
             iteration: vars.trial.iteration,
             confidence: vars.confidence
         });

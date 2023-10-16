@@ -75,14 +75,12 @@ def generate_trials(player: Player):
     return [generate_trial(player, i) for i in range(1, 1 + C.NUM_TRIALS)]
 
 
-def evaluate_trial(trial: Trial):
-    """evaluate trial status and score
-    using already answered trial
-    """
-    assert trial.response_image is not None
+def evaluate_response(trial: Trial, drawing: str):
+    """evaluate response and update trial status and score, return feedback"""
+    trial.response_image = drawing
 
     # analyzing painted area
-    image = image_utils.decode(trial.response_image)
+    image = image_utils.decode(drawing)
     area = image.size[0] * image.size[1]
     side = (image.size[0] + image.size[1]) // 2
 
@@ -91,18 +89,25 @@ def evaluate_trial(trial: Trial):
     lines = drawn / C.CANVAS_FEATHER  # ~~ length of drawn lines
 
     if lines < side:  # too few
-        trial.success = False
-        trial.completed = False
-    else:
-        trial.success = True
-        trial.score = int((drawn / area) * 100) # percentage
-        trial.completed = True
+        return {
+            'success': False,
+            'completed': False,
+        }
+
+    trial.score = int((drawn / area) * 100) # percentage
+    trial.success = True
+    trial.completed = True
+
+    return {
+        "solution": trial.solution,
+        "success": trial.success,
+        "score": trial.score,
+        "completed": trial.completed,
+    }
 
 
 def update_progress(player: Player, trial: Trial):
-    """update players progress
-    using last responded trial
-    """
+    """update players progress using last completed trial"""
     assert trial.completed
 
     player.trials_completed += 1
@@ -154,16 +159,6 @@ def output_trial(trial: Trial):
         "expression": trial.expression,
     }
 
-
-def output_feedback(trial: Trial):
-    return {
-        "solution": trial.solution,
-        "success": trial.success,
-        "score": trial.score,
-        "completed": trial.completed,
-    }
-
-
 #### PAGES ####
 
 
@@ -200,15 +195,16 @@ class Tasks(Page):
         trial = current_trial(player)
 
         assert data["iteration"] == trial.iteration
-        trial.response_time = data["time"]
-        trial.response_image = data['response']
 
-        evaluate_trial(trial)
-        yield "feedback", output_feedback(trial)
+        trial.response_time = data["time"]
+
+        feedback = evaluate_response(trial, data["drawing"])
+        yield "feedback", feedback
 
         if trial.completed:
             update_progress(player, trial)
             yield "progress", output_progress(player)
+
 
     @staticmethod
     def before_next_page(player: Player, timeout_happened):

@@ -47,8 +47,8 @@ class Trial(ExtraModel):
 
     # task fields
     expression = models.StringField()
-    solution = models.IntegerField()
-    suggestion = models.IntegerField()
+    solution = models.StringField()
+    suggestion = models.StringField()
 
     # response fields
     response = models.StringField()
@@ -90,16 +90,14 @@ def generate_trials(player: Player):
     return [generate_trial(player, i) for i in range(1, 1 + C.NUM_TRIALS)]
 
 
-def evaluate_trial(trial: Trial):
+def evaluate_response(trial: Trial, response: str):
     """evaluate trial status and score
     using already answered trial
     """
-    assert trial.response is not None or trial.response_timeout
+    trial.response = response
+    trial.response_timeout = False
 
-    if trial.response_timeout:
-        trial.success = False
-    else:
-        trial.success = (trial.response == trial.correct_answer)
+    trial.success = (trial.response == trial.correct_answer)
 
     if trial.success:
         trial.score = C.SCORE_SUCCESS
@@ -108,11 +106,34 @@ def evaluate_trial(trial: Trial):
 
     trial.completed = True
 
+    return {
+        "solution": trial.solution,
+        "success": trial.success,
+        "score": trial.score,
+        "completed": trial.completed,
+    }
+
+
+def evaluate_timeout(trial: Trial):
+    """evaluate trial status and score
+    using already answered trial
+    """
+    trial.response_timeout = True
+
+    trial.success = False
+    trial.score = C.SCORE_FAILURE
+    trial.completed = True
+
+    return {
+        "solution": trial.solution,
+        "success": trial.success,
+        "score": trial.score,
+        "completed": trial.completed,
+    }
+
 
 def update_progress(player: Player, trial: Trial):
-    """update players progress
-    using last responded trial
-    """
+    """update players progress using last completed trial"""
     assert trial.completed
 
     player.trials_completed += 1
@@ -171,15 +192,6 @@ def output_trial(trial: Trial):
     }
 
 
-def output_feedback(trial: Trial):
-    return {
-        "solution": trial.solution,
-        "success": trial.success,
-        "score": trial.score,
-        "completed": trial.completed,
-    }
-
-
 #### PAGES ####
 
 
@@ -216,30 +228,29 @@ class Tasks(Page):
         trial = current_trial(player)
 
         assert data["iteration"] == trial.iteration
-        trial.response_time = data["time"]
-        trial.response_timeout = False
-        trial.response = data["response"]
 
-        evaluate_trial(trial)
-        yield "feedback", output_feedback(trial)
+        trial.response_time = data["time"]
+
+        feedback = evaluate_response(trial, data["response"])
+        yield "feedback", feedback
 
         update_progress(player, trial)
         yield "progress", output_progress(player)
 
+
     @staticmethod
     def live_timeout(player: Player, data: dict):
         """handle response timeout"""
-
         assert not player.terminated
 
         trial = current_trial(player)
 
         assert data["iteration"] == trial.iteration
-        trial.response_time = data["time"]
-        trial.response_timeout = True
 
-        evaluate_trial(trial)
-        yield "feedback", output_feedback(trial)
+        trial.response_time = data["time"]
+
+        feedback = evaluate_timeout(trial)
+        yield "feedback", feedback
 
         update_progress(player, trial)
         yield "progress", output_progress(player)

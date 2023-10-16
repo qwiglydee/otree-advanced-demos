@@ -9,8 +9,8 @@
 <main ot-class="vars.fading">
     <div class="fs-1 m-3" ot-text="vars.trial.expression"></div>
 
-    <canvas class="m-3" width="{{C.CANVAS_SIZE.0}}" height="{{C.CANVAS_SIZE.1}}"
-            my-draw-input name="answer" feather="{{C.CANVAS_FEATHER}}" color="#000000"></canvas>
+    <canvas class="m-3" width="{{C.CANVAS_SIZE.0}}" height="{{C.CANVAS_SIZE.1}}" my-draw-input name="answer"
+        feather="{{C.CANVAS_FEATHER}}" color="#000000"></canvas>
 
     <button type="button" class="btn btn-primary" ot-input name="commit">Submit</button>
 </main>
@@ -35,7 +35,7 @@
         border: 2px solid rgba(0, 0, 0, .5);
         border-radius: .25rem;
         background: #f8f9fa;
-        box-shadow: 0 3px 1px -2px rgba(0,0,0,.2),0 2px 2px 0 rgba(0,0,0,.14),0 1px 5px 0 rgba(0,0,0,.12);
+        box-shadow: 0 3px 1px -2px rgba(0, 0, 0, .2), 0 2px 2px 0 rgba(0, 0, 0, .14), 0 1px 5px 0 rgba(0, 0, 0, .12);
     }
 </style>
 {{ endblock }}
@@ -56,7 +56,7 @@
     ot.onLive('progress', updateProgress);
     ot.onLive('trial', startTrial);
     ot.onInput('answer', inputAnswer);
-    ot.onInput('commit', function() { ot.commitInput('answer'); });
+    ot.onInput('commit', function () { ot.commitInput('answer'); });
     ot.onLive('feedback', completeTrial);
     ot.onDelete('vars.feedback', displayFeedback);
     ot.onUpdate('vars.feedback', displayFeedback);
@@ -102,16 +102,16 @@
         ot.enableInputs();
     };
 
-    function inputAnswer(image) {
+    function inputAnswer(drawing) {
         ot.disableInputs();
         ot.hideDisplays('prompt');
 
-        vars.response = image;
+        vars.response = drawing;
 
         ot.sendLive('response', { // expecting live feedback and progress
             iteration: vars.trial.iteration,
             time: ot.getTimeMeasurement(),
-            response: image,
+            drawing: drawing,
         });
     };
 
@@ -124,7 +124,7 @@
             ot.delay(TRIAL_DELAY, function () { nextIter(); });
         } else {
             ot.showDisplays(['retry', 'spinner']);
-            ot.delay(RETRY_DELAY, function () {  ot.hideDisplays(['retry', 'spinner']); retryTrial(); });
+            ot.delay(RETRY_DELAY, function () { ot.hideDisplays(['retry', 'spinner']); retryTrial(); });
         }
     };
 

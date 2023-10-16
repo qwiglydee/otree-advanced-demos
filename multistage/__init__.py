@@ -45,17 +45,17 @@ class Trial(ExtraModel):
 
     # task fields
     expression = models.StringField()
-    solution = models.IntegerField()
-    option_1 = models.IntegerField()
-    option_2 = models.IntegerField()
-    option_3 = models.IntegerField()
-    option_4 = models.IntegerField()
+    solution = models.StringField()
+    option_1 = models.StringField()
+    option_2 = models.StringField()
+    option_3 = models.StringField()
+    option_4 = models.StringField()
     choices = models.StringField()
 
     # response fields
-    strategy = models.IntegerField(choices=C.STRATEGIES)
+    strategy = models.StringField(choices=C.STRATEGIES)
     choice = models.IntegerField()     # position
-    response = models.IntegerField()   # value
+    response = models.StringField()   # value
     response_time = models.IntegerField()
 
     # status fields
@@ -120,39 +120,53 @@ def current_trial(player: Player):
     return trial
 
 
-def evaluate_trial(trial: Trial):
-    """evaluate trial status and score
-    using already answered trial
-    """
-    assert trial.response is not None
 
-    trial.completed = True
+def evaluate_strategy(trial: Trial, strategy: str):
+    """evaluate response and update trial status and score, return feedback"""
+    trial.strategy = strategy
+
+    if strategy == 'skip':
+        trial.score = C.SCORE_SKIP
+        trial.completed = True
+        return {
+            "solution": trial.solution,
+            "success": None,
+            "score": trial.score,
+            "completed": True,
+        }
+
+    if strategy == 'reduce':
+        trial.score = C.SCORE_REDUCE
+        reduce_trial(trial)
+
+    return {
+        'choices': tuple(trial.choices),
+        "completed": False,
+    }
+
+
+def evaluate_response(trial: Trial, choice: int):
+    """evaluate response and update trial status and score, return feedback"""
+    trial.choice = choice
+    trial.response = trial.option(choice)
+
     trial.success = trial.response == trial.solution
 
     # NB: success is None when skipped
+    # NB: score might already be set in eval_strategy
     if trial.success is True:
-        trial.score = C.SCORE_SUCCESS
+        trial.score += C.SCORE_SUCCESS
     if trial.success is False:
-        trial.score = C.SCORE_FAILURE
-
-    if trial.strategy == 'reduce':
-        trial.score += C.SCORE_REDUCE
+        trial.score += C.SCORE_FAILURE
 
     trial.completed = True
 
-
-def evaluate_strategy(trial: Trial):
-    assert trial.strategy is not None
-
-    if trial.strategy == 'choose':
-        return
-
-    if trial.strategy == 'skip':
-        trial.score = C.SCORE_SKIP
-        trial.completed = True
-
-    if trial.strategy == 'reduce':
-        reduce_trial(trial)
+    return {
+        "solution": trial.solution,
+        "success": trial.success,
+        "score": trial.score,
+        "completed": True,
+    }
 
 
 def update_progress(player: Player, trial: Trial):
@@ -220,22 +234,6 @@ def output_trial(trial: Trial):
         "response": trial.response,
     }
 
-
-def output_feedback(trial: Trial):
-    if trial.completed:
-        return {
-            "solution": trial.solution,
-            "success": trial.success,
-            "score": trial.score,
-            "completed": True,
-        }
-    else:
-        return {
-            'choices': tuple(trial.choices),
-            "completed": False,
-        }
-
-
 #### PAGES ####
 
 
@@ -264,17 +262,18 @@ class Tasks(Page):
 
     @staticmethod
     def live_strategy(player: Player, data: dict):
+        """handle response from player"""
+
         assert not player.terminated
 
         trial = current_trial(player)
 
         assert data["iteration"] == trial.iteration
-        assert trial.strategy is None
-        trial.strategy = data["strategy"]
 
-        evaluate_strategy(trial)
+        trial.response_time = data["time"]
 
-        yield "feedback", output_feedback(trial)
+        feedback = evaluate_strategy(trial, data["strategy"])
+        yield "feedback", feedback
 
         if trial.completed:
             update_progress(player, trial)
@@ -289,13 +288,11 @@ class Tasks(Page):
         trial = current_trial(player)
 
         assert data["iteration"] == trial.iteration
-        assert trial.response is None and trial.strategy is not None
-        trial.response_time = data["time"]
-        trial.choice = data["choice"]
-        trial.response = trial.option(trial.choice)
 
-        evaluate_trial(trial)
-        yield "feedback", output_feedback(trial)
+        trial.response_time = data["time"]
+
+        feedback = evaluate_response(trial, data["choice"])
+        yield "feedback", feedback
 
         if trial.completed:
             update_progress(player, trial)

@@ -80,11 +80,11 @@
         vars.trial = trial;
         vars.response = null;
         vars.feedback = null;
+        vars.fading = "fadein";
         ot.switchDisplays({ only: 'prompt' });
         ot.resetInputs();
         ot.enableInputs();
         ot.startTimeMeasurement();
-        vars.fading = "fadein";
     };
 
     function retryTrial() {
@@ -100,7 +100,7 @@
         ot.disableInputs();
         ot.hideDisplays('prompt');
 
-        vars.response = parseInt(value);
+        vars.response = value;
 
         ot.sendLive('response', { // expecting live feedback and progress
             iteration: vars.trial.iteration,
@@ -115,11 +115,19 @@
 
         if (feedback.completed) {
             ot.showDisplays(['feedback', 'spinner']);
-            ot.delay(TRIAL_DELAY - FADEOUT_TIME, function () { ot.hideDisplays(['feedback', 'spinner']); vars.fading = "fadeout"; });
-            ot.delay(TRIAL_DELAY, function () { nextIter(); });
+            ot.delay(TRIAL_DELAY - FADEOUT_TIME, function () {
+                ot.hideDisplays(['feedback', 'spinner']);
+                vars.fading = "fadeout";
+            });
+            ot.delay(TRIAL_DELAY, function () {
+                nextIter();
+            });
         } else {
             ot.showDisplays(['retry', 'spinner']);
-            ot.delay(RETRY_DELAY, function () { ot.hideDisplays(['retry', 'spinner']); retryTrial(); });
+            ot.delay(RETRY_DELAY, function () {
+                ot.hideDisplays(['retry', 'spinner']);
+                retryTrial();
+            });
         }
     };
 

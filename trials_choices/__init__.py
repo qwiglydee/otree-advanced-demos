@@ -41,14 +41,14 @@ class Trial(ExtraModel):
 
     # task fields
     expression = models.StringField()
-    solution = models.IntegerField()
-    option_1 = models.IntegerField()
-    option_2 = models.IntegerField()
-    option_3 = models.IntegerField()
-    option_4 = models.IntegerField()
+    solution = models.StringField()
+    option_1 = models.StringField()
+    option_2 = models.StringField()
+    option_3 = models.StringField()
+    option_4 = models.StringField()
 
     # response fields
-    choice = models.IntegerField()     # position
+    choice = models.IntegerField()
     response = models.StringField()
     response_time = models.IntegerField()
 
@@ -57,14 +57,13 @@ class Trial(ExtraModel):
     success = models.BooleanField()
     score = models.IntegerField(initial=0)
 
-    def option(self, num):
-        "get an option by number"
-        options = (self.option_1, self.option_2, self.option_3, self.option_4)
-        return options[num-1]
+    def option(self, pos):
+        """get an option value by its position"""
+        return (self.option_1, self.option_2, self.option_3, self.option_4)[pos-1]
 
     def correct_choice(self):
-        options = (self.option_1, self.option_2, self.option_3, self.option_4)
-        return options.index(self.solution) + 1
+        """return position of the correct answer"""
+        return (self.option_1, self.option_2, self.option_3, self.option_4).index(self.solution) + 1
 
 
 def generate_trial(player: Player, iteration: int):
@@ -105,28 +104,31 @@ def current_trial(player: Player):
     return trial
 
 
-def evaluate_trial(trial: Trial):
-    """evaluate trial status and score
-    using already answered trial
-    """
-    assert trial.response is not None
+def evaluate_response(trial: Trial, choice: int):
+    """evaluate response and update trial status and score, return feedback"""
 
-    if trial.response == 0:
-        # not accepting 0 and not completing
-        trial.success = False
+    trial.choice = choice
+    trial.response = trial.option(trial.choice)
+
+    trial.success = trial.response == trial.solution
+    if trial.success:
+        trial.score = C.SCORE_SUCCESS
     else:
-        trial.success = trial.response == trial.solution
-        if trial.success:
-            trial.score = C.SCORE_SUCCESS
-        else:
-            trial.score = C.SCORE_FAILURE
-        trial.completed = True
+        trial.score = C.SCORE_FAILURE
+
+    trial.completed = True
+
+    return {
+        "solution": trial.solution,
+        "success": trial.success,
+        "score": trial.score,
+        "completed": trial.completed,
+    }
+
 
 
 def update_progress(player: Player, trial: Trial):
-    """update players progress
-    using last responded trial
-    """
+    """update players progress using last completed trial """
     assert trial.completed
 
     player.total_score += trial.score
@@ -185,16 +187,6 @@ def output_trial(trial: Trial):
         "response": trial.response,
     }
 
-
-def output_feedback(trial: Trial):
-    return {
-        "solution": trial.solution,
-        "success": trial.success,
-        "score": trial.score,
-        "completed": trial.completed,
-    }
-
-
 #### PAGES ####
 
 
@@ -230,12 +222,11 @@ class Tasks(Page):
         trial = current_trial(player)
 
         assert data["iteration"] == trial.iteration
-        trial.choice = data["choice"]
-        trial.response = trial.option(trial.choice)
+
         trial.response_time = data["time"]
 
-        evaluate_trial(trial)
-        yield "feedback", output_feedback(trial)
+        feedback = evaluate_response(trial, data["choice"])
+        yield "feedback", feedback
 
         if trial.completed:
             update_progress(player, trial)
