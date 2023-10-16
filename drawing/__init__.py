@@ -114,10 +114,9 @@ def update_progress(player: Player, trial: Trial):
 
 def current_trial(player: Player):
     """retrieve current trial"""
-    assert not player.terminated
-    trials = Trial.filter(player=player, iteration=player.trials_completed + 1)
-    assert len(trials) == 1
-    return trials[0]
+    assert player.trials_completed < C.NUM_TRIALS
+    [trial] = Trial.filter(player=player, iteration=player.trials_completed + 1)
+    return trial
 
 
 #### INIT ####

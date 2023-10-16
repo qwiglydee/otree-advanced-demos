@@ -101,17 +101,21 @@ def update_progress(player: Player, trial: Trial):
     else:
         player.trials_failed += 1
 
-    player.terminated = player.trials_completed >= C.MAX_TRIALS or player.trials_failed == C.MAX_FAILURES
+    player.terminated = player.trials_completed >= C.MAX_TRIALS or player.trials_failed >= C.MAX_FAILURES
 
 
 def current_trial(player: Player):
-    """retrieve current trial (maybe incomplete) or generate a new trial"""
-    assert not player.terminated
+    """retrieve current trial"""
+    assert player.trials_completed < C.MAX_TRIALS
+    # it may fail if not yet generated
     trials = Trial.filter(player=player, iteration=player.trials_completed + 1)
     if len(trials) == 1:
         return trials[0]
-    else:
-        return generate_trial(player, player.trials_completed + 1)
+
+
+def next_trial(player: Player):
+    """generate next trial"""
+    return generate_trial(player, player.trials_completed + 1)
 
 
 #### INIT ####
@@ -181,9 +185,14 @@ class Tasks(Page):
 
         yield "progress", output_progress(player)
 
-        if not player.terminated:
-            trial = current_trial(player)
-            yield "trial", output_trial(trial)
+        if player.terminated:
+            return
+
+        trial = current_trial(player)
+        if trial is None:
+            trial = next_trial(player)
+
+        yield "trial", output_trial(trial)
 
     @staticmethod
     def live_response(player: Player, data: dict):
@@ -192,10 +201,11 @@ class Tasks(Page):
         assert not player.terminated
 
         trial = current_trial(player)
+        assert trial is not None and not trial.completed
 
         assert data["iteration"] == trial.iteration
-        trial.response_time = data["time"]
         trial.response = data["response"]
+        trial.response_time = data["time"]
 
         evaluate_trial(trial)
         yield "feedback", output_feedback(trial)

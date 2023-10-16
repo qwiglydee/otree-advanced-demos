@@ -101,10 +101,9 @@ def generate_trials(player: Player):
 
 def current_trial(player: Player):
     """retrieve current trial"""
-    assert not player.terminated
-    trials = Trial.filter(player=player, iteration=player.trials_completed + 1)
-    assert len(trials) == 1
-    return trials[0]
+    assert player.trials_completed < C.NUM_TRIALS
+    [trial] = Trial.filter(player=player, iteration=player.trials_completed + 1)
+    return trial
 
 
 def evaluate_trial(trial: Trial):
@@ -137,7 +136,7 @@ def update_progress(player: Player, trial: Trial):
     else:
         player.trials_failed += 1
 
-    player.terminated = player.trials_completed == C.NUM_TRIALS or player.trials_failed == C.MAX_FAILURES
+    player.terminated = player.trials_completed == C.NUM_TRIALS or player.trials_failed >= C.MAX_FAILURES
 
 
 #### INIT ####
@@ -233,8 +232,8 @@ class Tasks(Page):
         assert not player.terminated
 
         trial = current_trial(player)
-        assert data["iteration"] == trial.iteration
 
+        assert data["iteration"] == trial.iteration
         if "choice" in data:
             assert trial.response is None
             trial.choice = data["choice"]
