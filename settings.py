@@ -53,17 +53,6 @@ SESSION_CONFIGS = [
         app_sequence=["phases"],
     ),
     dict(
-        name="multiplayer",
-        display_name="Multiplayer: multiplayer game with dropouts and autogrouping",
-        app_sequence=["multiplayer_screener", "multiplayer_game"],
-        num_demo_participants=3,
-    ),
-    dict(
-        name="multiplayer_alone",
-        app_sequence=["multiplayer_game"],
-        num_demo_participants=3,
-    ),
-    dict(
         name="dumb",
         display_name="just a dumb app for testing",
         app_sequence=["dumb"],
