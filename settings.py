@@ -52,11 +52,11 @@ SESSION_CONFIGS = [
     #     display_name="Phases: time schedued trial phases",
     #     app_sequence=["phases"],
     # ),
-    # dict(
-    #     name="dumb",
-    #     display_name="just a dumb app for testing",
-    #     app_sequence=["dumb"],
-    # ),
+    dict(
+        name="dumb",
+        display_name="just a dumb app for testing",
+        app_sequence=["dumb"],
+    ),
 ]
 
 SESSION_CONFIG_DEFAULTS = dict(
