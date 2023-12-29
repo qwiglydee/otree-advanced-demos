@@ -1,62 +1,62 @@
 from os import environ
 
 SESSION_CONFIGS = [
-    dict(
-        name="trials_simple",
-        display_name="Simple Trials (pregenerated)",
-        app_sequence=["trials_simple"],
-    ),
-    dict(
-        name="trials_infinite",
-        display_name="Simple Trials (infinite series)",
-        app_sequence=["trials_infinite"],
-    ),
-    dict(
-        name="trials_choices",
-        display_name="Choices: answering options",
-        app_sequence=["trials_choices"],
-    ),
-    dict(
-        name="captcha",
-        display_name="Captcha: generated images",
-        app_sequence=["captcha"]
-    ),
-    dict(
-        name="drawing",
-        display_name="Drawing: freehand drawing input",
-        app_sequence=["drawing"]
-    ),
-    dict(
-        name="multistep",
-        display_name="Multiple inputs",
-        app_sequence=["multistep"],
-    ),
-    dict(
-        name="multistage",
-        display_name="Multiple stages with conditional workflow",
-        app_sequence=["multistage"],
-    ),
-    dict(
-        name="sliders",
-        display_name="Sliders task",
-        app_sequence=["sliders"],
-    ),
-    dict(
-        name="voting",
-        display_name="Real-time voting and chatting",
-        app_sequence=["voting"],
-        num_demo_participants=3,
-    ),
-    dict(
-        name="phases",
-        display_name="Phases: time schedued trial phases",
-        app_sequence=["phases"],
-    ),
-    dict(
-        name="dumb",
-        display_name="just a dumb app for testing",
-        app_sequence=["dumb"],
-    ),
+    # dict(
+    #     name="trials_simple",
+    #     display_name="Simple Trials (pregenerated)",
+    #     app_sequence=["trials_simple"],
+    # ),
+    # dict(
+    #     name="trials_infinite",
+    #     display_name="Simple Trials (infinite series)",
+    #     app_sequence=["trials_infinite"],
+    # ),
+    # dict(
+    #     name="trials_choices",
+    #     display_name="Choices: answering options",
+    #     app_sequence=["trials_choices"],
+    # ),
+    # dict(
+    #     name="captcha",
+    #     display_name="Captcha: generated images",
+    #     app_sequence=["captcha"]
+    # ),
+    # dict(
+    #     name="drawing",
+    #     display_name="Drawing: freehand drawing input",
+    #     app_sequence=["drawing"]
+    # ),
+    # dict(
+    #     name="multistep",
+    #     display_name="Multiple inputs",
+    #     app_sequence=["multistep"],
+    # ),
+    # dict(
+    #     name="multistage",
+    #     display_name="Multiple stages with conditional workflow",
+    #     app_sequence=["multistage"],
+    # ),
+    # dict(
+    #     name="sliders",
+    #     display_name="Sliders task",
+    #     app_sequence=["sliders"],
+    # ),
+    # dict(
+    #     name="voting",
+    #     display_name="Real-time voting and chatting",
+    #     app_sequence=["voting"],
+    #     num_demo_participants=3,
+    # ),
+    # dict(
+    #     name="phases",
+    #     display_name="Phases: time schedued trial phases",
+    #     app_sequence=["phases"],
+    # ),
+    # dict(
+    #     name="dumb",
+    #     display_name="just a dumb app for testing",
+    #     app_sequence=["dumb"],
+    # ),
 ]
 
 SESSION_CONFIG_DEFAULTS = dict(
