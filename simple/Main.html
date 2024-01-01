@@ -1,0 +1,144 @@
+{{ block content }}
+
+<header>
+    <ot-progress ticks="1" max="vars.progress.total" val="vars.progress.played" val2="vars.trial.iteration">
+    </ot-progress>
+    <div class="alert alert-info m-2">Total score: <b ot-text="vars.progress.score"></b></div>
+</header>
+
+<main ot-fade>
+    <div class="fs-1 m-3" ot-text="vars.trial.expression"></div>
+
+    <div class="input-group">
+        <span class="input-group-text">=</span>
+        <input type="number" class="form-control" ot-class="vars.feedback_style" ot-input name="answer" ot-key-input="Enter" autofocus value="">
+    </div>
+</main>
+
+<footer>
+    <p id="prompt">Enter your answer and press <kbd>Enter</kbd>.</p>
+    <p id="feedback-gain">You <i ot-text="vars.gain_txt"></i></p>
+    <p id="feedback-retry">Your answer <b ot-text="vars.answer"></b> is not accepted, try again.</p>
+    <ot-pulse id="spinner"></ot-pulse>
+</footer>
+
+{{ endblock }}
+
+{{ block styles }}
+<link rel="stylesheet" href="{{ static 'fullscreen.css' }}">
+<link rel="stylesheet" href="{{ static 'otree-front-ext.css' }}">
+<link rel="stylesheet" href="{{ static 'ot-progress.css' }}">
+{{ endblock }}
+
+{{ block scripts }}
+<script src="{{ static 'otree-front-2.0.b1.js' }}"></script>
+<script src="{{ static 'otree-front-ext.js' }}"></script>
+<script src="{{ static 'otree-front-live.js' }}"></script>
+<script src="{{ static 'ot-progress.js' }}"></script>
+<script src="{{ static 'format_score.js' }}"></script>
+
+<script>
+    "use strict";
+
+    const FEEDBACK_DELAY = js_vars.C.FEEDBACK_DELAY;
+    const RETRY_DELAY = js_vars.C.RETRY_DELAY;
+    const FADEOUT_TIME = parseInt(getStyleProp("--ot-fade-out-time"));
+
+    ot.onEvent('loaded', startGame);
+    ot.onEvent('live', 'progress', onLive(liveProgress));
+    ot.onEvent('live', 'trial', onLive(liveTrial));
+    ot.onEvent('input', 'answer', onInput(inputAnswer));
+    ot.onEvent('live', 'feedback', onLive(liveFeedback));
+    ot.onEvent('live', 'failure', onLive(function (_, message) { alert(message); ot.submitPage(); }));
+
+    function startGame() {
+        ot.disableInputs();
+        vars.progress = {};
+        nextIter();
+        // expecting live trial and progress...
+    };
+
+    function liveProgress(name, data) {
+        vars.progress = data;
+    };
+
+    function nextIter() {
+        if (vars.progress.terminated) {
+            // postponed termination
+            ot.submitPage();
+        } else {
+            sendLive('iter');
+            // expecting live trial and progress...
+        }
+    }
+
+    function liveTrial(name, data) {
+        fadeIn();
+        vars.trial = data;
+        resetTrial();
+        ot.beginTimeMeasurement();
+    };
+
+    function resetTrial() {
+        vars.answer = null;
+        clearFeedback();
+        ot.resetInputs();
+        ot.enableInputs();
+        ot.showDisplays('prompt');
+    }
+
+    function inputAnswer(name, value) {
+        if (value === "") return;
+        ot.disableInputs();
+        ot.hideDisplays('prompt');
+
+        vars.answer = value;
+
+        sendLive('response', {
+            iteration: vars.trial.iteration,
+            time: ot.getTimeMeasurement(),
+            answer: vars.answer
+        });
+        // expecting live feedback and progress...
+    };
+
+
+    async function liveFeedback(name, data) {
+        vars.feedback = data;
+        displayFeedback();
+
+        if (vars.feedback.completed) {
+            ot.showDisplays('spinner');
+            await ot.delay(FEEDBACK_DELAY);
+            fadeOut();
+            await ot.delay(FADEOUT_TIME);
+            ot.hideDisplays('spinner');
+            clearFeedback();
+            nextIter();
+        } else {
+            ot.showDisplays('spinner');
+            await ot.delay(RETRY_DELAY);
+            ot.hideDisplays('spinner');
+            clearFeedback();
+            resetTrial();
+        }
+    };
+
+    function clearFeedback() {
+        ot.hideDisplays(['feedback-gain', 'feedback-retry']);
+        vars.feedback_style = null;
+        vars.gain_txt = null;
+    }
+
+    function displayFeedback() {
+        if (vars.feedback.completed) {
+            ot.showDisplays('feedback-gain');
+            vars.feedback_style = vars.feedback.success ? "is-valid" : "is-invalid";
+            vars.gain_txt = format_gain(vars.feedback.score);
+        } else {
+            ot.showDisplays(['feedback-retry']);
+        }
+    }
+
+</script>
+{{ endblock }}

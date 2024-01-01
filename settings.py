@@ -1,11 +1,12 @@
 from os import environ
 
 SESSION_CONFIGS = [
-    # dict(
-    #     name="trials_simple",
-    #     display_name="Simple Trials (pregenerated)",
-    #     app_sequence=["trials_simple"],
-    # ),
+    dict(
+        name="trials_simple",
+        display_name="Simple trials",
+        app_sequence=["simple"],
+        condition="random",
+    ),
     # dict(
     #     name="trials_infinite",
     #     display_name="Simple Trials (infinite series)",
