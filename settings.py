@@ -13,11 +13,18 @@ SESSION_CONFIGS = [
         app_sequence=["infinite"],
         condition="random",
     ),
-    # dict(
-    #     name="trials_choices",
-    #     display_name="Choices: answering options",
-    #     app_sequence=["trials_choices"],
-    # ),
+    dict(
+        name="trials_choices_buttons",
+        display_name="Choices with buttons",
+        app_sequence=["choices"],
+        condition="random",
+    ),
+    dict(
+        name="trials_choices_radio",
+        display_name="Choices with radio",
+        app_sequence=["choices2"],
+        condition="random",
+    ),
     # dict(
     #     name="captcha",
     #     display_name="Captcha: generated images",
