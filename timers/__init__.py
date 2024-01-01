@@ -6,7 +6,7 @@ from utils.live import live_page
 
 
 class C(BaseConstants):
-    NAME_IN_URL = "infinite"
+    NAME_IN_URL = "timers"
     PLAYERS_PER_GROUP = None
     NUM_ROUNDS = 1
 
@@ -14,12 +14,14 @@ class C(BaseConstants):
 
     MAX_FAILURES = 3  # num of failures to abort the game
 
-    PAGE_TIMEOUT = 300  # total time limit for tasks page (seconds)
-    FEEDBACK_DELAY = 2000  # time (ms) to show feedback before next trial
-    RETRY_DELAY = 1000  # time (ms) to show feedback before retrying
+    PAGE_TIMEOUT = 300  # (seconds) total time limit for tasks page
+    TRIAL_TIMEOUT = 5 # (seconds) time limit for single trial
+    FEEDBACK_DELAY = 2000  # (ms) time to show feedback before next trial
+    RETRY_DELAY = 1000  # (ms) time to show feedback before retrying
 
     SCORE_SUCCESS = +10
     SCORE_FAILURE = -1
+    SCORE_TIMEOUT = 0
 
 
 class Subsession(BaseSubsession):
@@ -41,7 +43,7 @@ class Trial(ExtraModel):
     player = models.Link(Player)
     iteration = models.IntegerField(min=1)
     # status fields
-    status = models.StringField(choices=['NEW', 'LOADED', 'COMPLETED'], initial='NEW')
+    status = models.StringField(choices=['NEW', 'LOADED', 'TIMEOUTED', 'COMPLETED'], initial='NEW')
     success = models.BooleanField(initial=None)
     score = models.IntegerField(initial=0)
     # task fields
@@ -83,13 +85,6 @@ def evaluate_response(trial: Trial, response: dict):
 
     answer = response["answer"]
 
-    # allow retry when out of range
-    if not 22 < answer < 198:
-        return {
-            'success': False,
-            'completed': False,
-        }
-
     trial.answer = answer
     trial.success = trial.answer == trial.solution
 
@@ -105,6 +100,22 @@ def evaluate_response(trial: Trial, response: dict):
         "success": trial.success,
         "score": trial.score,
         "completed": True,
+    }
+
+def evaluate_timeout(trial: Trial, response: dict):
+    """trial has timed out without answer"""
+    assert response["iteration"] == trial.iteration
+
+    trial.success = False
+    trial.score = C.SCORE_TIMEOUT
+
+    trial.status = 'TIMEOUTED'
+
+    return {
+        "success": trial.success,
+        "score": trial.score,
+        "completed": True,
+        "timeouted": True,
     }
 
 
@@ -214,6 +225,17 @@ class Main(Page):
 
         if feedback['completed']:
             trial.response_time = data["time"]
+
+        yield "progress", output_progress(player)
+        yield "feedback", feedback
+
+    @staticmethod
+    def live_timeout(player: Player, data: dict):
+        trial = current_trial(player)
+        assert trial is not None
+
+        feedback = evaluate_timeout(trial, data)
+        update_progress(player, feedback)
 
         yield "progress", output_progress(player)
         yield "feedback", feedback

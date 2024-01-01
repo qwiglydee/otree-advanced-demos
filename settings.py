@@ -8,12 +8,6 @@ SESSION_CONFIGS = [
         condition="random",
     ),
     dict(
-        name="trials_infinite",
-        display_name="Infinite trials",
-        app_sequence=["infinite"],
-        condition="random",
-    ),
-    dict(
         name="trials_choices_buttons",
         display_name="Choices with buttons",
         app_sequence=["choices"],
@@ -23,6 +17,18 @@ SESSION_CONFIGS = [
         name="trials_choices_radio",
         display_name="Choices with radio",
         app_sequence=["choices2"],
+        condition="random",
+    ),
+    dict(
+        name="trials_infinite",
+        display_name="Infinite trials",
+        app_sequence=["infinite"],
+        condition="random",
+    ),
+    dict(
+        name="trials_infinite_timers",
+        display_name="Infinite trials with timers",
+        app_sequence=["timers"],
         condition="random",
     ),
     # dict(

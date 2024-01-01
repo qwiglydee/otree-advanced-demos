@@ -1,0 +1,194 @@
+{{ block content }}
+
+<header>
+    <ot-progress class="timer timer-page" max="vars.page_timer.total" val="vars.page_timer.elapsed"></ot-progress>
+    <div class="alert alert-info m-2">Total score: <b ot-text="vars.progress.score"></b></div>
+</header>
+
+<main ot-fade>
+    <div class="fs-1 m-3" ot-text="vars.trial.expression"></div>
+
+    <div class="input-group">
+        <span class="input-group-text">=</span>
+        <input type="number" class="form-control" ot-class="vars.feedback_style" ot-input name="answer" ot-key-input="Enter" autofocus value="">
+        <ot-progress class="timer timer-trial" max="vars.trial_timer.total" val="vars.trial_timer.elapsed"></ot-progress>
+    </div>
+</main>
+
+<footer>
+    <p id="prompt">Enter your answer and press <kbd>Enter</kbd>.</p>
+    <p id="feedback-timeout">You have run out of time.</p>
+    <p id="feedback-gain">You <i ot-text="vars.gain_txt"></i></p>
+    <ot-pulse id="spinner"></ot-pulse>
+</footer>
+
+{{ endblock }}
+
+{{ block styles }}
+<link rel="stylesheet" href="{{ static 'fullscreen.css' }}">
+<link rel="stylesheet" href="{{ static 'otree-front-ext.css' }}">
+<link rel="stylesheet" href="{{ static 'ot-progress.css' }}">
+<style>
+    .otree-timer {
+        display: none;
+    }
+    ot-progress.timer {
+        --ot-progress-animation-style: linear;
+    }
+    ot-progress.timer-page {
+        --ot-progress-animation-time: 1s;
+    }
+    ot-progress.timer-trial {
+        --ot-progress-animation-time: 500ms;
+    }
+</style>
+{{ endblock }}
+
+{{ block scripts }}
+<script src="{{ static 'otree-front-2.0.b1.js' }}"></script>
+<script src="{{ static 'otree-front-ext.js' }}"></script>
+<script src="{{ static 'otree-front-live.js' }}"></script>
+<script src="{{ static 'ot-progress.js' }}"></script>
+<script src="{{ static 'format_score.js' }}"></script>
+
+<script>
+    "use strict";
+
+    const PAGE_TIMEOUT = js_vars.C.PAGE_TIMEOUT; // (seconds)
+    const TRIAL_TIMEOUT = js_vars.C.TRIAL_TIMEOUT * 1000; // (ms)
+    const FEEDBACK_DELAY = js_vars.C.FEEDBACK_DELAY;
+
+    const TIMEOUT_STEP = parseInt(getStyleProp("--ot-progress-animation-time", ".timer-trial"));
+    const FADEOUT_TIME = parseInt(getStyleProp("--ot-fade-out-time"));
+
+    ot.onEvent('loaded', startGame);
+    ot.onEvent('live', 'progress', onLive(liveProgress));
+    ot.onEvent('live', 'trial', onLive(liveTrial));
+    ot.onEvent('input', 'answer', onInput(inputAnswer));
+    ot.onEvent('live', 'feedback', onLive(liveFeedback));
+    ot.onEvent('live', 'failure', onLive(function (_, message) { alert(message); ot.submitPage(); }));
+    ot.onEvent('countdown', onCountdown(updatePageTimer));
+    ot.onEvent('timer', 'timebar', onTimer(updateTrialTimer));
+    ot.onEvent('timer', 'timeout', onTimer(timeoutTrial));
+
+    function startGame() {
+        ot.disableInputs();
+        vars.progress = {};
+        vars.page_timer = { total: PAGE_TIMEOUT };
+        vars.trial_timer = { total: TRIAL_TIMEOUT };
+        nextIter();
+        // expecting live trial and progress...
+    };
+
+    function updatePageTimer(remaining) {
+        // animation target value is next step
+        vars.page_timer.elapsed = PAGE_TIMEOUT - remaining + 1;
+    }
+
+    async function updateTrialTimer(name, elapsed, count) {
+        if (count == 0) {
+            // reset the bar, w/out animation
+            vars.trial_timer.elapsed = null;
+            await ot.delay(15);
+        }
+        // target bar animation to a next step, aligned by even intervals
+        vars.trial_timer.elapsed = (count + 1) * TIMEOUT_STEP;
+    }
+
+    function liveProgress(name, data) {
+        vars.progress = data;
+    };
+
+    function nextIter() {
+        if (vars.progress.terminated) {
+            // postponed termination
+            ot.submitPage();
+        } else {
+            sendLive('iter');
+            // expecting live trial and progress...
+        }
+    }
+
+    function liveTrial(name, data) {
+        fadeIn();
+        vars.trial = data;
+        resetTrial();
+        ot.beginTimeMeasurement();
+        ot.startTimer('timeout', TRIAL_TIMEOUT);
+        ot.startTimerPeriodic('timebar', TIMEOUT_STEP);
+    };
+
+    function resetTrial() {
+        vars.answer = null;
+        clearFeedback();
+        ot.resetInputs();
+        ot.enableInputs();
+        ot.showDisplays('prompt');
+    }
+
+    function inputAnswer(name, value) {
+        if (value === "") return;
+        ot.disableInputs();
+        ot.hideDisplays('prompt');
+        ot.cancelTimer('timebar');
+        ot.cancelTimer('timeout');
+
+        vars.answer = Number(value);
+
+        sendLive('response', {
+            iteration: vars.trial.iteration,
+            time: ot.getTimeMeasurement(),
+            answer: vars.answer
+        });
+        // expecting live feedback and progress...
+    };
+
+    function timeoutTrial() {
+        ot.disableInputs();
+        ot.hideDisplays('prompt');
+        ot.cancelTimer('timebar');
+        ot.cancelTimer('timeout');
+
+        sendLive('timeout', {
+            iteration: vars.trial.iteration,
+            time: ot.getTimeMeasurement(),
+        });
+        // expecting live feedback and progress...
+    }
+
+
+    async function liveFeedback(name, data) {
+        vars.feedback = data;
+
+        displayFeedback();
+        ot.showDisplays('spinner');
+        await ot.delay(FEEDBACK_DELAY);
+
+        ot.hideDisplays('spinner');
+        clearFeedback();
+
+        fadeOut();
+        await ot.delay(FADEOUT_TIME);
+
+        nextIter();
+    };
+
+    function clearFeedback() {
+        ot.hideDisplays(['feedback-gain', 'feedback-timeout']);
+        vars.feedback_style = null;
+        vars.gain_txt = null;
+    }
+
+    function displayFeedback() {
+        if (vars.feedback.timeouted) {
+            ot.showDisplays(['feedback-gain', 'feedback-timeout']);
+            vars.gain_txt = format_gain(vars.feedback.score);
+        } else if (vars.feedback.completed) {
+            ot.showDisplays(['feedback-gain']);
+            vars.feedback_style = vars.feedback.success ? "is-valid" : "is-invalid";
+            vars.gain_txt = format_gain(vars.feedback.score);
+        }
+    }
+
+</script>
+{{ endblock }}
