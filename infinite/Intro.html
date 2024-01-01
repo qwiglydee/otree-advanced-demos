@@ -1,0 +1,19 @@
+{{ block title }}
+Intro
+{{ endblock }}
+
+{{ block content }}
+
+<p>
+    Your task is to solve simple math expressions.
+</p>
+
+<p>
+    The game lasts for {{C.PAGE_TIMEOUT}} seconds.
+    The more you solve correctly, the better.
+    You are allowed to make no more than {{C.MAX_FAILURES}} failures.
+</p>
+
+{{ next_button }}
+
+{{ endblock }}

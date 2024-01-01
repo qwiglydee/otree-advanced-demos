@@ -7,11 +7,12 @@ SESSION_CONFIGS = [
         app_sequence=["simple"],
         condition="random",
     ),
-    # dict(
-    #     name="trials_infinite",
-    #     display_name="Simple Trials (infinite series)",
-    #     app_sequence=["trials_infinite"],
-    # ),
+    dict(
+        name="trials_infinite",
+        display_name="Infinite trials",
+        app_sequence=["infinite"],
+        condition="random",
+    ),
     # dict(
     #     name="trials_choices",
     #     display_name="Choices: answering options",
