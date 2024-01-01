@@ -1,0 +1,19 @@
+{{ block title }}
+Intro
+{{ endblock }}
+
+{{ block content }}
+
+<p>
+    Your task is to solve simple math expressions.
+</p>
+
+<p>
+    The game consists of {{C.NUM_TRIALS}} trials and lasts for {{C.PAGE_TIMEOUT}} seconds.
+    You have {{C.TRIAL_TIMEOUT}} seconds for your answer.
+    The more you solve correctly, the better.
+</p>
+
+{{ next_button }}
+
+{{ endblock }}

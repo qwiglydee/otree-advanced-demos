@@ -1,0 +1,174 @@
+{{ block content }}
+
+<header>
+    <ot-progress ticks="1" max="vars.progress.total" val="vars.progress.played" val2="vars.trial.iteration"></ot-progress>
+</header>
+
+<main ot-fade>
+    <div ot-switch class="text-center">
+        <div ot-switched id="phase-aim" class="icon">✛</div>
+        <div ot-switched id="phase-stimulus" class="fs-1">
+            <span ot-text="vars.trial.expression"></span>=<span ot-text="vars.trial.suggestion"></span>
+        </div>
+        <div ot-switched id="phase-response" class="icon">?</div>
+        <div ot-switched id="feedback-success" class="icon text-success">✔</div>
+        <div ot-switched id="feedback-failure" class="icon text-danger">✘</div>
+        <div ot-switched id="feedback-timeout" class="icon text-danger">⌛</div>
+    </div>
+</main>
+
+<footer>
+    <ot-pulse id="spinner"></ot-pulse>
+    <p>
+        Press <kbd ot-key-input="y" name="answer" value="Y">Y</kbd> if the expression is
+        correct,
+        press <kbd ot-key-input="n" name="answer" value="N">N</kbd> if it's not,
+    </p>
+    <p>Only answer when you see <code>?</code></p>
+</footer>
+
+{{ endblock }}
+
+{{ block styles }}
+<link rel="stylesheet" href="{{ static 'fullscreen.css' }}">
+<link rel="stylesheet" href="{{ static 'otree-front-ext.css' }}">
+<link rel="stylesheet" href="{{ static 'ot-progress.css' }}">
+<style>
+    :root {
+        --ot-fade-out-time: 100ms;
+        --ot-fade-in-time: 50ms;
+        --ot-switch-time: 150ms;
+    }
+    .icon {
+        font-size: xxx-large;
+    }
+</style>
+{{ endblock }}
+
+{{ block scripts }}
+<script src="{{ static 'otree-front-2.0.b1.js' }}"></script>
+<script src="{{ static 'otree-front-ext.js' }}"></script>
+<script src="{{ static 'otree-front-live.js' }}"></script>
+<script src="{{ static 'ot-progress.js' }}"></script>
+<script src="{{ static 'format_score.js' }}"></script>
+
+<script>
+    "use strict";
+
+    const SCHEDULE_SEQUENCE = js_vars.C.SCHEDULE.filter(e => typeof(e) == 'number');
+    const SCHEDULE_PHASES = js_vars.C.SCHEDULE.filter(e => typeof(e) == 'string');
+    const RESPONSE_TIMEOUT = js_vars.C.RESPONSE_TIMEOUT;
+    const FEEDBACK_DELAY = js_vars.C.FEEDBACK_DELAY;
+    const FADEOUT_TIME = parseInt(getStyleProp("--ot-fade-out-time"));
+
+    ot.onEvent('loaded', startGame);
+    ot.onEvent('live', 'progress', onLive(liveProgress));
+    ot.onEvent('live', 'trial', onLive(liveTrial));
+    ot.onEvent('input', 'answer', onInput(inputAnswer));
+    ot.onEvent('live', 'feedback', onLive(liveFeedback));
+    ot.onEvent('live', 'failure', onLive(function (_, message) { alert(message); ot.submitPage(); }));
+    ot.onEvent('timer', 'phase', onTimer(switchPhase));
+    ot.onEvent('timer', 'timeout', onTimer(timeoutAnswer));
+
+    function startGame() {
+        ot.disableInputs();
+        vars.progress = {};
+        nextIter();
+        // expecting live trial and progress...
+    };
+
+    function liveProgress(name, data) {
+        vars.progress = data;
+    };
+
+    function nextIter() {
+        if (vars.progress.terminated) {
+            // postponed termination
+            ot.submitPage();
+        } else {
+            sendLive('iter');
+            // expecting live trial and progress...
+        }
+    }
+
+    function liveTrial(name, data) {
+        fadeIn();
+        vars.trial = data;
+        vars.answer = null;
+        vars.feedback = null;
+        clearFeedback();
+        ot.switchDisplays('phase-none');
+        ot.startTimerSequence('phase', SCHEDULE_SEQUENCE);
+        console.debug("started");
+    };
+
+    function switchPhase(name, elapsed, count) {
+        let phase = SCHEDULE_PHASES[count];  // NB: count starts at 0
+        ot.switchDisplays(`phase-${phase}`);
+
+        if (phase == 'response') {
+            ot.enableInputs();
+            ot.beginTimeMeasurement();
+            ot.startTimer('timeout', RESPONSE_TIMEOUT);
+        }
+    }
+
+    function inputAnswer(name, value) {
+        ot.disableInputs();
+        ot.cancelTimer('phase');
+        ot.cancelTimer('timeout');
+        ot.switchDisplays(`phase-none`);
+
+        vars.answer = value;
+
+        sendLive('response', {
+            iteration: vars.trial.iteration,
+            time: ot.getTimeMeasurement(),
+            answer: vars.answer
+        });
+        // expecting live feedback and progress...
+    };
+
+    function timeoutAnswer() {
+        ot.disableInputs();
+        ot.cancelTimer('phase');
+        ot.switchDisplays(`phase-none`);
+
+        sendLive('timeout', {
+            iteration: vars.trial.iteration,
+            time: ot.getTimeMeasurement(),
+        });
+        // expecting live feedback and progress...
+    }
+
+    async function liveFeedback(name, data) {
+        vars.feedback = data;
+
+        displayFeedback();
+        ot.showDisplays('spinner');
+        await ot.delay(FEEDBACK_DELAY);
+        clearFeedback();
+        ot.hideDisplays('spinner');
+
+        fadeOut();
+        await ot.delay(FADEOUT_TIME);
+
+        nextIter();
+    };
+
+    function clearFeedback() {
+        ot.switchDisplays('feedback-none');
+    }
+
+    function displayFeedback() {
+        if (vars.feedback.timeouted) {
+            ot.showDisplays('feedback-timeout');
+        } else if (vars.feedback.success) {
+            ot.showDisplays('feedback-success');
+        } else {
+            ot.showDisplays('feedback-failure');
+        }
+    }
+
+</script>
+{{ endblock }}

@@ -21,14 +21,20 @@ SESSION_CONFIGS = [
     ),
     dict(
         name="trials_infinite",
-        display_name="Infinite trials",
+        display_name="Infinite series",
         app_sequence=["infinite"],
         condition="random",
     ),
     dict(
         name="trials_infinite_timers",
-        display_name="Infinite trials with timers",
+        display_name="Infinite series with timers",
         app_sequence=["timers"],
+        condition="random",
+    ),
+    dict(
+        name="trials_phases",
+        display_name="Scheduled phases",
+        app_sequence=["phases"],
         condition="random",
     ),
     # dict(
@@ -61,11 +67,6 @@ SESSION_CONFIGS = [
     #     display_name="Real-time voting and chatting",
     #     app_sequence=["voting"],
     #     num_demo_participants=3,
-    # ),
-    # dict(
-    #     name="phases",
-    #     display_name="Phases: time schedued trial phases",
-    #     app_sequence=["phases"],
     # ),
     dict(
         name="dumb",
