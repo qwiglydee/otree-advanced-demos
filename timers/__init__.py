@@ -12,10 +12,10 @@ class C(BaseConstants):
 
     CONDITIONS = ['ODD', 'EVEN', 'MIXED']
 
-    MAX_FAILURES = 3  # num of failures to abort the game
+    MAX_FAILURES = 5  # num of failures to abort the game
 
     PAGE_TIMEOUT = 300  # (seconds) total time limit for tasks page
-    TRIAL_TIMEOUT = 5 # (seconds) time limit for single trial
+    RESPONSE_TIMEOUT = 5 # (seconds) time limit for single trial
     FEEDBACK_DELAY = 2000  # (ms) time to show feedback before next trial
     RETRY_DELAY = 1000  # (ms) time to show feedback before retrying
 
@@ -52,6 +52,23 @@ class Trial(ExtraModel):
     # response fields
     response_time = models.IntegerField()
     answer = models.IntegerField()
+
+
+def creating_session(subsession: Subsession):
+    for player in subsession.get_players():
+        init_player(player, subsession.session.config)
+
+
+def init_player(player: Player, config: dict):
+    player.condition = random.choice(C.CONDITIONS)
+    if 'condition' in config and config['condition'] != 'random':
+        assert config['condition'] in C.CONDITIONS
+        player.condition = config['condition']
+
+
+def set_payoff(player: Player):
+    """calculate final payoff"""
+    player.payoff = player.total_score * player.session.config["real_world_currency_per_point"]
 
 
 def generate_trial(player: Player, iteration: int):
@@ -141,26 +158,6 @@ def next_trial(player: Player):
     return generate_trial(player, player.trials_played + 1)
 
 
-#### INIT ####
-
-
-def creating_session(subsession: Subsession):
-    for player in subsession.get_players():
-        init_player(player, subsession.session.config)
-
-
-def init_player(player: Player, config: dict):
-    player.condition = random.choice(C.CONDITIONS)
-    if 'condition' in config and config['condition'] != 'random':
-        assert config['condition'] in C.CONDITIONS
-        player.condition = config['condition']
-
-
-def set_payoff(player: Player):
-    """calculate final payoff"""
-    player.payoff = player.total_score * player.session.config["real_world_currency_per_point"]
-
-
 #### FORMAT ####
 
 
@@ -206,7 +203,7 @@ class Main(Page):
         # detect reloading of incomplete tasks
         trial = current_trial(player)
         if trial is not None and trial.status == 'LOADED':
-            raise RuntimeError("Raloading the page is prohibited")
+            raise RuntimeError("Page reloading is prohibited")
 
         trial = next_trial(player)
         trial.status = 'LOADED'
@@ -271,8 +268,6 @@ def custom_export(players: list[Player]):
         #
         "player.condition",
         "player.trials_played",
-        "player.trials_solved",
-        "player.trials_failed",
         "player.total_score",
         #
         "trial.iteration",
@@ -292,8 +287,6 @@ def custom_export(players: list[Player]):
             #
             player.condition,
             player.trials_played,
-            len(Trial.filter(player=player, success=True)),
-            len(Trial.filter(player=player, success=False)),
             player.total_score,
         ]
         for trial in Trial.filter(player=player):

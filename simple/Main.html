@@ -3,7 +3,9 @@
 <header>
     <ot-progress ticks="1" max="vars.progress.total" val="vars.progress.played" val2="vars.trial.iteration">
     </ot-progress>
-    <div class="alert alert-info m-2">Total score: <b ot-text="vars.progress.score"></b></div>
+    <div class="alert alert-secondary m-2">Total score: <b ot-text="vars.progress.score"></b></div>
+    <p id="feedback-gain">You <i ot-text="vars.gain_txt"></i></p>
+    <p id="feedback-retry">Your answer <b ot-text="vars.answer"></b> is not accepted, try again.</p>
 </header>
 
 <main ot-fade>
@@ -16,10 +18,8 @@
 </main>
 
 <footer>
-    <p id="prompt">Enter your answer and press <kbd>Enter</kbd>.</p>
-    <p id="feedback-gain">You <i ot-text="vars.gain_txt"></i></p>
-    <p id="feedback-retry">Your answer <b ot-text="vars.answer"></b> is not accepted, try again.</p>
-    <ot-pulse id="spinner"></ot-pulse>
+    <p id="guidance-prompt">Enter your answer and press <kbd>Enter</kbd>.</p>
+    <ot-pulse id="guidance-wait"></ot-pulse>
 </footer>
 
 {{ endblock }}
@@ -60,37 +60,52 @@
 
     function liveProgress(name, data) {
         vars.progress = data;
+        if (vars.progress.terminated) completeGame();
     };
 
-    function nextIter() {
-        if (vars.progress.terminated) {
-            // postponed termination
-            ot.submitPage();
-        } else {
-            sendLive('iter');
-            // expecting live trial and progress...
-        }
+    async function completeGame() {
+        await ot.delay(FEEDBACK_DELAY); // wait for remaining delays from feedback
+        ot.submitPage();
     }
 
-    function liveTrial(name, data) {
-        fadeIn();
-        vars.trial = data;
+    function nextIter() {
+        clearTrial();
         resetTrial();
-        ot.beginTimeMeasurement();
-    };
+        ot.switchDisplays("guidance-wait");
+        ot.disableInputs();
+
+        sendLive('iter');
+        // expecting live trial and progress...
+    }
+
+    function clearTrial() {
+        vars.trial = null;
+    }
 
     function resetTrial() {
         vars.answer = null;
+        vars.feedback = null;
         clearFeedback();
         ot.resetInputs();
+    }
+
+    function liveTrial(name, data) {
+        vars.trial = data;
+        fadeIn();
+        startTrial();
+    }
+
+    function startTrial() {
+        resetTrial();
+        ot.switchDisplays("guidance-prompt");
         ot.enableInputs();
-        ot.showDisplays('prompt');
+        ot.beginTimeMeasurement();
     }
 
     function inputAnswer(name, value) {
         if (value === "") return;
+        ot.switchDisplays("guidance-wait");
         ot.disableInputs();
-        ot.hideDisplays('prompt');
 
         vars.answer = value;
 
@@ -102,42 +117,37 @@
         // expecting live feedback and progress...
     };
 
-
     async function liveFeedback(name, data) {
         vars.feedback = data;
-        displayFeedback();
 
-        if (vars.feedback.completed) {
-            ot.showDisplays('spinner');
+        if (!vars.feedback.completed) {
+            ot.showDisplays('feedback-retry');
+            await ot.delay(RETRY_DELAY);
+            ot.hideDisplays('feedback-retry');
+
+            startTrial();
+        } else {
+            displayFeedback();
             await ot.delay(FEEDBACK_DELAY);
+            clearFeedback();
+
             fadeOut();
             await ot.delay(FADEOUT_TIME);
-            ot.hideDisplays('spinner');
-            clearFeedback();
+
             nextIter();
-        } else {
-            ot.showDisplays('spinner');
-            await ot.delay(RETRY_DELAY);
-            ot.hideDisplays('spinner');
-            clearFeedback();
-            resetTrial();
         }
     };
 
     function clearFeedback() {
-        ot.hideDisplays(['feedback-gain', 'feedback-retry']);
         vars.feedback_style = null;
         vars.gain_txt = null;
+        ot.switchDisplays('feedback-none');
     }
 
     function displayFeedback() {
-        if (vars.feedback.completed) {
-            ot.showDisplays('feedback-gain');
-            vars.feedback_style = vars.feedback.success ? "is-valid" : "is-invalid";
-            vars.gain_txt = format_gain(vars.feedback.score);
-        } else {
-            ot.showDisplays(['feedback-retry']);
-        }
+        vars.feedback_style = vars.feedback.success ? "is-valid" : "is-invalid";
+        vars.gain_txt = format_gain(vars.feedback.score);
+        ot.showDisplays('feedback-gain');
     }
 
 </script>

@@ -8,7 +8,7 @@
     <div ot-switch class="text-center">
         <div ot-switched id="phase-aim" class="icon">✛</div>
         <div ot-switched id="phase-stimulus" class="fs-1">
-            <span ot-text="vars.trial.expression"></span>=<span ot-text="vars.trial.suggestion"></span>
+            <span ot-text="vars.trial.expression"></span> = <span ot-text="vars.trial.suggestion"></span>
         </div>
         <div ot-switched id="phase-response" class="icon">?</div>
         <div ot-switched id="feedback-success" class="icon text-success">✔</div>
@@ -18,13 +18,12 @@
 </main>
 
 <footer>
-    <ot-pulse id="spinner"></ot-pulse>
-    <p>
-        Press <kbd ot-key-input="y" name="answer" value="Y">Y</kbd> if the expression is
-        correct,
-        press <kbd ot-key-input="n" name="answer" value="N">N</kbd> if it's not,
+    <p id="guidance-prompt">
+        Press <kbd ot-key-input="y" name="answer" value="Y">Y</kbd> if the expression iscorrect,
+        press <kbd ot-key-input="n" name="answer" value="N">N</kbd> if it's not.
+        Only answer when you see <code>?</code>
     </p>
-    <p>Only answer when you see <code>?</code></p>
+    <ot-pulse id="guidance-wait"></ot-pulse>
 </footer>
 
 {{ endblock }}
@@ -79,28 +78,48 @@
 
     function liveProgress(name, data) {
         vars.progress = data;
+        if (vars.progress.terminated) completeGame();
     };
 
-    function nextIter() {
-        if (vars.progress.terminated) {
-            // postponed termination
-            ot.submitPage();
-        } else {
-            sendLive('iter');
-            // expecting live trial and progress...
-        }
+    async function completeGame() {
+        await ot.delay(FEEDBACK_DELAY); // wait for remaining delays from feedback
+        ot.submitPage();
     }
 
-    function liveTrial(name, data) {
-        fadeIn();
-        vars.trial = data;
+    function nextIter() {
+        clearTrial();
+        resetTrial();
+        ot.switchDisplays("guidance-wait");
+        ot.disableInputs();
+
+        sendLive('iter');
+        // expecting live trial and progress...
+    }
+
+    function clearTrial() {
+        vars.trial = null;
+        ot.cancelTimers();
+    }
+
+    function resetTrial() {
         vars.answer = null;
         vars.feedback = null;
         clearFeedback();
-        ot.switchDisplays('phase-none');
+        ot.resetInputs();
+    }
+
+    function liveTrial(name, data) {
+        vars.trial = data;
+        fadeIn();
+        startTrial();
+    }
+
+    function startTrial() {
+        resetTrial();
+        ot.switchDisplays("guidance-prompt");
+        ot.beginTimeMeasurement();
         ot.startTimerSequence('phase', SCHEDULE_SEQUENCE);
-        console.debug("started");
-    };
+    }
 
     function switchPhase(name, elapsed, count) {
         let phase = SCHEDULE_PHASES[count];  // NB: count starts at 0
@@ -118,6 +137,7 @@
         ot.cancelTimer('phase');
         ot.cancelTimer('timeout');
         ot.switchDisplays(`phase-none`);
+        ot.switchDisplays("guidance-wait");
 
         vars.answer = value;
 
@@ -133,6 +153,7 @@
         ot.disableInputs();
         ot.cancelTimer('phase');
         ot.switchDisplays(`phase-none`);
+        ot.switchDisplays("guidance-wait");
 
         sendLive('timeout', {
             iteration: vars.trial.iteration,
@@ -145,10 +166,8 @@
         vars.feedback = data;
 
         displayFeedback();
-        ot.showDisplays('spinner');
         await ot.delay(FEEDBACK_DELAY);
         clearFeedback();
-        ot.hideDisplays('spinner');
 
         fadeOut();
         await ot.delay(FADEOUT_TIME);

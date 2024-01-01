@@ -70,6 +70,7 @@ form#liveform {
     position: fixed;
     right: 1rem;
     top: 1rem;
+    width: 10rem;
     z-index: 5;
 }
 
@@ -114,3 +115,10 @@ header>*:last-child,
 main>*:last-child {
     margin-bottom: 0;
 }
+
+
+/* prevent inputs to be too wide */
+.input-group {
+    width: auto;
+}
+

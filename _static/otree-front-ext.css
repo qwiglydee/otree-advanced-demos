@@ -2,6 +2,12 @@
  * Some css tricks for otree-front
  */
 
+/** make numbers input small and right aligned */
+input[type="number"] {
+    max-width: 10em;
+    text-align: right;
+}
+
 /**
  * Highlighting whole focused input-group instead of nested inputs,
  *
@@ -32,6 +38,15 @@
 .input-group:has(.is-valid):focus-within {
     box-shadow: 0 0 0 0.25rem rgba(25, 135, 84, 0.25);
 }
+
+/**
+ * Enhance visibility of disabled selected inputs (apparently, with feedback)
+ */
+ .form-check-input.selected:disabled,
+ .form-check-input.selected:disabled~.form-check-label
+ {
+    opacity: 0.75;
+ }
 
 /**
   * Directive ot-dim
@@ -84,12 +99,6 @@
     display: initial !important;
     opacity: 0;
     z-index: -1;
-}
-
-/** make numbers input small and right aligned */
-input[type="number"] {
-    width: 5em;
-    text-align: right;
 }
 
 /** Styles for directive ot-fade

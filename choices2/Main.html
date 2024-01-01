@@ -3,27 +3,28 @@
 <header>
     <ot-progress ticks="1" max="vars.progress.total" val="vars.progress.played" val2="vars.trial.iteration">
     </ot-progress>
-    <div class="alert alert-info m-2">Total score: <b ot-text="vars.progress.score"></b></div>
+    <div class="alert alert-secondary m-2">Total score: <b ot-text="vars.progress.score"></b></div>
+    <p id="feedback-gain">You <i ot-text="vars.gain_txt"></i></p>
 </header>
 
 <main ot-fade>
     <div class="fs-1 m-3" ot-text="vars.trial.expression"></div>
 
     <div class="d-flex flex-row gap-3">
-        <div class="form-check" ot-class="vars.styles.1">
-            <input id="choice-1" type="checkbox" class="form-check-input" ot-input name="answer" value="1">
+        <div class="form-check">
+            <input id="choice-1" type="radio" class="form-check-input" ot-class="vars.styles.1" ot-input name="answer" value="1">
             <label for="choice-1" class="form-check-label" ot-text="vars.trial.options.1"></label>
         </div>
-        <div class="form-check" ot-class="vars.styles.2">
-            <input id="choice-2" type="radio" class="form-check-input" ot-input name="answer" value="2">
+        <div class="form-check">
+            <input id="choice-2" type="radio" class="form-check-input" ot-class="vars.styles.2" ot-input name="answer" value="2">
             <label for="choice-2" class="form-check-label" ot-text="vars.trial.options.2"></label>
         </div>
-        <div class="form-check" ot-class="vars.styles.3">
-            <input id="choice-3" type="radio" class="form-check-input" ot-input name="answer" value="3">
+        <div class="form-check">
+            <input id="choice-3" type="radio" class="form-check-input" ot-class="vars.styles.3" ot-input name="answer" value="3">
             <label for="choice-3" class="form-check-label" ot-text="vars.trial.options.3"></label>
         </div>
-        <div class="form-check" ot-class="vars.styles.4">
-            <input id="choice-4" type="radio" class="form-check-input" ot-input name="answer" value="4">
+        <div class="form-check">
+            <input id="choice-4" type="radio" class="form-check-input" ot-class="vars.styles.4" ot-input name="answer" value="4">
             <label for="choice-4" class="form-check-label" ot-text="vars.trial.options.4"></label>
         </div>
     </div>
@@ -32,9 +33,8 @@
 </main>
 
 <footer>
-    <p id="prompt">Click on a button with your solution.</p>
-    <p id="feedback-gain">You <i ot-text="vars.gain_txt"></i></p>
-    <ot-pulse id="spinner"></ot-pulse>
+    <p id="guidance-prompt">Click on a button with your solution.</p>
+    <ot-pulse id="guidance-wait"></ot-pulse>
 </footer>
 
 {{ endblock }}
@@ -76,34 +76,49 @@
 
     function liveProgress(name, data) {
         vars.progress = data;
+        if (vars.progress.terminated) completeGame();
     };
 
+    async function completeGame() {
+        await ot.delay(FEEDBACK_DELAY); // wait for remaining delays from feedback
+        ot.submitPage();
+    }
+
     function nextIter() {
-        if (vars.progress.terminated) {
-            // postponed termination
-            ot.submitPage();
-        } else {
-            sendLive('iter');
-            // expecting live trial and progress...
-        }
+        clearTrial();
+        resetTrial();
+        ot.switchDisplays("guidance-wait");
+        ot.disableInputs();
+
+        sendLive('iter');
+        // expecting live trial and progress...
+    }
+
+    function clearTrial() {
+        vars.trial = null;
+    }
+
+    function resetTrial() {
+        vars.choice = null;
+        vars.answer = null;
+        vars.feedback = null;
+        clearChoice();
+        clearFeedback();
+        ot.resetInputs();
+        document.querySelectorAll("[type=radio]").forEach(e => e.checked = false); // bug otree-front#22
     }
 
     function liveTrial(name, data) {
-        fadeIn();
         vars.trial = data;
-        resetTrial();
-        ot.beginTimeMeasurement();
-    };
+        fadeIn();
+        startTrial();
+    }
 
-    function resetTrial() {
-        vars.answer = null;
-        vars.choice = null;
-        clearFeedback();
-        clearChoice();
-        ot.resetInputs();
-        document.querySelectorAll("[type=radio]").forEach(e => e.checked = false); // bug otree-front#22
+    function startTrial() {
+        resetTrial();
+        ot.switchDisplays("guidance-prompt");
         ot.enableInputs();
-        ot.showDisplays('prompt');
+        ot.beginTimeMeasurement();
     }
 
     function inputAnswer(name, position) {
@@ -113,7 +128,7 @@
 
     function confirmAnswer() {
         ot.disableInputs();
-        ot.hideDisplays('prompt');
+        ot.switchDisplays("guidance-wait");
         highlightChoice();
 
         sendLive('response', {
@@ -127,34 +142,26 @@
 
     async function liveFeedback(name, data) {
         vars.feedback = data;
-        displayFeedback();
 
-        if (vars.feedback.completed) {
-            ot.showDisplays('spinner');
-            await ot.delay(FEEDBACK_DELAY);
-            fadeOut();
-            await ot.delay(FADEOUT_TIME);
-            ot.hideDisplays('spinner');
-            clearFeedback();
-            nextIter();
-        } else {
-            ot.showDisplays('spinner');
-            await ot.delay(RETRY_DELAY);
-            ot.hideDisplays('spinner');
-            clearFeedback();
-            resetTrial();
-        }
+        displayFeedback();
+        await ot.delay(FEEDBACK_DELAY);
+        clearFeedback();
+
+        fadeOut();
+        await ot.delay(FADEOUT_TIME);
+
+        nextIter();
     };
 
     function clearFeedback() {
-        ot.hideDisplays('feedback-gain');
+        ot.switchDisplays('feedback-none');
         vars.gain_txt = null;
     }
 
     function displayFeedback() {
         ot.showDisplays('feedback-gain');
         vars.gain_txt = format_gain(vars.feedback.score);
-        vars.styles[vars.choice] = vars.feedback.success ? ["selected", "text-success"] : ["selected", "text-danger"];
+        vars.styles[vars.choice] = vars.feedback.success ? ["selected", "is-valid"] : ["selected", "is-invalid"];
     }
 
     function clearChoice() {
