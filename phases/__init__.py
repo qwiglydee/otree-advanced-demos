@@ -127,7 +127,6 @@ def evaluate_response(trial: Trial, response: dict):
         "solution": trial.solution,
         "success": trial.success,
         "score": trial.score,
-        "completed": True,
     }
 
 def evaluate_timeout(trial: Trial, response: dict):
@@ -142,17 +141,15 @@ def evaluate_timeout(trial: Trial, response: dict):
     return {
         "success": trial.success,
         "score": trial.score,
-        "completed": True,
         "timeouted": True,
     }
 
 
 def update_progress(player: Player, feedback: dict):
     """update players progress using last feedback"""
-    if feedback['completed']:
-        player.trials_played += 1
-        player.total_score += feedback['score']
-        player.total_score = max(0, player.total_score)
+    player.trials_played += 1
+    player.total_score += feedback['score']
+    player.total_score = max(0, player.total_score)
 
     player.terminated = player.trials_played == C.NUM_TRIALS
 
@@ -253,7 +250,7 @@ class Results(Page):
     @staticmethod
     def vars_for_template(player: Player):
         return {
-            'completed': len(Trial.filter(player=player, status='COMPLETED')),
+            'played': player.trials_played,
             'solved': len(Trial.filter(player=player, success=True)),
             'failed': len(Trial.filter(player=player, success=False)),
         }

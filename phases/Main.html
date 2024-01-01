@@ -62,7 +62,7 @@
 
     ot.onEvent('loaded', startGame);
     ot.onEvent('live', 'progress', onLive(liveProgress));
-    ot.onEvent('live', 'trial', onLive(liveTrial));
+    ot.onEvent('live', 'trial', onLive(startTrial));
     ot.onEvent('input', 'answer', onInput(inputAnswer));
     ot.onEvent('live', 'feedback', onLive(liveFeedback));
     ot.onEvent('live', 'failure', onLive(function (_, message) { alert(message); ot.submitPage(); }));
@@ -87,7 +87,6 @@
     }
 
     function nextIter() {
-        clearTrial();
         resetTrial();
         ot.switchDisplays("guidance-wait");
         ot.disableInputs();
@@ -96,26 +95,18 @@
         // expecting live trial and progress...
     }
 
-    function clearTrial() {
-        vars.trial = null;
-        ot.cancelTimers();
-    }
-
     function resetTrial() {
+        vars.trial = null;
         vars.answer = null;
         vars.feedback = null;
         clearFeedback();
         ot.resetInputs();
+        ot.cancelTimers();
     }
 
-    function liveTrial(name, data) {
+    function startTrial(name, data) {
         vars.trial = data;
         fadeIn();
-        startTrial();
-    }
-
-    function startTrial() {
-        resetTrial();
         ot.switchDisplays("guidance-prompt");
         ot.beginTimeMeasurement();
         ot.startTimerSequence('phase', SCHEDULE_SEQUENCE);

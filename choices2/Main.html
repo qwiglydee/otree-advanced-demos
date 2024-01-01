@@ -56,12 +56,11 @@
     "use strict";
 
     const FEEDBACK_DELAY = js_vars.C.FEEDBACK_DELAY;
-    const RETRY_DELAY = js_vars.C.RETRY_DELAY;
     const FADEOUT_TIME = parseInt(getStyleProp("--ot-fade-out-time"));
 
     ot.onEvent('loaded', startGame);
     ot.onEvent('live', 'progress', onLive(liveProgress));
-    ot.onEvent('live', 'trial', onLive(liveTrial));
+    ot.onEvent('live', 'trial', onLive(startTrial));
     ot.onEvent('input', 'answer', onInput(inputAnswer));
     ot.onEvent('input', 'confirm', onInput(confirmAnswer));
     ot.onEvent('live', 'feedback', onLive(liveFeedback));
@@ -85,7 +84,6 @@
     }
 
     function nextIter() {
-        clearTrial();
         resetTrial();
         ot.switchDisplays("guidance-wait");
         ot.disableInputs();
@@ -94,11 +92,8 @@
         // expecting live trial and progress...
     }
 
-    function clearTrial() {
-        vars.trial = null;
-    }
-
     function resetTrial() {
+        vars.trial = null;
         vars.choice = null;
         vars.answer = null;
         vars.feedback = null;
@@ -108,14 +103,9 @@
         document.querySelectorAll("[type=radio]").forEach(e => e.checked = false); // bug otree-front#22
     }
 
-    function liveTrial(name, data) {
+    function startTrial(name, data) {
         vars.trial = data;
         fadeIn();
-        startTrial();
-    }
-
-    function startTrial() {
-        resetTrial();
         ot.switchDisplays("guidance-prompt");
         ot.enableInputs();
         ot.beginTimeMeasurement();

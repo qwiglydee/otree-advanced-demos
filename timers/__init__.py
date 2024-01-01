@@ -17,7 +17,6 @@ class C(BaseConstants):
     PAGE_TIMEOUT = 300  # (seconds) total time limit for tasks page
     RESPONSE_TIMEOUT = 5 # (seconds) time limit for single trial
     FEEDBACK_DELAY = 2000  # (ms) time to show feedback before next trial
-    RETRY_DELAY = 1000  # (ms) time to show feedback before retrying
 
     SCORE_SUCCESS = +10
     SCORE_FAILURE = -1
@@ -116,7 +115,6 @@ def evaluate_response(trial: Trial, response: dict):
         "solution": trial.solution,
         "success": trial.success,
         "score": trial.score,
-        "completed": True,
     }
 
 def evaluate_timeout(trial: Trial, response: dict):
@@ -131,17 +129,15 @@ def evaluate_timeout(trial: Trial, response: dict):
     return {
         "success": trial.success,
         "score": trial.score,
-        "completed": True,
         "timeouted": True,
     }
 
 
 def update_progress(player: Player, feedback: dict):
     """update players progress using last feedback"""
-    if feedback['completed']:
-        player.trials_played += 1
-        player.total_score += feedback['score']
-        player.total_score = max(0, player.total_score)
+    player.trials_played += 1
+    player.total_score += feedback['score']
+    player.total_score = max(0, player.total_score)
 
     trials_failed = len(Trial.filter(player=player, success=False))
     player.terminated = trials_failed >= C.MAX_FAILURES
@@ -217,11 +213,9 @@ class Main(Page):
         trial = current_trial(player)
         assert trial is not None
 
+        trial.response_time = data["time"]
         feedback = evaluate_response(trial, data)
         update_progress(player, feedback)
-
-        if feedback['completed']:
-            trial.response_time = data["time"]
 
         yield "progress", output_progress(player)
         yield "feedback", feedback
@@ -248,7 +242,7 @@ class Results(Page):
     @staticmethod
     def vars_for_template(player: Player):
         return {
-            'completed': len(Trial.filter(player=player, status='COMPLETED')),
+            'player': player.trials_played,
             'solved': len(Trial.filter(player=player, success=True)),
             'failed': len(Trial.filter(player=player, success=False)),
         }
