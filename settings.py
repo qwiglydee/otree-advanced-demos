@@ -37,10 +37,16 @@ SESSION_CONFIGS = [
         app_sequence=["phases"],
         condition="random",
     ),
+    dict(
+        name="sliders",
+        display_name="Sliders task",
+        app_sequence=["sliders"],
+    ),
     # dict(
-    #     name="captcha",
-    #     display_name="Captcha: generated images",
-    #     app_sequence=["captcha"]
+    #     name="voting",
+    #     display_name="Real-time voting and chatting",
+    #     app_sequence=["voting"],
+    #     num_demo_participants=3,
     # ),
     # dict(
     #     name="drawing",
@@ -48,31 +54,9 @@ SESSION_CONFIGS = [
     #     app_sequence=["drawing"]
     # ),
     # dict(
-    #     name="multistep",
-    #     display_name="Multiple inputs",
-    #     app_sequence=["multistep"],
+    #     name="dumb",
+    #     app_sequence=["dumb"],
     # ),
-    # dict(
-    #     name="multistage",
-    #     display_name="Multiple stages with conditional workflow",
-    #     app_sequence=["multistage"],
-    # ),
-    # dict(
-    #     name="sliders",
-    #     display_name="Sliders task",
-    #     app_sequence=["sliders"],
-    # ),
-    # dict(
-    #     name="voting",
-    #     display_name="Real-time voting and chatting",
-    #     app_sequence=["voting"],
-    #     num_demo_participants=3,
-    # ),
-    dict(
-        name="dumb",
-        display_name="just a dumb app for testing",
-        app_sequence=["dumb"],
-    ),
 ]
 
 SESSION_CONFIG_DEFAULTS = dict(
