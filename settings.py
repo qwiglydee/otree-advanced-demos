@@ -54,16 +54,16 @@ SESSION_CONFIGS = [
         display_name="Sliders task",
         app_sequence=["sliders"],
     ),
+    dict(
+        name="drawing",
+        display_name="Free hand drawing",
+        app_sequence=["drawing"]
+    ),
     # dict(
     #     name="voting",
     #     display_name="Real-time voting and chatting",
     #     app_sequence=["voting"],
     #     num_demo_participants=3,
-    # ),
-    # dict(
-    #     name="drawing",
-    #     display_name="Drawing: freehand drawing input",
-    #     app_sequence=["drawing"]
     # ),
     # dict(
     #     name="dumb",

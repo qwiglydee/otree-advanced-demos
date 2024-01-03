@@ -1,0 +1,18 @@
+{{ block title }}
+Intro
+{{ endblock }}
+
+{{ block content }}
+
+<p>
+    Your task is to use free-hand drawing canvas to reproduce emijis you see.
+</p>
+
+<p>
+    The game consists of {{C.NUM_TRIALS}} trials.
+    You gain {{C.SCORE_DRAW}} points for each drawn image.
+</p>
+
+{{ next_button }}
+
+{{ endblock }}

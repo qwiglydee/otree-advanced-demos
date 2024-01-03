@@ -1,0 +1,18 @@
+{{ block title }}
+Results
+{{ endblock }}
+
+{{ block content }}
+
+<p>The experiment is over.</p>
+
+<p>
+    You have played {{played}} trials.
+    Your total score in the game is <b>{{player.total_score}}</b> points.
+</p>
+
+<p>You earned bonus of <b>{{player.payoff}}</b> and your total payoff is <b>{{participant.payoff_plus_participation_fee}}</b></p>
+
+<p>Thanks for your participation.</p>
+
+{{ endblock }}
