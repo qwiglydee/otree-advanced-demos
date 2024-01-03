@@ -9,7 +9,7 @@ SESSION_CONFIGS = [
     ),
     dict(
         name="trials_simple2",
-        display_name="Simple trials with multiple fields and submit button",
+        display_name="Multiple fields",
         app_sequence=["simple2"],
         condition="random",
     ),
@@ -41,6 +41,12 @@ SESSION_CONFIGS = [
         name="trials_phases",
         display_name="Scheduled phases",
         app_sequence=["phases"],
+        condition="random",
+    ),
+    dict(
+        name="trials_stages",
+        display_name="Several stages ",
+        app_sequence=["stages"],
         condition="random",
     ),
     dict(
