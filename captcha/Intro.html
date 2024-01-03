@@ -1,0 +1,19 @@
+{{ block title }}
+Intro
+{{ endblock }}
+
+{{ block content }}
+
+<p>
+    Your task is to input text you see on images.
+</p>
+
+<p>
+    The game consists of {{C.NUM_TRIALS}} trials.
+    The more you solve correctly, the better.
+    You are allowed to make no more than {{C.MAX_FAILURES}} failures.
+</p>
+
+{{ next_button }}
+
+{{ endblock }}

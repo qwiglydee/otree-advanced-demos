@@ -59,6 +59,11 @@ SESSION_CONFIGS = [
         display_name="Free hand drawing",
         app_sequence=["drawing"]
     ),
+    dict(
+        name="captcha",
+        display_name="Transcribing text from images",
+        app_sequence=["captcha"]
+    ),
     # dict(
     #     name="voting",
     #     display_name="Real-time voting and chatting",
