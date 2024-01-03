@@ -64,12 +64,12 @@ SESSION_CONFIGS = [
         display_name="Transcribing text from images",
         app_sequence=["captcha"]
     ),
-    # dict(
-    #     name="voting",
-    #     display_name="Real-time voting and chatting",
-    #     app_sequence=["voting"],
-    #     num_demo_participants=3,
-    # ),
+    dict(
+        name="voting",
+        display_name="Group voting and chatting",
+        app_sequence=["voting"],
+        num_demo_participants=3,
+    ),
     # dict(
     #     name="dumb",
     #     app_sequence=["dumb"],
