@@ -70,10 +70,6 @@ SESSION_CONFIGS = [
         app_sequence=["voting"],
         num_demo_participants=3,
     ),
-    # dict(
-    #     name="dumb",
-    #     app_sequence=["dumb"],
-    # ),
 ]
 
 SESSION_CONFIG_DEFAULTS = dict(
