@@ -8,6 +8,12 @@ SESSION_CONFIGS = [
         condition="random",
     ),
     dict(
+        name="trials_simple2",
+        display_name="Simple trials with multiple fields and submit button",
+        app_sequence=["simple2"],
+        condition="random",
+    ),
+    dict(
         name="trials_choices_buttons",
         display_name="Choices with buttons",
         app_sequence=["choices"],
