@@ -141,15 +141,15 @@ class Sliders(Page):
         }
 
     @staticmethod
-    def live_reset(player: Player, data):
+    def live_reset(player: Player, _):
         yield "progress", output_progress(player)
         yield "sliders", { s.id: output_slider(s) for s in Slider.filter(player=player)}
 
     @staticmethod
-    def live_slider(player: Player, data: dict):
-        [slider] = Slider.filter(player=player, id=data["id"])
+    def live_slider(player: Player, payload: dict):
+        [slider] = Slider.filter(player=player, id=payload["id"])
 
-        feedback = evaluate_move(slider, data)
+        feedback = evaluate_move(slider, payload)
         update_progress(player, feedback)
 
         yield "progress", output_progress(player)

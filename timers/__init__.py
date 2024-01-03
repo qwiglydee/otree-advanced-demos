@@ -194,7 +194,7 @@ class Main(Page):
         return { 'C': dict(vars(C)) }
 
     @staticmethod
-    def live_iter(player: Player, data):
+    def live_iter(player: Player, _):
         """retrieve current progress and trial"""
         # detect reloading of incomplete tasks
         trial = current_trial(player)
@@ -208,24 +208,24 @@ class Main(Page):
         yield "trial", output_trial(trial)
 
     @staticmethod
-    def live_response(player: Player, data: dict):
+    def live_response(player: Player, payload: dict):
         """handle response from player"""
         trial = current_trial(player)
         assert trial is not None
 
-        trial.response_time = data["time"]
-        feedback = evaluate_response(trial, data)
+        trial.response_time = payload["time"]
+        feedback = evaluate_response(trial, payload)
         update_progress(player, feedback)
 
         yield "progress", output_progress(player)
         yield "feedback", feedback
 
     @staticmethod
-    def live_timeout(player: Player, data: dict):
+    def live_timeout(player: Player, payload: dict):
         trial = current_trial(player)
         assert trial is not None
 
-        feedback = evaluate_timeout(trial, data)
+        feedback = evaluate_timeout(trial, payload)
         update_progress(player, feedback)
 
         yield "progress", output_progress(player)

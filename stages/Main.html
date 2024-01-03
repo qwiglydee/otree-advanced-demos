@@ -164,7 +164,7 @@
     };
 
     function liveOptions(name, data) {
-        vars.options = data.options;
+        vars.options = data;
         ot.switchInputs(Array.from(vars.options).map(i => `choice-${i}`));
         ot.switchDisplays("guidance-prompt-2");
     }

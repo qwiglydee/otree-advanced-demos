@@ -1,28 +1,50 @@
-""" Utils for advanced live page messaging
+"""
+Utils for live communicating.
+Best used with otree-front-live.js
 
-The messages carry a type and some data. Each message is processed by a handler of corresponding type.
+The communication consists of exchening messages each has a type and payload.
+Both ends use separate handlers bound to particular message types.
 
-Messages from server can be adressed to several players,
-addressed by player instance, player id, string "other" for non-adressed players, or "all" for all players.
-
-# Usage
+Receiving messages form page::
 
 ```
 @live_page
 class SomePage(Page):
 
-    def live_msgtype(player, data):
-        # handle incoming message of type 'msgtype'
+    @staticmethod
+    def live_foo(player, payload):
+        # handle incoming message of type 'foo'
         ...
 
-        yield type, dict(...)  # send response of type 'type' and data back to the original player
-        yield type             # send response without data
+    @staticmethod
+    def live_bar(player, payload):
+        # handle incoming message of type 'bar'
+        ...
 
-        # in multiplayer setup:
-        yield player2, type, dict(...)  # send response message to another player
-        yield player2, type             # send another response without data
-        yield "all", type, data         # send message to all players in a group
-        yield "all", type               # send message w/out data to all players in a group
+```
+
+Sending messages back to page:
+```
+@staticmethod
+def live_something(player, payload):
+    # a handler can send one or more messages back to the originating player
+    yield "foo", data   # send a response of type "foo" and payloaded with the data
+    yield "foo"         # send a response without payload
+```
+
+Sending messages in multiplayers sessions:
+```
+@staticmethod
+def live_something(player, payload):
+    # a handler can send one or more messages to any player in the group of originating player
+    ...
+    yield "all", "foo", data  # send a message to all players in the group
+    yield "all", "foo"        # send a message without payload
+
+    another_player = player.group.get_player_by_role(...)  # get reference to another player
+
+    yield another_player, "bar", data   # send a message to another player
+    yield another_player, "bar"         # send a message without payload
 ```
 
 """
@@ -34,107 +56,64 @@ from otree.api import BasePlayer, BaseGroup
 
 
 def live_page(cls):
-    def generic_live_method(player: BasePlayer, message: dict):
+    """Wrapper for page classes to make them smart live pages"""
+
+    def generic_live_method(player: BasePlayer, data: dict):
+        group = player.group
+
+        print("recv", data)
+
+        def route(response):
+            "convert yielded responses to (id_in_group, type, payload)"
+            match response:
+                case ("all", str() as t):
+                    for p in group.get_players():
+                        yield p.id_in_group, t, None
+                case ("all", str() as t, data):
+                    for p in group.get_players():
+                        yield p.id_in_group, t, data
+                case str() as t:
+                    yield player.id_in_group, t, None
+                case (str() as t, data):
+                    yield player.id_in_group, t, data
+                case (BasePlayer() as p, str() as t):
+                    yield p.id_in_group, t, None
+                case (BasePlayer() as p, str() as t, data):
+                    yield p.id_in_group, t, data
+                case _:
+                    raise TypeError(f"Handler {handler_name} yielded invalid construction")
+
         try:
-            if len(list(message.keys())) != 1:
-                raise RuntimeError("Invalid input message format, expected single { type: data }")
+            assert isinstance(data, dict) and len(data) == 1, "Incoming message should be single { type: data }"
 
-            msgtype, msgdata = list(message.items())[0]
+            msgtype, msgdata = list(data.items())[0]
+            handler_name = f"live_{msgtype}"
 
-            methodname = f'live_{msgtype}'
+            assert hasattr(cls, handler_name), f"The page class misses method {handler_name}"
+            handler = getattr(cls, handler_name)
 
-            if not hasattr(cls, methodname):
-                raise RuntimeError(f"Missing method {methodname}")
+            responding = handler(player, msgdata)
+            assert isinstance(responding, types.GeneratorType), f"Method {handler_name} should `yield` some responses"
 
-            handler = getattr(cls, methodname)
-            handling = handler(player, msgdata)
+            # { rcpt: { type: payload, ...}, ... }
+            response = {}
+            for resp in responding:
+                for p, t, d in route(resp):
+                    if p not in response:
+                        response[p] = {}
+                    response[p][t] = d
 
-            if not isinstance(handling, types.GeneratorType):
-                raise RuntimeError(f"Expected {methodname} to `yield` responses.")
+            print("send", response)
+            return response
 
-            responses = handle_responses(handling)
-            result = expand_recipients(responses, player)
-            return result
+        except Warning as e:
+            logging.exception("Exception in live handler")
+            return { 0: { "failure": str(e) } }
 
         except Exception:
-            logging.exception("Exception in message handler")
-            return {
-                0: { "failure": "Critical failure occured." }
-            }
-
+            logging.exception("Exception in live handler")
+            return { 0: { "failure": "A failure occured" }}
 
     cls.live_method = staticmethod(generic_live_method)
 
     return cls
-
-
-def parse_response(response):
-    if not isinstance(response, (str, tuple)):
-        raise RuntimeError("Invalid yielded response")
-
-    # case str
-    if isinstance(response, str):
-        return None, response, None
-
-    # case str, dict
-    if len(response) == 2 and isinstance(response[0], str) and isinstance(response[1], dict):
-        return None, response[0], response[1]
-
-    # case "all", str
-    if len(response) == 2 and response[0] == "all" and isinstance(response[1], str):
-        return 0, response[1], None
-
-    # case "all", str, dict
-    if len(response) == 3 and response[0] == "all" and isinstance(response[1], str)  and isinstance(response[2], dict):
-        return 0, response[1], response[2]
-
-    # case player, str
-    if len(response) == 2 and isinstance(response[0], BasePlayer) and isinstance(response[1], str):
-        return response[0], response[1], None
-
-    # case player, str, dict
-    if len(response) == 3 and isinstance(response[0], BasePlayer) and isinstance(response[1], str)  and isinstance(response[2], dict):
-        return response[0], response[1], response[2]
-
-    raise RuntimeError("Unrecognized yielded response")
-
-
-def handle_responses(handling):
-    responses = {}
-
-    for response in handling:
-        rcpt, msgtype, data = parse_response(response)
-        if rcpt not in responses:
-            responses[rcpt] = {}
-        if msgtype in responses[rcpt]:
-            raise RuntimeError(f"overriding response {msgtype}")
-        responses[rcpt][msgtype] = data
-
-    return responses
-
-
-def expand_recipients(responses, player):
-    """Replaces recipients with player ids"""
-    result = {}
-
-    def put(p: BasePlayer, data):
-        pid = p.id_in_group
-        if pid not in result:
-            result[pid] = {}
-        result[pid].update(data)
-
-    if 0 in responses:
-        data = responses.pop(0)
-        if len(responses) == 0: # no other recipients
-            result[0] = data
-        else: # all + other
-            for p in player.group.get_players():
-                put(p, data)
-
-    for rcpt, data in responses.items():
-        if rcpt is None:
-            put(player, data)
-        if isinstance(rcpt, BasePlayer):
-            put(rcpt, data)
-
-    return result

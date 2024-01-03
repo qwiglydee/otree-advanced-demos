@@ -156,7 +156,7 @@ class Main(Page):
         return { 'C': dict(vars(C)) }
 
     @staticmethod
-    def live_iter(player: Player, data):
+    def live_iter(player: Player, _):
         """retrieve current progress and trial"""
         trial = current_trial(player)
         assert trial is not None
@@ -170,13 +170,13 @@ class Main(Page):
         yield "trial", output_trial(trial)
 
     @staticmethod
-    def live_drawing(player: Player, data: dict):
+    def live_drawing(player: Player, payload: dict):
         """handle response from player"""
         trial = current_trial(player)
         assert trial is not None
 
-        trial.response_time = data["time"]
-        feedback = evaluate_response(trial, data)
+        trial.response_time = payload["time"]
+        feedback = evaluate_response(trial, payload)
         update_progress(player, feedback)
 
         yield "progress", output_progress(player)

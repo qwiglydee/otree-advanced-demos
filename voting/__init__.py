@@ -74,20 +74,20 @@ class Main(Page):
         return {"options": enumerate(C.CHOICES)}
 
     @staticmethod
-    def live_load(player: Player, data):
+    def live_load(player: Player, _):
         """send votes to a reloaded page"""
         yield "votes", output_votes(player.group)
 
     @staticmethod
-    def live_vote(player: Player, data: dict):
-        evaluate_votes(player, data['vote'])
+    def live_vote(player: Player, payload: dict):
+        evaluate_votes(player, payload['vote'])
 
         yield "all", "votes", output_votes(player.group)
         yield "all", "chat", {"player": player.id_in_group, "vote": player.vote}
 
     @staticmethod
-    def live_chat(player: Player, data: dict):
-        yield "all", "chat", {"player": player.id_in_group, "text": data["text"]}
+    def live_chat(player: Player, payload: dict):
+        yield "all", "chat", {"player": player.id_in_group, "text": payload["text"]}
 
 
 class Results(Page):

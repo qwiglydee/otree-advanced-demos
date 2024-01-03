@@ -241,7 +241,7 @@ class Main(Page):
         return { 'C': dict(vars(C)) }
 
     @staticmethod
-    def live_iter(player: Player, data):
+    def live_iter(player: Player, _):
         """retrieve current progress and trial"""
         trial = current_trial(player)
         assert trial is not None
@@ -255,32 +255,32 @@ class Main(Page):
         yield "trial", output_trial(trial)
 
     @staticmethod
-    def live_decision(player: Player, data: dict):
+    def live_decision(player: Player, payload: dict):
         """handle response from player"""
         trial = current_trial(player)
         assert trial is not None
 
-        trial.decision_time = data["time"]
+        trial.decision_time = payload["time"]
 
-        feedback = evaluate_decision(trial, data)
+        feedback = evaluate_decision(trial, payload)
 
         if feedback is not None:
             update_progress(player, feedback)
             yield "progress", output_progress(player)
             yield "feedback", feedback
         else:
-            yield "options", { 'options': trial.options }
+            yield "options", trial.options
 
 
     @staticmethod
-    def live_answer(player: Player, data: dict):
+    def live_answer(player: Player, payload: dict):
         """handle response from player"""
         trial = current_trial(player)
         assert trial is not None
 
-        trial.answer_time = data["time"]
+        trial.answer_time = payload["time"]
 
-        feedback = evaluate_response(trial, data)
+        feedback = evaluate_response(trial, payload)
         update_progress(player, feedback)
 
         yield "progress", output_progress(player)
