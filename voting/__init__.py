@@ -1,6 +1,6 @@
 from otree.api import *
 
-from utils.live_utils import live_page
+from utils.live import live_page
 
 
 class C(BaseConstants):
@@ -9,7 +9,7 @@ class C(BaseConstants):
     NUM_ROUNDS = 1
 
     CHOICES = ["Foo", "Bar", "Baz"]
-    VOTE_TEIMEOUT = 6000  # seconds for voting
+    PAGE_TIMEOUT = 600
 
 
 class Subsession(BaseSubsession):
@@ -19,41 +19,42 @@ class Subsession(BaseSubsession):
 class Group(BaseGroup):
     decision = models.StringField(chocie=C.CHOICES, initial="")
     consensus = models.BooleanField(initial=False)
-    # majority = models.BooleanField(initial=False)
 
-    def get_votes(self):
-        """return non-null votes as dictionary"""
-        return {
-            p.id_in_group: p.vote
-            for p in self.get_players() if p.field_maybe_none('vote') is not None
-        }
+
+def get_votes(group: Group):
+    """return non-null votes as dictionary"""
+    return {
+        p.id_in_group: p.vote
+        for p in group.get_players()
+        if p.field_maybe_none("vote") is not None
+    }
+
 
 class Player(BasePlayer):
     vote = models.StringField(chocie=C.CHOICES)
 
-    @property
-    def name(self):
-        return f"Player{self.id_in_group}"
 
+def evaluate_votes(player, vote):
+    player.vote = vote
+    group = player.group
 
-def evaluate_votes(group):
-    votes = group.get_votes()
-    voted = list(votes.keys())
-    voteset = set(votes.values())
+    voting = get_votes(group)
+    voted = list(voting.keys())
+    votes = set(voting.values())
 
-    if len(voted) == C.PLAYERS_PER_GROUP and len(voteset) == 1:
+    if len(voted) == C.PLAYERS_PER_GROUP and len(votes) == 1:
         group.consensus = True
-        group.decision = voteset.pop()
+        group.decision = votes.pop()
 
-# OUTPUT
+
+# PAGES
+
 
 def output_votes(group: Group):
     return {
-        'votes': group.get_votes(),
-        'consensus': group.consensus,
+        "votes": [{"player": f"Player {p}", "choice": c} for p, c in get_votes(group).items()],
+        "consensus": group.consensus,
     }
-
-# PAGES
 
 
 class Intro(Page):
@@ -66,33 +67,27 @@ class Wait(WaitPage):
 
 @live_page
 class Main(Page):
-    timeout_seconds = C.VOTE_TEIMEOUT
+    timeout_seconds = C.PAGE_TIMEOUT
 
     @staticmethod
     def vars_for_template(player: Player):
-        return {
-            'options': enumerate(C.CHOICES)
-        }
+        return {"options": enumerate(C.CHOICES)}
 
     @staticmethod
-    def live_start(player: Player, data):
+    def live_load(player: Player, _):
         """send votes to a reloaded page"""
         yield "votes", output_votes(player.group)
 
     @staticmethod
-    def live_vote(player: Player, data: dict):
-        """accept a vote"""
-        player.vote = data['vote']
+    def live_vote(player: Player, payload: dict):
+        evaluate_votes(player, payload['vote'])
 
-        evaluate_votes(player.group)
-
-        yield "all", "chat", { "player": player.name, "vote": player.vote }
         yield "all", "votes", output_votes(player.group)
+        yield "all", "chat", {"player": player.id_in_group, "vote": player.vote}
 
     @staticmethod
-    def live_chat(player: Player, data: dict):
-        """just broadcast the message to everyone"""
-        yield "all", "chat", {"player": player.name, "text": data["text"]}
+    def live_chat(player: Player, payload: dict):
+        yield "all", "chat", {"player": player.id_in_group, "text": payload["text"]}
 
 
 class Results(Page):

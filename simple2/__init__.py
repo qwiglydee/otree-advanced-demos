@@ -1,15 +1,12 @@
-import string
-from pathlib import Path
 import random
 
 from otree.api import *
 
 from utils.live import live_page
-from utils import images
 
 
 class C(BaseConstants):
-    NAME_IN_URL = "captcha"
+    NAME_IN_URL = "simple2"
     PLAYERS_PER_GROUP = None
     NUM_ROUNDS = 1
 
@@ -23,17 +20,6 @@ class C(BaseConstants):
 
     SCORE_SUCCESS = +10
     SCORE_FAILURE = -1
-
-    SYMBOLS = string.ascii_uppercase
-    LENGTH = 5
-
-    TEXT_SIZE = 128
-    TEXT_BGCOLOR = "#FFFFFF"
-    TEXT_COLOR = "#000000"
-
-
-APPDIR = Path(__file__).parent
-FONT = images.font(APPDIR / "assets" / "FreeSerifBold.otf", C.TEXT_SIZE)
 
 
 class Subsession(BaseSubsession):
@@ -59,11 +45,12 @@ class Trial(ExtraModel):
     success = models.BooleanField(initial=None)
     score = models.IntegerField(initial=0)
     # task fields
-    text = models.StringField()
-    image = models.LongStringField()
+    expression = models.StringField()
+    solution = models.IntegerField()
     # response fields
     response_time = models.IntegerField()
     answer = models.IntegerField()
+    confidence = models.IntegerField(min=0, max=100)
 
 
 def creating_session(subsession: Subsession):
@@ -88,30 +75,38 @@ def set_payoff(player: Player):
 
 def generate_trial(player: Player, iteration: int):
     """generate single trial of the task"""
-    text = "".join(random.sample(C.SYMBOLS, k=C.LENGTH))
-    image = images.text(
-        text, FONT, size=C.TEXT_SIZE, padding=C.TEXT_SIZE // 2, color=C.TEXT_COLOR, bgcolor=C.TEXT_BGCOLOR
-    )
-    image = images.distort(image)
-    image_data = images.encode(image)
+
+    if player.condition == 'MIXED':
+        a = random.randint(10, 99)
+        b = random.randint(10, 99)
+    elif player.condition == 'ODD':
+        a = random.randint(5, 49) * 2 + 1
+        b = random.randint(5, 49) * 2 + 1
+    elif player.condition == 'EVEN':
+        a = random.randint(5, 49) * 2
+        b = random.randint(5, 49) * 2
+
+    expr = f"{a} + {b}"
+    solution = a + b
 
     return Trial.create(
         player=player,
         iteration=iteration,
-        text=text,
-        image=image_data,
+        expression=expr,
+        solution=solution,
     )
 
 
 def evaluate_response(trial: Trial, response: dict):
     """evaluate response and update trial status and score, return feedback"""
     assert response["iteration"] == trial.iteration
+    assert isinstance(response["answer"], int)
+    assert isinstance(response["confidence"], int)
 
-    answer = response["answer"].upper()
+    trial.answer = response["answer"]
+    trial.confidence = response["confidence"]
 
-    trial.answer = answer
-    trial.success = trial.answer == trial.text
-
+    trial.success = trial.answer == trial.solution
     if trial.success:
         trial.score = C.SCORE_SUCCESS
     else:
@@ -120,6 +115,7 @@ def evaluate_response(trial: Trial, response: dict):
     trial.status = 'COMPLETED'
 
     return {
+        "solution": trial.solution,
         "success": trial.success,
         "score": trial.score,
     }
@@ -156,7 +152,7 @@ def output_progress(player: Player):
 def output_trial(trial: Trial):
     return {
         "iteration": trial.iteration,
-        "image": trial.image,
+        "expression": trial.expression,
     }
 
 
@@ -243,10 +239,11 @@ def custom_export(players: list[Player]):
         #
         "trial.iteration",
         "trial.status",
-        "trial.text",
-        "trial.image",
+        "trial.expression",
+        "trial.solution",
         "trial.response_time",
         "trial.answer",
+        "trial.confidence",
         "trial.success",
         "trial.score",
     ]
@@ -264,10 +261,11 @@ def custom_export(players: list[Player]):
             yield player_fields + [
                 trial.iteration,
                 trial.status,
-                trial.text,
-                trial.image,
+                trial.expression,
+                trial.solution,
                 trial.response_time,
                 trial.answer,
+                trial.confidence,
                 trial.success,
                 trial.score,
             ]

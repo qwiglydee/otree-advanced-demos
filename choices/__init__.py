@@ -1,15 +1,12 @@
-import string
-from pathlib import Path
 import random
 
 from otree.api import *
 
 from utils.live import live_page
-from utils import images
 
 
 class C(BaseConstants):
-    NAME_IN_URL = "captcha"
+    NAME_IN_URL = "choices"
     PLAYERS_PER_GROUP = None
     NUM_ROUNDS = 1
 
@@ -23,17 +20,6 @@ class C(BaseConstants):
 
     SCORE_SUCCESS = +10
     SCORE_FAILURE = -1
-
-    SYMBOLS = string.ascii_uppercase
-    LENGTH = 5
-
-    TEXT_SIZE = 128
-    TEXT_BGCOLOR = "#FFFFFF"
-    TEXT_COLOR = "#000000"
-
-
-APPDIR = Path(__file__).parent
-FONT = images.font(APPDIR / "assets" / "FreeSerifBold.otf", C.TEXT_SIZE)
 
 
 class Subsession(BaseSubsession):
@@ -59,11 +45,18 @@ class Trial(ExtraModel):
     success = models.BooleanField(initial=None)
     score = models.IntegerField(initial=0)
     # task fields
-    text = models.StringField()
-    image = models.LongStringField()
+    expression = models.StringField()
+    solution = models.IntegerField()
+    option_1 = models.IntegerField()
+    option_2 = models.IntegerField()
+    option_3 = models.IntegerField()
+    option_4 = models.IntegerField()
+
     # response fields
     response_time = models.IntegerField()
+    choice = models.IntegerField()
     answer = models.IntegerField()
+
 
 
 def creating_session(subsession: Subsession):
@@ -88,29 +81,49 @@ def set_payoff(player: Player):
 
 def generate_trial(player: Player, iteration: int):
     """generate single trial of the task"""
-    text = "".join(random.sample(C.SYMBOLS, k=C.LENGTH))
-    image = images.text(
-        text, FONT, size=C.TEXT_SIZE, padding=C.TEXT_SIZE // 2, color=C.TEXT_COLOR, bgcolor=C.TEXT_BGCOLOR
-    )
-    image = images.distort(image)
-    image_data = images.encode(image)
+
+    if player.condition == 'MIXED':
+        a = random.randint(10, 99)
+        b = random.randint(10, 99)
+    elif player.condition == 'ODD':
+        a = random.randint(5, 49) * 2 + 1
+        b = random.randint(5, 49) * 2 + 1
+    elif player.condition == 'EVEN':
+        a = random.randint(5, 49) * 2
+        b = random.randint(5, 49) * 2
+
+    expr = f"{a} + {b}"
+    solution = a + b
+
+    options = [
+        solution,
+        solution + 10,
+        solution - 10,
+        random.randint(solution - 10, solution + 10),
+    ]
+    random.shuffle(options)
 
     return Trial.create(
         player=player,
         iteration=iteration,
-        text=text,
-        image=image_data,
+        expression=expr,
+        solution=solution,
+        option_1=options[0],
+        option_2=options[1],
+        option_3=options[2],
+        option_4=options[3],
     )
 
 
 def evaluate_response(trial: Trial, response: dict):
     """evaluate response and update trial status and score, return feedback"""
     assert response["iteration"] == trial.iteration
+    assert isinstance(response["answer"], int)
 
-    answer = response["answer"].upper()
+    trial.answer = response["answer"]
+    trial.choice = [trial.option_1, trial.option_2, trial.option_3, trial.option_4].index(trial.answer) + 1
 
-    trial.answer = answer
-    trial.success = trial.answer == trial.text
+    trial.success = trial.answer == trial.solution
 
     if trial.success:
         trial.score = C.SCORE_SUCCESS
@@ -120,6 +133,7 @@ def evaluate_response(trial: Trial, response: dict):
     trial.status = 'COMPLETED'
 
     return {
+        "solution": trial.solution,
         "success": trial.success,
         "score": trial.score,
     }
@@ -141,6 +155,7 @@ def current_trial(player: Player):
     return trials[0] if trials else None
 
 
+
 #### FORMAT ####
 
 
@@ -156,7 +171,13 @@ def output_progress(player: Player):
 def output_trial(trial: Trial):
     return {
         "iteration": trial.iteration,
-        "image": trial.image,
+        "expression": trial.expression,
+        "options": {
+            1: trial.option_1,
+            2: trial.option_2,
+            3: trial.option_3,
+            4: trial.option_4,
+        }
     }
 
 
@@ -243,9 +264,14 @@ def custom_export(players: list[Player]):
         #
         "trial.iteration",
         "trial.status",
-        "trial.text",
-        "trial.image",
+        "trial.expression",
+        "trial.solution",
+        "trial.options.1",
+        "trial.options.2",
+        "trial.options.3",
+        "trial.options.4",
         "trial.response_time",
+        "trial.choice",
         "trial.answer",
         "trial.success",
         "trial.score",
@@ -260,13 +286,19 @@ def custom_export(players: list[Player]):
             player.trials_played,
             player.total_score,
         ]
+
         for trial in Trial.filter(player=player):
             yield player_fields + [
                 trial.iteration,
                 trial.status,
-                trial.text,
-                trial.image,
+                trial.expression,
+                trial.solution,
+                trial.option_1,
+                trial.option_2,
+                trial.option_3,
+                trial.option_4,
                 trial.response_time,
+                trial.choice,
                 trial.answer,
                 trial.success,
                 trial.score,

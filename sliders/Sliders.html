@@ -1,101 +1,74 @@
 {{ block content }}
 
 <header>
-    <my-progress max="vars.progress.total" ticks="1" value="vars.progress.solved"></my-progress>
+    <ot-progress max="vars.progress.total" ticks="1" val="vars.progress.solved"></ot-progress>
     <div class="alert alert-info m-2">Total score: <b ot-text="vars.progress.score"></b></div>
 </header>
 
 <main>
-    {{ for slider in sliders }}
-    <input type="range" min="-10" max="10" step="1" class="form-range slider" ot-class="vars.styles.{{slider.id}}"
-        style="margin-left:{{slider.offset.L}}px; margin-right:{{slider.offset.R}}px" ot-input
-        name="slider_{{slider.id}}">
+    {{ for id in sliders }}
+    <ot-slider name="slider-{{id}}" min="-{{C.SLIDER_RANGE}}" max="{{C.SLIDER_RANGE}}"
+        offset="vars.sliders.{{id}}.offset" solved="vars.sliders.{{id}}.solved"></ot-slider>
     {{ endfor }}
 </main>
 
 <footer>
-    <p>Put all sliders into middle position.</p>
+    <p>Put all sliders into their middle position.</p>
 </footer>
 
 {{ endblock }}
 
 {{ block styles }}
 <link rel="stylesheet" href="{{ static 'fullscreen.css' }}">
-<link rel="stylesheet" href="{{ static 'progress2.css' }}">
-<style>
-    .otree-body {
-        border: 1px solid #dee2e6;
-        border-radius: .25rem;
-    }
-
-    main {
-        flex-flow: row wrap;
-        align-content: flex-start;
-        gap: 1rem;
-    }
-
-    input.slider {
-        width: 300px;
-        height: 30px;
-        border-radius: 15px;
-        padding: 0 7.5px;
-        background: hsl(216, 17%, 98%);
-        border: 1px solid rgba(0, 0, 0, 0.125);
-    }
-
-    input.slider.is-valid {
-        background: hsl(151.2, 71.43%, 93.14%);
-    }
-</style>
+<link rel="stylesheet" href="{{ static 'ot-progress.css' }}">
+<link rel="stylesheet" href="{{ static 'ot-slider.css' }}">
 {{ endblock }}
 
 {{ block scripts }}
-<script src="{{ static 'otree-front-1.5.b2.js' }}"></script>
-<script src="{{ static 'progress2.js' }}"></script>
-<script src="{{ static 'format_score.js' }}"></script>
+<script src="{{ static 'otree-front-2.0.b1.js' }}"></script>
+<script src="{{ static 'otree-front-ext.js' }}"></script>
+<script src="{{ static 'otree-front-live.js' }}"></script>
+<script src="{{ static 'ot-progress.js' }}"></script>
+<script src="{{ static 'ot-slider.js' }}"></script>
 <script>
     "use strict";
-    ot.onStartPage(initPage);
-    ot.onLive('sliders', resetSliders);
-    ot.onLive('progress', updateProgress);
-    ot.onInput(inputSlider);
-    ot.onLive('feedback', receiveFeedback);
-    ot.onLive('failure', function (message) { alert(message); ot.completePage(); });
 
+    ot.onEvent('loaded', startPage);
+    ot.onEvent('live', 'sliders', onLive(liveSliders));
+    ot.onEvent('live', 'progress', onLive(liveProgress));
+    ot.onEvent('live', 'feedback', onLive(liveFeedback));
+    ot.onEvent('live', 'failure', onLive(function (message) { alert(message); ot.submitPage(); }));
+    ot.onEvent('input', (e) => e.detail.name.startsWith('slider-'), onInput(inputSlider));
 
-    function initPage() {
-        vars.styles = {};
+    function startPage() {
+        vars.sliders = {};  // map of { id: properties }
         ot.disableInputs();
-        ot.sendLive('start');
+        sendLive('reset');
+        // expecting reply 'progress', 'sliders'
     };
 
-    function updateProgress(progress) {
-        vars.progress = progress;
-        if (progress.terminated) {
-            ot.delay(1000, ot.completePage);
+    async function liveProgress(name, data) {
+        vars.progress = data;
+        if (vars.progress.terminated) {
+            await ot.delay(1000);
+            ot.submitPage();
         }
     };
 
-    function highlightClass(solved) {
-        return solved ? "is-valid" : null;
-    }
-
-    function resetSliders(data) {
-        data.sliders.forEach(slider => {
-            ot.resetInput(`slider_${slider.id}`, slider.value);
-            vars.styles[slider.id] = highlightClass(slider.solved);
-        });
+    function liveSliders(name, data) {
+        vars.sliders = data;
+        for (let id in data) ot.resetInput(`slider-${id}`, data[id].value);
         ot.enableInputs();
     };
 
-    function inputSlider(name, value) {
-        let id = name.split('_')[1]
-        value = parseInt(value);
-        ot.sendLive("slider", { id, value });
+    function inputSlider(name, data) {
+        let { id, value } = data;
+        sendLive("slider", { id, value });
     };
 
-    function receiveFeedback(feedback) {
-        vars.styles[feedback.slider] = highlightClass(feedback.solved);
+    function liveFeedback(name, data) {
+        console.debug(name, data);
+        vars.sliders[data['id']].solved = data['solved'];
     };
 </script>
 {{ endblock }}

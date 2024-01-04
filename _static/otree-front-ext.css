@@ -1,0 +1,173 @@
+/**
+ * Some css tricks for otree-front
+ */
+
+/** make numbers input small and right aligned */
+input[type="number"] {
+    max-width: 10em;
+    text-align: right;
+}
+
+/**
+ * Highlighting whole focused input-group instead of nested inputs,
+ *
+ * Also highlighting group with is-valid and is-invalid classes. (doesn't work in firefox)
+ */
+.input-group {
+    border: 1px solid #ced4da;
+    transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+    border-radius: 0.25rem;
+}
+.input-group input {
+    border-color: #ced4da !important;
+    box-shadow: none !important;
+}
+.input-group:focus-within {
+    border-color: #86b7fe;
+    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+}
+.input-group:has(.is-invalid) {
+    border: 1px solid #dc3545;
+}
+.input-group:has(.is-invalid):focus-within {
+    box-shadow: 0 0 0 0.25rem rgba(220, 53, 69, 0.25);
+}
+.input-group:has(.is-valid) {
+    border-color: #198754;
+}
+.input-group:has(.is-valid):focus-within {
+    box-shadow: 0 0 0 0.25rem rgba(25, 135, 84, 0.25);
+}
+
+/**
+ * Enhance visibility of disabled selected inputs (apparently, with feedback)
+ */
+ .form-check-input.selected:disabled,
+ .form-check-input.selected:disabled~.form-check-label
+ {
+    opacity: 0.75;
+ }
+
+/**
+  * Directive ot-dim
+  *
+  * Makes sections look dimmed instead of completely hidden when using switchDisplay
+  *
+  * Usage:
+  * <section ot-dim id="foo">...</section>
+  */
+:root {
+    --ot-dim-opacity: 0.5;
+}
+
+[ot-dim] {
+    transition: opacity 150ms ease-in-out;
+}
+
+[ot-dim][hidden] {
+    display: initial !important;
+    opacity: var(--ot-dim-opacity);
+}
+
+/**
+ * Directive ot-switch
+ *
+ * Makes grouped sections smoothly replace each other when using `switchDisplay`
+ *
+ * Usage:
+ * <div ot-switch>
+ *   <div ot-switched id="something-foo">...</div>
+ *   <duv ot-switched id="something-bar">...</div>
+ * </div>
+ */
+:root {
+    --ot-switch-time: 300ms;
+}
+[ot-switch] {
+    display: grid;
+    grid-template: "content";
+}
+
+[ot-switch] [ot-switched] {
+    grid-area: content;
+    opacity: 1;
+    transition: opacity var(--ot-switch-time) ease-in-out;
+    z-index: 0;
+}
+
+[ot-switch] [ot-switched][hidden] {
+    display: initial !important;
+    opacity: 0;
+    z-index: -1;
+}
+
+/** Styles for directive ot-fade
+ * to adjust timing, copy the :root section onto your page
+ */
+:root {
+    --ot-fade-out-time: 200ms;
+    --ot-fade-in-time: 100ms;
+}
+[ot-fade].fade-out {
+    opacity: 0;
+    transition: opacity var(--ot-fade-out-time) ease-out;
+}
+[ot-fade].fade-in {
+    opacity: 1;
+    transition: opacity var(--ot-fade-in-time) ease-in;
+}
+[ot-fade].fade-off {
+    opacity: 0;
+    transition: none;
+}
+[ot-fade].fade-on {
+    opacity: 1;
+    transition: none;
+}
+
+/** Styles for directive ot-pulse */
+:root {
+    --ot-pulse-size: 0.5rem;
+}
+
+ot-pulse {
+    display: flex;
+}
+
+ot-pulse i {
+    display: block;
+    width: var(--ot-pulse-size);
+    height: var(--ot-pulse-size);
+    background-color: currentColor;
+    border-radius: 50%;
+    animation: 1000ms ease-in-out infinite ot-pulsating;
+}
+
+@keyframes ot-pulsating {
+    0% {
+        opacity: 0;
+        transform: scale(0);
+    }
+
+    50% {
+        opacity: 1;
+        transform: none;
+    }
+
+    100% {
+        opacity: 0;
+        transform: scale(0);
+    }
+}
+
+ot-pulse i:nth-child(1) {
+    animation-delay: 0ms;
+}
+
+ot-pulse i:nth-child(2) {
+    animation-delay: 250ms;
+}
+
+ot-pulse i:nth-child(3) {
+    animation-delay: 500ms;
+}

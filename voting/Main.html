@@ -1,47 +1,41 @@
 {{ block content }}
 
-<header class="alert alert-info">
-    <h4>Group votes:</h4>
-    <ul class="votes">
-        {{ for p in group.get_players }}
-        <li>{{p.name}}: <b ot-text="vars.votes.{{p.id_in_group}}"></b></li>
-        {{ endfor }}
+<header>
+    <h4>Votes:</h4>
+    <ul class="w-25 list-group m-3">
+        <li class="list-group-item"><span ot-text="vars.votes.0.player"></span>&nbsp;<b ot-text="vars.votes.0.choice"></b></li>
+        <li class="list-group-item"><span ot-text="vars.votes.1.player"></span>&nbsp;<b ot-text="vars.votes.1.choice"></b></li>
+        <li class="list-group-item"><span ot-text="vars.votes.2.player"></span>&nbsp;<b ot-text="vars.votes.2.choice"></b></li>
     </ul>
 </header>
 
 <main>
-    <div class="alert alert-primary">
-        <label class="col">Your vote:</label>
-        <select class="col form-select" name="vote" ot-input>
+    <div class="w-100 chat rounded border pt-2">
+        <div class="message mx-2" ot-html="vars.chat.0"></div>
+        <div class="message mx-2" ot-html="vars.chat.1"></div>
+        <div class="message mx-2" ot-html="vars.chat.2"></div>
+        <div class="message mx-2" ot-html="vars.chat.3"></div>
+        <div class="message mx-2" ot-html="vars.chat.4"></div>
+        <div class="message mx-2" ot-html="vars.chat.5"></div>
+        <div class="message mx-2" ot-html="vars.chat.6"></div>
+        <div class="message mx-2" ot-html="vars.chat.7"></div>
+        <div class="message mx-2" ot-html="vars.chat.8"></div>
+        <div class="message mx-2" ot-html="vars.chat.9"></div>
+
+        <input ot-input ot-key-input="Enter" type="text" class="form-control bg-light border-0" name="message" autofocus placeholder="type a message to send to chat" value="">
+    </div>
+</main>
+
+<footer>
+    <div class="form-group">
+        <label class="form-label">Your vote:</label>
+        <select ot-input class="form-select d-inline bg-light" name="vote">
             <option></option>
             {{ for i, option in options }}
             <option>{{option}}</option>
             {{ endfor }}
         </select>
     </div>
-    <div class="flex-fill"></div>
-    <div class="chat rounded border m-3 pt-3">
-        <!-- otree-front is limited to fixed structure of html -->
-        <div class="message mx-3" ot-html="vars.chat.0"></div>
-        <div class="message mx-3" ot-html="vars.chat.1"></div>
-        <div class="message mx-3" ot-html="vars.chat.2"></div>
-        <div class="message mx-3" ot-html="vars.chat.3"></div>
-        <div class="message mx-3" ot-html="vars.chat.4"></div>
-        <div class="message mx-3" ot-html="vars.chat.5"></div>
-        <div class="message mx-3" ot-html="vars.chat.6"></div>
-        <div class="message mx-3" ot-html="vars.chat.7"></div>
-        <div class="message mx-3" ot-html="vars.chat.8"></div>
-        <div class="message mx-3" ot-html="vars.chat.9"></div>
-        <div class="flex-fill"></div>
-        <div class="input-group w-100">
-            <input type="text" class="form-control" ot-input name="message" autofocus
-                placeholder="type a message to send to chat">
-            <button type="button" class="btn btn-primary" name="submit" ot-input ot-kbd="Enter">Send</button>
-        </div>
-    </div>
-</main>
-
-<footer>
 </footer>
 
 {{ endblock }}
@@ -49,60 +43,64 @@
 {{ block styles }}
 <link rel="stylesheet" href="{{ static 'fullscreen.css' }}">
 <style>
-    .chat {
-        width: 400px;
-        height: 400px;
-        display: flex;
-        flex-flow: column;
-        justify-content: flex-end;
-        justify-items: left;
+    input.form-control {
+        max-width: none;
+    }
+
+    .message {
+        height: 2em;
     }
 </style>
 {{ endblock }}
 
 {{ block scripts }}
-<script src="{{ static 'otree-front-1.5.b2.js' }}"></script>
+<script src="{{ static 'otree-front-2.0.b1.js' }}"></script>
+<script src="{{ static 'otree-front-ext.js' }}"></script>
+<script src="{{ static 'otree-front-live.js' }}"></script>
 <script>
     const CHAT_SIZE = 10;
 
-    ot.onStartPage(initPage);
-    ot.onInput('vote', sendVote);
-    ot.onInput('message', sendMessage);
-    ot.onInput('submit', function () { ot.commitInput("message"); });
-    ot.onLive('votes', receiveVotes);
-    ot.onLive('chat', receiveMessage);
-    ot.onLive('failure', function (message) { alert(message); ot.completePage(); });
+    ot.onEvent('loaded', initPage);
+    ot.onEvent('input', 'vote', onInput(sendVote));
+    ot.onEvent('input', 'message', onInput(sendChat));
+    ot.onEvent('live', 'votes', onLive(liveVotes));
+    ot.onEvent('live', 'chat', onLive(liveChat));
+    ot.onEvent('live', 'failure', onLive(function (message) { alert(message); ot.submitPage(); }));
 
     function initPage() {
+        vars.votes = [];
         vars.chat = [];
-        vars.votes = {};
-        ot.sendLive('start');
+        sendLive('load');
     };
 
-    function sendMessage(text) {
-        ot.sendLive('chat', { text });
-        ot.resetInput('message', "");
+    function sendVote(name, value) {
+        sendLive('vote', { vote: value });
     };
 
-    function receiveVotes(data) {
+    function liveVotes(name, data) {
         vars.votes = data.votes;
-        if (data.consensus) {
-            ot.delay(1000, ot.completePage);
-        }
+        if (data.consensus) completePage();
+    }
+
+    function sendChat(name,  text) {
+        sendLive('chat', { text });
+        ot.resetInput("message");
     };
 
-    function receiveMessage(data) {
-        if (data.text) {
-            vars.chat.push(`<b>${data.player}:</b> ${data.text}`);
-        }
-        if (data.vote) {
-            vars.chat.push(`<b>* ${data.player} votes:</b> ${data.vote}`);
-        }
+    function liveChat(name,  data) {
+        if (data.text) displayChat(`Player ${data.player}`, data.text);
+        if (data.vote) displayChat(`* Player ${data.player} votes`, data.vote);
+    };
+
+    function displayChat(player, msg) {
+        vars.chat.push(`<b>${player}</b> ${msg}`);
         vars.chat = vars.chat.splice(-CHAT_SIZE);
-    };
+    }
 
-    function sendVote(value) {
-        ot.sendLive('vote', { vote: value });
-    };
+    async function completePage() {
+        await ot.delay(1000);
+        ot.submitPage();
+    }
+
 </script>
 {{ endblock }}

@@ -1,60 +1,118 @@
+> :warning:
+> The project is still under development and not perfectly tested.
+
 # otree-advanced-demos
 
-Apps and snippets for [oTree](https://www.otree.org/) (v5) using some advanced techniques.
+The project presents a bunch of prototypical web applications for behaviorial or psycological online experiments, surveys or tests.
 
-The demo applications utilize [**live page**](https://otree.readthedocs.io/en/latest/live.html) channel to communicate with server in real time with low network latency.
+They may be useful in your research projects as a starting point of your app.
+You copy some of the app that best matches your experiment design and adjust code to fit your needs.
 
-The applications pages are created using [**otree-front**](https://github.com/qwiglydee/otree-front) (v1.5.beta) to provide interactive interface and dynamic content.
+The apps are developed using [oTree](www.otree.org) framework and it's new (upcoming) extension `otree-front.js` (shipped in this repository)
 
-The combined approach allows to run unlimited number of same-type tasks on the same page.
+## Features
 
-Together with some style extensions, that also gives the apps quite modern look-and-feel.
+- Main pages are implemented in a dynamic manner for real-time interaction with low latency.
+  (Contrary to traditional form-based approach that require full page reload).
+- Responses are immediately communicated and saved on server via live channel.
+- Where appropriate, pages measure response time with high precision (about 15ms), not affected by network latency.
+- The pages are designed in smooth animated styles, reducing visual disturbances.
+- The pages do not reveal correct or best answers, reducing possibility of cheating via inspecting page scripts and content.
+  Evaluation of answrs is performed on server side.
+- The apps detect and prohibit page reloading on the page of tasks, to protect data and measurements from users or browsers misbehavior.
+- The code contains double-checking of data to ease detecting bugs during development.
 
-# Features
+## Apps
 
-Most of the demos run series of trials of a simple math task.
-The trials can be either pre-generated of a given number, or infinitely generated on-demand.
-Difference in approach is a matter of changing few lines of code (see `trials_simple` and `trials_infinite`)
+Most apps run series of trials consisting of a task and expecting a solution in response.
+Detailed data for each trial is saved in additional data models and can be exported via 'custom export' feature.
 
-The trials are stored in a separate data model, and can be exported via 'custom export' page.
+- [simple](simple): Pregenerated series of simple trials with text task and text input
+- [simple2](simple2): Trials with multiple inputs and a submit button.
+- [stages](stages): Trials with several different conditional stages.
+- [choices](choices): Trials with answer choices on buttons.
+- [choices2](choices2): Trials with answer choices on radio buttons with a submit button.
+- [infinite](infinite): Infinite series of simple trials, generated on demand.
+- [timers](timers): Infinite series with animated timers for page and response timeouts.
+- [phases](phases): Trials with several time-based phases.
+- [captcha](captcha): Trials with images generated from text.
+- [drawing](drawing): Trials with images and free-hand drawing input.
+- [sliders](sliders): Classic slider tasks, with real-time feedback.
+- [voting](voting): Group voting with online chat.
 
-All the responses are immediately sent to server for saving and evaluation.
-When a page gets reloaded by a participant for some reason, the progress of an app is restored to the last saved state.
+## Snippets
 
-Evaluating answers and responses are performed on server side.
-Correct answers are not revealed into page, so that any scrip-based cheating is basically not possible.
+The snippets are pieces of code for either back-end (python) or front-end (javascript) and styles (css)
+that can be attached and reused in any other otree app or a particular page.
 
-Most demos measure precise response time with milliseconds presicion (not affected by network latency).
+- csv utils [(back)](utils/csv.py): to load, filter, sample data from csv files
+- image utils [(back)](utils/images.py): to generate and encode images
+- pagetime utils [(back)](utils/pagetime.py): to track time spent on pages
+- live utils [(back)](utils/live.py), [(front)](_static/otree-front-live.js): to simplify and enhance message-oriented live communication.
+- fullscreen [(styles)](_static/fullscreen.css): for full-screen pages with auto-centered content
+- progress bar [(front)](_static/ot-progress.js), [(styles)](_stativ/ot-progress.css): a directive to display nice animated progress bar
+- various enhancements [(front)](_static/otree-front-ext.js), [(styles)](_static/otree-front-ext.css):
+  - some helpers to install handlers of `ot.onEvent` and for built-in oTree page timer
+  - some adjustments for form input styles
+  - directive `ot-fade` to make smooth transitions of main page areas
+  - directive `ot-switch` to make smooth switching between page fragments
+  - directive `ot-dim` to make hidden parts look dimmed instead of completely hiding
+  - directive `ot-pulse` to display pulsating dots to indicate "waiting" pauses
 
-# Demos
+## Usage
 
-- [simple trials](trials_simle): pregenerated series of simple trials with text task and text input
-- [infinite trials](trials_infinite): infinite series of trials generated on-demand, limited by page timer
-- [choices](trials_choices): answer is selected from predefined randomized options
-- [multistep](multistep): each trial consist of 2 sequential stages of inputs
-- [multistage](multistage): each trial consist of 2 stages in a conditional flow
-- [phases](phases): each trial runs through timer-controlled phases
-- [sliders](sliders): classic sliders task, with real-time feedback
-- [captcha](captcha): encoding tasks as distorted images
-- [drawing](drawing): taking input as free-hand drawing
-- [voting](voting): multiple participants voting with real-time chat
+To use an app as a starting code base in your project:
+- download the code (from Releases section) and unpack somewhere
+- copy directory of desired app into your progect
+- copy full directoties `_static` and `utils` into your project
+- add the app into the `settings.py`
+- adjust code of the app to fit your needs
+
+To reuse a python snippet:
+- copy `.py` files into `utils` subdirectory in your project
+- import the module in `__init__.py` of your app:
+  ```python
+  from utils import something
+  ```
+
+To reuse a javascript snippet:
+- copy desired `.js` files into `_static` subdirectory in your project
+- in a template of a page, include the script into script block:
+  ```html
+  {{ block scripts }}
+  <script src="{{ static 'something.js' }}"></script>
+  {{ endblock }}
+  ```
+
+To reuse a style snippet:
+- copy desired `.css` file into `_static` subdirectory in your project
+- in a template of a page, include the styles in styles block:
+  ```html
+  {{ block styles }}
+  <link rel="stylesheet" href="{{ static 'something.css' }}">
+  {{ endblock }}
+  ```
+- some styles are adjustable for particular pages via css variables
+  (you can see them in the css files as `--ot-something-something`)
+- to adjust styles for a page or a particular element, insert style variables into the same styles block, after `link`s:
+  ```html
+  <style>
+    :root {
+        --ot-dim-opacity: 0.25;
+    }
+
+    section[ot-dim] {
+        --ot-dim-opacity: 0.75;
+    }
+  </style>
+  ```
+
+# Support
+
+You can support this initiative by making some donation in crypto currency - BTC:`bc1q55dmnurjj4c7s2wy2k4dr8swnjk8ypd49w8964`
+or ETH:`0xF0FAAeA5c9DFF2ca1eaA946FB71c89432983f2Ce`
+
+You can also hire me to assist in your project with web development.
+Conact me via `qwiglydee@gmail.com`, or the same nickname in Telegram or WhatsApp.
 
 
-# Back-end utilities
-
-Some python snippets that can be reused in other applications.
-
-- [live utils](utils/live_utils.py): convenient alternative API for live channel communication
-- [pagetime](utils/pagetime.py): to measure time spent on pages
-- [csv utils](utils/csv_utils.py): to load and filter data from csv files
-- [image utils](utils/image_utils.py): to generate images from text
-
-# Front-end utilities
-
-Some javascript and css snippets to extend page content and style.
-
-- [fullscreen.css](_static/fullscreen.css): a stylesheet for full-screen centered layout
-- [progress2.js](_static/progress2.js): a nice progress bar widget
-- [spinner-pulse.css](_static/spinner-pulse.css): the pulsating dots to indicate waiting pauses
-- [xfade.css](_static/xfade.css): styles make implement smooth cross-fade trials transitions
-- [drawing-input.js](drawing/static/drawing-input.js): the widget for free-hand drawing

@@ -27,6 +27,7 @@ form#liveform {
     margin-top: 1rem;
 }
 
+/** width copy-pasted from boostrap container */
 @media (min-width: 576px) {
     .container {
         max-width: 540px;
@@ -69,34 +70,34 @@ form#liveform {
     position: fixed;
     right: 1rem;
     top: 1rem;
+    width: 10rem;
     z-index: 5;
 }
 
 /** page sections **/
 
 header,
-footer,
-main {
+main,
+footer
+{
     display: flex;
     flex-flow: column nowrap;
-    align-items: center;
     padding: 0.75rem;
 }
 
 header {
     justify-content: start;
-    border-top-left-radius: 0.5rem;
-    border-top-right-radius: 0.5rem;
-}
-
-footer {
-    justify-content: end;
-    border-bottom-left-radius: 0.5rem;
-    border-bottom-right-radius: 0.5rem;
+    align-items: center;
 }
 
 main {
     justify-content: center;
+    align-items: center;
+}
+
+footer {
+    justify-content: end;
+    align-items: center;
 }
 
 header,
@@ -105,7 +106,7 @@ footer {
 }
 
 main {
-    flex: 1 1 100%;
+    flex: 1 1 50%;
 }
 
 /* clean up header and paragraph margins */
@@ -114,3 +115,10 @@ header>*:last-child,
 main>*:last-child {
     margin-bottom: 0;
 }
+
+
+/* prevent inputs to be too wide */
+.input-group {
+    width: auto;
+}
+

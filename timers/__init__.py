@@ -1,39 +1,26 @@
-import string
-from pathlib import Path
 import random
 
 from otree.api import *
 
 from utils.live import live_page
-from utils import images
 
 
 class C(BaseConstants):
-    NAME_IN_URL = "captcha"
+    NAME_IN_URL = "timers"
     PLAYERS_PER_GROUP = None
     NUM_ROUNDS = 1
 
     CONDITIONS = ['ODD', 'EVEN', 'MIXED']
 
-    NUM_TRIALS = 10  # total number of trials to generate
     MAX_FAILURES = 5  # num of failures to abort the game
 
-    PAGE_TIMEOUT = 600  # total time limit for tasks page (seconds)
-    FEEDBACK_DELAY = 2000  # time (ms) to show feedback before next trial
+    PAGE_TIMEOUT = 300  # (seconds) total time limit for tasks page
+    RESPONSE_TIMEOUT = 5 # (seconds) time limit for single trial
+    FEEDBACK_DELAY = 2000  # (ms) time to show feedback before next trial
 
     SCORE_SUCCESS = +10
     SCORE_FAILURE = -1
-
-    SYMBOLS = string.ascii_uppercase
-    LENGTH = 5
-
-    TEXT_SIZE = 128
-    TEXT_BGCOLOR = "#FFFFFF"
-    TEXT_COLOR = "#000000"
-
-
-APPDIR = Path(__file__).parent
-FONT = images.font(APPDIR / "assets" / "FreeSerifBold.otf", C.TEXT_SIZE)
+    SCORE_TIMEOUT = 0
 
 
 class Subsession(BaseSubsession):
@@ -55,12 +42,12 @@ class Trial(ExtraModel):
     player = models.Link(Player)
     iteration = models.IntegerField(min=1)
     # status fields
-    status = models.StringField(choices=['NEW', 'LOADED', 'COMPLETED'], initial='NEW')
+    status = models.StringField(choices=['NEW', 'LOADED', 'TIMEOUTED', 'COMPLETED'], initial='NEW')
     success = models.BooleanField(initial=None)
     score = models.IntegerField(initial=0)
     # task fields
-    text = models.StringField()
-    image = models.LongStringField()
+    expression = models.StringField()
+    solution = models.IntegerField()
     # response fields
     response_time = models.IntegerField()
     answer = models.IntegerField()
@@ -77,9 +64,6 @@ def init_player(player: Player, config: dict):
         assert config['condition'] in C.CONDITIONS
         player.condition = config['condition']
 
-    for i in range(C.NUM_TRIALS):
-        generate_trial(player, i+1)
-
 
 def set_payoff(player: Player):
     """calculate final payoff"""
@@ -88,29 +72,37 @@ def set_payoff(player: Player):
 
 def generate_trial(player: Player, iteration: int):
     """generate single trial of the task"""
-    text = "".join(random.sample(C.SYMBOLS, k=C.LENGTH))
-    image = images.text(
-        text, FONT, size=C.TEXT_SIZE, padding=C.TEXT_SIZE // 2, color=C.TEXT_COLOR, bgcolor=C.TEXT_BGCOLOR
-    )
-    image = images.distort(image)
-    image_data = images.encode(image)
+
+    if player.condition == 'MIXED':
+        a = random.randint(10, 99)
+        b = random.randint(10, 99)
+    elif player.condition == 'ODD':
+        a = random.randint(5, 49) * 2 + 1
+        b = random.randint(5, 49) * 2 + 1
+    elif player.condition == 'EVEN':
+        a = random.randint(5, 49) * 2
+        b = random.randint(5, 49) * 2
+
+    expr = f"{a} + {b}"
+    solution = a + b
 
     return Trial.create(
         player=player,
         iteration=iteration,
-        text=text,
-        image=image_data,
+        expression=expr,
+        solution=solution,
     )
 
 
 def evaluate_response(trial: Trial, response: dict):
     """evaluate response and update trial status and score, return feedback"""
     assert response["iteration"] == trial.iteration
+    assert isinstance(response["answer"], int)
 
-    answer = response["answer"].upper()
+    answer = response["answer"]
 
     trial.answer = answer
-    trial.success = trial.answer == trial.text
+    trial.success = trial.answer == trial.solution
 
     if trial.success:
         trial.score = C.SCORE_SUCCESS
@@ -120,8 +112,24 @@ def evaluate_response(trial: Trial, response: dict):
     trial.status = 'COMPLETED'
 
     return {
+        "solution": trial.solution,
         "success": trial.success,
         "score": trial.score,
+    }
+
+def evaluate_timeout(trial: Trial, response: dict):
+    """trial has timed out without answer"""
+    assert response["iteration"] == trial.iteration
+
+    trial.success = False
+    trial.score = C.SCORE_TIMEOUT
+
+    trial.status = 'TIMEOUTED'
+
+    return {
+        "success": trial.success,
+        "score": trial.score,
+        "timeouted": True,
     }
 
 
@@ -132,7 +140,7 @@ def update_progress(player: Player, feedback: dict):
     player.total_score = max(0, player.total_score)
 
     trials_failed = len(Trial.filter(player=player, success=False))
-    player.terminated = player.trials_played == C.NUM_TRIALS or trials_failed >= C.MAX_FAILURES
+    player.terminated = trials_failed >= C.MAX_FAILURES
 
 
 def current_trial(player: Player):
@@ -141,12 +149,16 @@ def current_trial(player: Player):
     return trials[0] if trials else None
 
 
+def next_trial(player: Player):
+    """generate next trial"""
+    return generate_trial(player, player.trials_played + 1)
+
+
 #### FORMAT ####
 
 
 def output_progress(player: Player):
     return {
-        "total": C.NUM_TRIALS,
         "played": player.trials_played,
         "score": player.total_score,
         "terminated": player.terminated,
@@ -156,7 +168,7 @@ def output_progress(player: Player):
 def output_trial(trial: Trial):
     return {
         "iteration": trial.iteration,
-        "image": trial.image,
+        "expression": trial.expression,
     }
 
 
@@ -184,12 +196,12 @@ class Main(Page):
     @staticmethod
     def live_iter(player: Player, _):
         """retrieve current progress and trial"""
+        # detect reloading of incomplete tasks
         trial = current_trial(player)
-        assert trial is not None
-
-        # detect reloading incomplete tasks
-        if trial.status == 'LOADED':
+        if trial is not None and trial.status == 'LOADED':
             raise RuntimeError("Page reloading is prohibited")
+
+        trial = next_trial(player)
         trial.status = 'LOADED'
 
         yield "progress", output_progress(player)
@@ -209,6 +221,17 @@ class Main(Page):
         yield "feedback", feedback
 
     @staticmethod
+    def live_timeout(player: Player, payload: dict):
+        trial = current_trial(player)
+        assert trial is not None
+
+        feedback = evaluate_timeout(trial, payload)
+        update_progress(player, feedback)
+
+        yield "progress", output_progress(player)
+        yield "feedback", feedback
+
+    @staticmethod
     def before_next_page(player: Player, timeout_happened):
         if timeout_happened:
             player.terminated = True
@@ -219,7 +242,7 @@ class Results(Page):
     @staticmethod
     def vars_for_template(player: Player):
         return {
-            'played': player.trials_played,
+            'player': player.trials_played,
             'solved': len(Trial.filter(player=player, success=True)),
             'failed': len(Trial.filter(player=player, success=False)),
         }
@@ -243,8 +266,8 @@ def custom_export(players: list[Player]):
         #
         "trial.iteration",
         "trial.status",
-        "trial.text",
-        "trial.image",
+        "trial.expression",
+        "trial.solution",
         "trial.response_time",
         "trial.answer",
         "trial.success",
@@ -264,8 +287,8 @@ def custom_export(players: list[Player]):
             yield player_fields + [
                 trial.iteration,
                 trial.status,
-                trial.text,
-                trial.image,
+                trial.expression,
+                trial.solution,
                 trial.response_time,
                 trial.answer,
                 trial.success,

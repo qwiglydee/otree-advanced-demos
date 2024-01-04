@@ -2,28 +2,29 @@ import random
 
 from otree.api import *
 
-from utils.live_utils import live_page
-
+from utils.live import live_page
+from utils.rnd import bernulchoice
 
 class C(BaseConstants):
     NAME_IN_URL = "phases"
     PLAYERS_PER_GROUP = None
     NUM_ROUNDS = 1
 
-    NUM_TRIALS = 10  # total number of trials to generate
-    MAX_FAILURES = 3  # num of failures to abort the game
-    TASKS_TIMEOUT = 600  # total time limit for tasks (seconds)
-    TRIAL_DELAY = 2000  # pause (ms) after trial
-    RETRY_DELAY = 1000  # pause (ms) before retry
-    SCORE_SUCCESS = +1
-    SCORE_FAILURE = 0
+    CONDITIONS = ['ODD', 'EVEN', 'MIXED']
 
-    SCHEDULE = {
-        'aiming': 3000,
-        'showing': 1000,
-        'responding': 3000,
-        'timeout': 0
-    }
+    NUM_TRIALS = 10  # total number of trials to generate
+    PROB_EQUAL = 0.5  # share of equality expressions
+
+    SCHEDULE = [ 'aim', 1000, 'stimulus', 3000, 'response' ]  # mix of phases names and pauses (ms) between them
+    RESPONSE_TIMEOUT = 3000  # timeout (ms) for response
+
+    PAGE_TIMEOUT = 600  # total time limit for tasks page (seconds)
+    FEEDBACK_DELAY = 2000  # time (ms) to show feedback before next trial
+
+    SCORE_SUCCESS = +10
+    SCORE_FAILURE = -1
+    SCORE_TIMEOUT = -5
+
 
 class Subsession(BaseSubsession):
     pass
@@ -34,9 +35,8 @@ class Group(BaseGroup):
 
 
 class Player(BasePlayer):
-    trials_completed = models.IntegerField(initial=0)
-    trials_solved = models.IntegerField(initial=0)
-    trials_failed = models.IntegerField(initial=0)
+    condition = models.StringField()
+    trials_played = models.IntegerField(initial=0)
     total_score = models.IntegerField(initial=0)
     terminated = models.BooleanField(initial=False)
 
@@ -44,38 +44,57 @@ class Player(BasePlayer):
 class Trial(ExtraModel):
     player = models.Link(Player)
     iteration = models.IntegerField(min=1)
-
+    # status fields
+    status = models.StringField(choices=['NEW', 'LOADED', 'TIMEOUTED', 'COMPLETED'], initial='NEW')
+    success = models.BooleanField(initial=None)
+    score = models.IntegerField(initial=0)
     # task fields
     expression = models.StringField()
-    solution = models.StringField()
-    suggestion = models.StringField()
-
+    solution = models.IntegerField()
+    suggestion = models.IntegerField()
+    correct_answer = models.StringField()
     # response fields
-    response = models.StringField()
     response_time = models.IntegerField()
-    response_timeout = models.BooleanField()
+    answer = models.IntegerField()
 
-    # status fields
-    completed = models.BooleanField()
-    success = models.BooleanField()
-    score = models.IntegerField(initial=0)
 
-    @property
-    def correct_answer(self):
-        return 'Y' if self.solution == self.suggestion else 'N'
+def creating_session(subsession: Subsession):
+    for player in subsession.get_players():
+        init_player(player, subsession.session.config)
+
+
+def init_player(player: Player, config: dict):
+    player.condition = random.choice(C.CONDITIONS)
+    if 'condition' in config and config['condition'] != 'random':
+        assert config['condition'] in C.CONDITIONS
+        player.condition = config['condition']
+
+    for i in range(C.NUM_TRIALS):
+        generate_trial(player, i+1)
+
+
+def set_payoff(player: Player):
+    """calculate final payoff"""
+    player.payoff = player.total_score * player.session.config["real_world_currency_per_point"]
 
 
 def generate_trial(player: Player, iteration: int):
     """generate single trial of the task"""
-    a = random.randint(11, 99)
-    b = random.randint(11, 99)
+
+    if player.condition == 'MIXED':
+        a = random.randint(10, 99)
+        b = random.randint(10, 99)
+    elif player.condition == 'ODD':
+        a = random.randint(5, 49) * 2 + 1
+        b = random.randint(5, 49) * 2 + 1
+    elif player.condition == 'EVEN':
+        a = random.randint(5, 49) * 2
+        b = random.randint(5, 49) * 2
+
     expr = f"{a} + {b}"
     solution = a + b
 
-    if random.random() < 0.5:
-        suggestion = solution
-    else:
-        suggestion = solution + random.choice([-10, +10])
+    suggestion = bernulchoice(C.PROB_EQUAL, solution, solution + random.choice([-10, +10]))
 
     return Trial.create(
         player=player,
@@ -83,93 +102,62 @@ def generate_trial(player: Player, iteration: int):
         expression=expr,
         solution=solution,
         suggestion=suggestion,
+        correct_answer='Y' if solution == suggestion else 'N'
     )
 
 
-def generate_trials(player: Player):
-    return [generate_trial(player, i) for i in range(1, 1 + C.NUM_TRIALS)]
+def evaluate_response(trial: Trial, response: dict):
+    """evaluate response and update trial status and score, return feedback"""
+    assert response["iteration"] == trial.iteration
+    assert response["answer"] in ('Y', 'N')
 
+    answer = response["answer"]
 
-def evaluate_response(trial: Trial, response: str):
-    """evaluate trial status and score
-    using already answered trial
-    """
-    trial.response = response
-    trial.response_timeout = False
-
-    trial.success = (trial.response == trial.correct_answer)
+    trial.answer = answer
+    trial.success = trial.answer == trial.correct_answer
 
     if trial.success:
         trial.score = C.SCORE_SUCCESS
     else:
         trial.score = C.SCORE_FAILURE
 
-    trial.completed = True
+    trial.status = 'COMPLETED'
 
     return {
         "solution": trial.solution,
         "success": trial.success,
         "score": trial.score,
-        "completed": trial.completed,
     }
 
-
-def evaluate_timeout(trial: Trial):
-    """evaluate trial status and score
-    using already answered trial
-    """
-    trial.response_timeout = True
+def evaluate_timeout(trial: Trial, response: dict):
+    """trial has timed out without answer"""
+    assert response["iteration"] == trial.iteration
 
     trial.success = False
-    trial.score = C.SCORE_FAILURE
-    trial.completed = True
+    trial.score = C.SCORE_TIMEOUT
+
+    trial.status = 'TIMEOUTED'
 
     return {
-        "solution": trial.solution,
         "success": trial.success,
         "score": trial.score,
-        "completed": trial.completed,
+        "timeouted": True,
     }
 
 
-def update_progress(player: Player, trial: Trial):
-    """update players progress using last completed trial"""
-    assert trial.completed
-
-    player.trials_completed += 1
-    player.total_score += trial.score
+def update_progress(player: Player, feedback: dict):
+    """update players progress using last feedback"""
+    player.trials_played += 1
+    player.total_score += feedback['score']
     player.total_score = max(0, player.total_score)
 
-    if trial.success:
-        player.trials_solved += 1
-    else:
-        player.trials_failed += 1
-
-    player.terminated = player.trials_completed == C.NUM_TRIALS or player.trials_failed >= C.MAX_FAILURES
+    player.terminated = player.trials_played == C.NUM_TRIALS
 
 
 def current_trial(player: Player):
     """retrieve current trial"""
-    assert player.trials_completed < C.NUM_TRIALS
-    [trial] = Trial.filter(player=player, iteration=player.trials_completed + 1)
-    return trial
-
-
-#### INIT ####
-
-
-def creating_session(subsession: Subsession):
-    for player in subsession.get_players():
-        init_player(player)
-
-
-def init_player(player: Player):
-    generate_trials(player)
-
-
-def set_payoff(player: Player):
-    """calculate final payoff"""
-    player.payoff = player.total_score * player.session.config["real_world_currency_per_point"]
+    trials = Trial.filter(player=player, iteration=player.trials_played + 1)
+    return trials[0] if trials else None
 
 
 #### FORMAT ####
@@ -178,7 +166,7 @@ def set_payoff(player: Player):
 def output_progress(player: Player):
     return {
         "total": C.NUM_TRIALS,
-        "completed": player.trials_completed,
+        "played": player.trials_played,
         "score": player.total_score,
         "terminated": player.terminated,
     }
@@ -200,60 +188,56 @@ class Intro(Page):
 
 
 @live_page
-class Tasks(Page):
+class Main(Page):
     """Live page with series of trials"""
 
-    timeout_seconds = C.TASKS_TIMEOUT
+    timeout_seconds = C.PAGE_TIMEOUT
+
+    @staticmethod
+    def is_displayed(player: Player):
+        return not player.terminated
 
     @staticmethod
     def js_vars(player: Player):
         return { 'C': dict(vars(C)) }
 
     @staticmethod
-    def live_iter(player: Player, data):
+    def live_iter(player: Player, _):
         """retrieve current progress and trial"""
+        trial = current_trial(player)
+        assert trial is not None
+
+        # detect reloading incomplete tasks
+        if trial.status == 'LOADED':
+            raise RuntimeError("Page reloading is prohibited")
+        trial.status = 'LOADED'
 
         yield "progress", output_progress(player)
-
-        if not player.terminated:
-            trial = current_trial(player)
-            yield "trial", output_trial(trial)
+        yield "trial", output_trial(trial)
 
     @staticmethod
-    def live_response(player: Player, data: dict):
+    def live_response(player: Player, payload: dict):
         """handle response from player"""
-
-        assert not player.terminated
-
         trial = current_trial(player)
+        assert trial is not None
 
-        assert data["iteration"] == trial.iteration
+        feedback = evaluate_response(trial, payload)
+        update_progress(player, feedback)
+        trial.response_time = payload["time"]
 
-        trial.response_time = data["time"]
-
-        feedback = evaluate_response(trial, data["response"])
-        yield "feedback", feedback
-
-        update_progress(player, trial)
         yield "progress", output_progress(player)
-
+        yield "feedback", feedback
 
     @staticmethod
-    def live_timeout(player: Player, data: dict):
-        """handle response timeout"""
-        assert not player.terminated
-
+    def live_timeout(player: Player, payload: dict):
         trial = current_trial(player)
+        assert trial is not None
 
-        assert data["iteration"] == trial.iteration
+        feedback = evaluate_timeout(trial, payload)
+        update_progress(player, feedback)
 
-        trial.response_time = data["time"]
-
-        feedback = evaluate_timeout(trial)
-        yield "feedback", feedback
-
-        update_progress(player, trial)
         yield "progress", output_progress(player)
+        yield "feedback", feedback
 
     @staticmethod
     def before_next_page(player: Player, timeout_happened):
@@ -263,12 +247,18 @@ class Tasks(Page):
 
 
 class Results(Page):
-    pass
+    @staticmethod
+    def vars_for_template(player: Player):
+        return {
+            'played': player.trials_played,
+            'solved': len(Trial.filter(player=player, success=True)),
+            'failed': len(Trial.filter(player=player, success=False)),
+        }
 
 
 page_sequence = [
     Intro,
-    Tasks,
+    Main,
     Results,
 ]
 
@@ -278,18 +268,16 @@ def custom_export(players: list[Player]):
         "session.code",
         "participant.code",
         #
-        "player.trials_completed",
-        "player.trials_solved",
-        "player.trials_failed",
+        "player.condition",
+        "player.trials_played",
         "player.total_score",
         #
         "trial.iteration",
+        "trial.status",
         "trial.expression",
         "trial.solution",
-        "trial.suggestion",
         "trial.response_time",
-        "trial.response_timeout",
-        "trial.response",
+        "trial.answer",
         "trial.success",
         "trial.score",
     ]
@@ -299,20 +287,18 @@ def custom_export(players: list[Player]):
             player.session.code,
             player.participant.code,
             #
-            player.trials_completed,
-            player.trials_solved,
-            player.trials_failed,
+            player.condition,
+            player.trials_played,
             player.total_score,
         ]
         for trial in Trial.filter(player=player):
             yield player_fields + [
                 trial.iteration,
+                trial.status,
                 trial.expression,
                 trial.solution,
-                trial.suggestion,
                 trial.response_time,
-                trial.response_timeout,
-                trial.response,
+                trial.answer,
                 trial.success,
                 trial.score,
             ]

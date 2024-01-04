@@ -1,25 +1,32 @@
+from pathlib import Path
 import random
 
 from otree.api import *
+from otree.common2 import url_of_static
 
-from utils.live_utils import live_page
-from utils import image_utils
+from utils.live import live_page
+
+
+APPDIR = Path(__file__).parent
+IMAGES = list((APPDIR / "static" / "images").glob("*.png"))
+
 
 class C(BaseConstants):
     NAME_IN_URL = "drawing"
     PLAYERS_PER_GROUP = None
     NUM_ROUNDS = 1
 
-    NUM_TRIALS = 10  # total number of trials to generate
-    MAX_FAILURES = 3  # num of failures to abort the game
-    TASKS_TIMEOUT = 600  # total time limit for tasks (seconds)
-    TRIAL_DELAY = 2000  # pause (ms) after trial
-    RETRY_DELAY = 1000  # pause (ms) before retry
-    SCORE_SUCCESS = +10
-    SCORE_FAILURE = -10
+    NUM_TRIALS = len(IMAGES)
+
+    PAGE_TIMEOUT = 300
+    FEEDBACK_DELAY = 2000  # time (ms) to show feedback before next trial
 
     CANVAS_SIZE = (256, 256)
-    CANVAS_FEATHER = 4
+    FEATHER = 4
+    COLOR = "#00000"
+
+    SCORE_DRAW = +1
+    SCORE_SKIP = 0
 
 
 class Subsession(BaseSubsession):
@@ -31,9 +38,8 @@ class Group(BaseGroup):
 
 
 class Player(BasePlayer):
-    trials_completed = models.IntegerField(initial=0)
-    trials_solved = models.IntegerField(initial=0)
-    trials_failed = models.IntegerField(initial=0)
+    condition = models.StringField()
+    trials_played = models.IntegerField(initial=0)
     total_score = models.IntegerField(initial=0)
     terminated = models.BooleanField(initial=False)
 
@@ -41,104 +47,72 @@ class Player(BasePlayer):
 class Trial(ExtraModel):
     player = models.Link(Player)
     iteration = models.IntegerField(min=1)
-
-    # task fields
-    expression = models.StringField()
-    solution = models.IntegerField()
-
-    # response fields
-    response_image = models.StringField()
-    response_time = models.IntegerField()
-
     # status fields
-    completed = models.BooleanField()
-    success = models.BooleanField()
+    status = models.StringField(choices=['NEW', 'LOADED', 'COMPLETED'], initial='NEW')
     score = models.IntegerField(initial=0)
-
-
-def generate_trial(player: Player, iteration: int):
-    """generate single trial of the task"""
-    a = random.randint(11, 99)
-    b = random.randint(11, 99)
-    expr = f"{a} + {b}"
-    solution = a + b
-
-    return Trial.create(
-        player=player,
-        iteration=iteration,
-        expression=expr,
-        solution=solution,
-    )
-
-
-def generate_trials(player: Player):
-    return [generate_trial(player, i) for i in range(1, 1 + C.NUM_TRIALS)]
-
-
-def evaluate_response(trial: Trial, drawing: str):
-    """evaluate response and update trial status and score, return feedback"""
-    trial.response_image = drawing
-
-    # analyzing painted area
-    image = image_utils.decode(drawing)
-    area = image.size[0] * image.size[1]
-    side = (image.size[0] + image.size[1]) // 2
-
-    hist = image.getchannel('A').histogram()
-    drawn = area - hist[0]
-    lines = drawn / C.CANVAS_FEATHER  # ~~ length of drawn lines
-
-    if lines < side:  # too few
-        return {
-            'success': False,
-            'completed': False,
-        }
-
-    trial.score = int((drawn / area) * 100) # percentage
-    trial.success = True
-    trial.completed = True
-
-    return {
-        "solution": trial.solution,
-        "success": trial.success,
-        "score": trial.score,
-        "completed": trial.completed,
-    }
-
-
-def update_progress(player: Player, trial: Trial):
-    """update players progress using last completed trial"""
-    assert trial.completed
-
-    player.trials_completed += 1
-    player.total_score += trial.score
-    player.total_score = max(0, player.total_score)
-
-    player.terminated = player.trials_completed == C.NUM_TRIALS
-
-
-def current_trial(player: Player):
-    """retrieve current trial"""
-    assert player.trials_completed < C.NUM_TRIALS
-    [trial] = Trial.filter(player=player, iteration=player.trials_completed + 1)
-    return trial
-
-
-#### INIT ####
+    # task fields
+    image = models.StringField()
+    # response fields
+    response_time = models.IntegerField()
+    drawing = models.LongStringField()
 
 
 def creating_session(subsession: Subsession):
     for player in subsession.get_players():
-        init_player(player)
+        init_player(player, subsession.session.config)
 
 
-def init_player(player: Player):
-    generate_trials(player)
+def init_player(player: Player, config: dict):
+    images = random.sample(IMAGES, k=C.NUM_TRIALS)
+
+    for i, img in enumerate(images):
+        generate_trial(player, i+1, img)
 
 
 def set_payoff(player: Player):
     """calculate final payoff"""
     player.payoff = player.total_score * player.session.config["real_world_currency_per_point"]
+
+
+def generate_trial(player: Player, iteration: int, image: Path):
+    """generate single trial of the task"""
+    return Trial.create(
+        player=player,
+        iteration=iteration,
+        image=image.stem,
+    )
+
+
+def evaluate_response(trial: Trial, response: dict):
+    """evaluate response and update trial status and score, return feedback"""
+    assert response["iteration"] == trial.iteration
+
+    if "drawing" in response:
+        trial.drawing = response['drawing']
+        trial.score = C.SCORE_DRAW
+    else:
+        trial.score = C.SCORE_SKIP
+
+    trial.status = 'COMPLETED'
+
+    return {
+        "score": trial.score,
+    }
+
+
+def update_progress(player: Player, feedback: dict):
+    """update players progress using last feedback"""
+    player.trials_played += 1
+    player.total_score += feedback['score']
+    player.total_score = max(0, player.total_score)
+
+    player.terminated = player.trials_played == C.NUM_TRIALS
+
+
+def current_trial(player: Player):
+    """retrieve current trial"""
+    trials = Trial.filter(player=player, iteration=player.trials_played + 1)
+    return trials[0] if trials else None
 
 
 #### FORMAT ####
@@ -147,7 +121,7 @@ def set_payoff(player: Player):
 def output_progress(player: Player):
     return {
         "total": C.NUM_TRIALS,
-        "completed": player.trials_completed,
+        "played": player.trials_played,
         "score": player.total_score,
         "terminated": player.terminated,
     }
@@ -156,8 +130,9 @@ def output_progress(player: Player):
 def output_trial(trial: Trial):
     return {
         "iteration": trial.iteration,
-        "expression": trial.expression,
+        "image_url": url_of_static("images/" + trial.image + ".png"),
     }
+
 
 #### PAGES ####
 
@@ -167,44 +142,45 @@ class Intro(Page):
 
 
 @live_page
-class Tasks(Page):
+class Main(Page):
     """Live page with series of trials"""
 
-    timeout_seconds = C.TASKS_TIMEOUT
+    timeout_seconds = C.PAGE_TIMEOUT
+
+    @staticmethod
+    def is_displayed(player: Player):
+        return not player.terminated
 
     @staticmethod
     def js_vars(player: Player):
         return { 'C': dict(vars(C)) }
 
     @staticmethod
-    def live_iter(player: Player, data):
+    def live_iter(player: Player, _):
         """retrieve current progress and trial"""
+        trial = current_trial(player)
+        assert trial is not None
+
+        # detect reloading incomplete tasks
+        # if trial.status == 'LOADED':
+        #     raise RuntimeError("Page reloading is prohibited")
+        # trial.status = 'LOADED'
 
         yield "progress", output_progress(player)
-
-        if not player.terminated:
-            trial = current_trial(player)
-            yield "trial", output_trial(trial)
+        yield "trial", output_trial(trial)
 
     @staticmethod
-    def live_response(player: Player, data: dict):
+    def live_drawing(player: Player, payload: dict):
         """handle response from player"""
-
-        assert not player.terminated
-
         trial = current_trial(player)
+        assert trial is not None
 
-        assert data["iteration"] == trial.iteration
+        trial.response_time = payload["time"]
+        feedback = evaluate_response(trial, payload)
+        update_progress(player, feedback)
 
-        trial.response_time = data["time"]
-
-        feedback = evaluate_response(trial, data["drawing"])
+        yield "progress", output_progress(player)
         yield "feedback", feedback
-
-        if trial.completed:
-            update_progress(player, trial)
-            yield "progress", output_progress(player)
-
 
     @staticmethod
     def before_next_page(player: Player, timeout_happened):
@@ -214,12 +190,16 @@ class Tasks(Page):
 
 
 class Results(Page):
-    pass
+    @staticmethod
+    def vars_for_template(player: Player):
+        return {
+            'played': player.trials_played,
+        }
 
 
 page_sequence = [
     Intro,
-    Tasks,
+    Main,
     Results,
 ]
 
@@ -229,18 +209,16 @@ def custom_export(players: list[Player]):
         "session.code",
         "participant.code",
         #
-        "player.trials_completed",
-        "player.trials_solved",
-        "player.trials_failed",
+        "player.condition",
+        "player.trials_played",
         "player.total_score",
         #
         "trial.iteration",
-        "trial.expression",
-        "trial.solution",
+        "trial.status",
+        "trial.image",
         "trial.response_time",
-        "trial.response_image",
-        "trial.success",
         "trial.score",
+        "trial.drawing",
     ]
 
     for player in players:
@@ -248,18 +226,16 @@ def custom_export(players: list[Player]):
             player.session.code,
             player.participant.code,
             #
-            player.trials_completed,
-            player.trials_solved,
-            player.trials_failed,
+            player.condition,
+            player.trials_played,
             player.total_score,
         ]
         for trial in Trial.filter(player=player):
             yield player_fields + [
                 trial.iteration,
-                trial.expression,
-                trial.solution,
+                trial.status,
+                trial.image,
                 trial.response_time,
-                trial.response_image,
-                trial.success,
                 trial.score,
+                trial.drawing,
             ]

@@ -2,7 +2,7 @@ import random
 
 from otree.api import *
 
-from utils.live_utils import live_page
+from utils.live import live_page
 
 
 class C(BaseConstants):
@@ -13,7 +13,7 @@ class C(BaseConstants):
     NUM_SLIDERS = 7
     SLIDER_RANGE = 10  # from -N to +N, target is always 0
     MAX_OFFSET = 100   # pixels
-    TASK_TIMEOUT = 600  # seconds
+    PAGE_TIMEOUT = 600  # seconds
 
     SCORE_CORRECT_MOVE = +5
     SCORE_INCORRECT_MOVE = -1
@@ -35,15 +35,30 @@ class Player(BasePlayer):
 
 class Slider(ExtraModel):
     player = models.Link(Player)
-
     offset = models.IntegerField()
     initial = models.IntegerField()
-
     value = models.IntegerField()
+    moves = models.IntegerField(initial=0)
     solved = models.BooleanField(initial=False)
 
 
-def generate_slider(player: Player, idx: int):
+
+def creating_session(subsession: Subsession):
+    for player in subsession.get_players():
+        init_player(player, subsession.session.config)
+
+
+def init_player(player: Player, config: dict):
+    for i in range(C.NUM_SLIDERS):
+        generate_slider(player)
+
+
+def set_payoff(player: Player):
+    """calculate final payoff"""
+    player.payoff = player.total_score * player.session.config["real_world_currency_per_point"]
+
+
+def generate_slider(player: Player):
     offset = random.randint(0, C.MAX_OFFSET)
     value = random.randint(1, C.SLIDER_RANGE) * random.choice([-1, +1])
 
@@ -55,44 +70,27 @@ def generate_slider(player: Player, idx: int):
     )
 
 
-def generate_sliders(player):
-    return [generate_slider(player, i) for i in range(1, 1+C.NUM_SLIDERS)]
-
-
-def evaluate_move(slider: Slider, value: int):
+def evaluate_move(slider: Slider, response: dict):
     """evaluate a move of a slider and update, return feedback including score for a move"""
-    slider.value = value
+    slider.moves += 1
+    slider.value = response['value']
     slider.solved = (slider.value == 0)
 
     score = C.SCORE_CORRECT_MOVE if slider.solved else C.SCORE_INCORRECT_MOVE
 
     return {
-        "slider": slider.id,
+        "id": slider.id,
+        "value": slider.value,
         "solved": slider.solved,
-        "score": score
+        "score": score,
     }
 
 
-def update_progress(player: Player, score: int):
-    """update players progress"""
-    player.total_score += score
+def update_progress(player: Player, feedback: dict):
+    """update players progress using last feedback"""
+    player.total_score += feedback['score']
     player.sliders_solved = len(Slider.filter(player=player, solved=True))
     player.terminated = player.sliders_solved == C.NUM_SLIDERS
-
-
-#### INIT ####
-
-def creating_session(subsession: Subsession):
-    for player in subsession.get_players():
-        init_player(player)
-
-
-def init_player(player: Player):
-    generate_sliders(player)
-
-
-def set_payoff(player):
-    player.payoff = player.total_score * player.session.config["real_world_currency_per_point"]
 
 
 #### OUTPUTS ####
@@ -111,16 +109,9 @@ def output_slider(slider: Slider):
     return {
         "id": slider.id,
         "value": slider.value,
-        "offset": {
-            'L': slider.offset,
-            'R': C.MAX_OFFSET - slider.offset
-        },
+        "offset": slider.offset,
         "solved": slider.solved,
     }
-
-
-def output_sliders(player: Player):
-    return [output_slider(s) for s in Slider.filter(player=player)]
 
 
 #### PAGES ####
@@ -132,33 +123,37 @@ class Intro(Page):
 
 @live_page
 class Sliders(Page):
-    timeout_seconds = C.TASK_TIMEOUT
+    timeout_seconds = C.PAGE_TIMEOUT
+
+    @staticmethod
+    def is_displayed(player: Player):
+        return not player.terminated
+
+    @staticmethod
+    def js_vars(player: Player):
+        return { 'C': dict(vars(C)) }
 
     @staticmethod
     def vars_for_template(player: Player):
-        # sliders for initial rendering, value/status ignored
+        # sequence of ids for initial rendering only
         return {
-            'sliders': output_sliders(player)
+            'sliders': [s.id for s in Slider.filter(player=player)]
         }
 
     @staticmethod
-    def live_start(player: Player, data):
+    def live_reset(player: Player, _):
         yield "progress", output_progress(player)
-
-        if not player.terminated:
-            yield "sliders", { 'sliders': output_sliders(player) }
+        yield "sliders", { s.id: output_slider(s) for s in Slider.filter(player=player)}
 
     @staticmethod
-    def live_slider(player: Player, data: dict):
-        assert not player.terminated
+    def live_slider(player: Player, payload: dict):
+        [slider] = Slider.filter(player=player, id=payload["id"])
 
-        [slider] = Slider.filter(player=player, id=data["id"])
+        feedback = evaluate_move(slider, payload)
+        update_progress(player, feedback)
 
-        feedback = evaluate_move(slider, data['value'])
-        yield "feedback", feedback
-
-        update_progress(player, feedback['score'])
         yield "progress", output_progress(player)
+        yield "feedback", feedback
 
     @staticmethod
     def before_next_page(player: Player, timeout_happened):
@@ -182,19 +177,22 @@ def custom_export(players: list[Player]):
     yield [
         "session",
         "participant",
-        "sliders_solved",
-        "total_score",
         #
-        "slider",
-        "initial",
-        "value",
-        "solved",
+        "player.sliders_solved",
+        "player.total_score",
+        #
+        "slider.id",
+        "slider.initial",
+        "slider.moves",
+        "slider.value",
+        "slider.solved",
     ]
 
     for player in players:
         player_fields = [
             player.session.code,
             player.participant.code,
+            #
             player.sliders_solved,
             player.total_score,
         ]
@@ -202,6 +200,7 @@ def custom_export(players: list[Player]):
             yield player_fields + [
                 slider.id,
                 slider.initial,
+                slider.moves,
                 slider.value,
                 slider.solved,
             ]

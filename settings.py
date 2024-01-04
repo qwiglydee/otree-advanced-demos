@@ -3,38 +3,51 @@ from os import environ
 SESSION_CONFIGS = [
     dict(
         name="trials_simple",
-        display_name="Simple Trials (pregenerated)",
-        app_sequence=["trials_simple"],
+        display_name="Simple trials",
+        app_sequence=["simple"],
+        condition="random",
+    ),
+    dict(
+        name="trials_simple2",
+        display_name="Multiple fields",
+        app_sequence=["simple2"],
+        condition="random",
+    ),
+    dict(
+        name="trials_choices_buttons",
+        display_name="Choices with buttons",
+        app_sequence=["choices"],
+        condition="random",
+    ),
+    dict(
+        name="trials_choices_radio",
+        display_name="Choices with radio",
+        app_sequence=["choices2"],
+        condition="random",
     ),
     dict(
         name="trials_infinite",
-        display_name="Simple Trials (infinite series)",
-        app_sequence=["trials_infinite"],
+        display_name="Infinite series",
+        app_sequence=["infinite"],
+        condition="random",
     ),
     dict(
-        name="trials_choices",
-        display_name="Choices: answering options",
-        app_sequence=["trials_choices"],
+        name="trials_infinite_timers",
+        display_name="Infinite series with timers",
+        app_sequence=["timers"],
+        condition="random",
     ),
     dict(
-        name="captcha",
-        display_name="Captcha: generated images",
-        app_sequence=["captcha"]
+        name="trials_phases",
+        display_name="Scheduled phases",
+        app_sequence=["phases"],
+        condition="random",
     ),
     dict(
-        name="drawing",
-        display_name="Drawing: freehand drawing input",
-        app_sequence=["drawing"]
-    ),
-    dict(
-        name="multistep",
-        display_name="Multiple inputs",
-        app_sequence=["multistep"],
-    ),
-    dict(
-        name="multistage",
-        display_name="Multiple stages with conditional workflow",
-        app_sequence=["multistage"],
+        name="trials_stages",
+        display_name="Several stages ",
+        app_sequence=["stages"],
+        condition="random",
     ),
     dict(
         name="sliders",
@@ -42,20 +55,20 @@ SESSION_CONFIGS = [
         app_sequence=["sliders"],
     ),
     dict(
+        name="drawing",
+        display_name="Free hand drawing",
+        app_sequence=["drawing"]
+    ),
+    dict(
+        name="captcha",
+        display_name="Transcribing text from images",
+        app_sequence=["captcha"]
+    ),
+    dict(
         name="voting",
-        display_name="Real-time voting and chatting",
+        display_name="Group voting and chatting",
         app_sequence=["voting"],
         num_demo_participants=3,
-    ),
-    dict(
-        name="phases",
-        display_name="Phases: time schedued trial phases",
-        app_sequence=["phases"],
-    ),
-    dict(
-        name="dumb",
-        display_name="just a dumb app for testing",
-        app_sequence=["dumb"],
     ),
 ]
 

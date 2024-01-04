@@ -1,15 +1,12 @@
-import string
-from pathlib import Path
 import random
 
 from otree.api import *
 
 from utils.live import live_page
-from utils import images
 
 
 class C(BaseConstants):
-    NAME_IN_URL = "captcha"
+    NAME_IN_URL = "stages"
     PLAYERS_PER_GROUP = None
     NUM_ROUNDS = 1
 
@@ -21,19 +18,12 @@ class C(BaseConstants):
     PAGE_TIMEOUT = 600  # total time limit for tasks page (seconds)
     FEEDBACK_DELAY = 2000  # time (ms) to show feedback before next trial
 
+    DECISIONS = ['ANSWER', 'REDUCE', 'SKIP']
+
     SCORE_SUCCESS = +10
-    SCORE_FAILURE = -1
-
-    SYMBOLS = string.ascii_uppercase
-    LENGTH = 5
-
-    TEXT_SIZE = 128
-    TEXT_BGCOLOR = "#FFFFFF"
-    TEXT_COLOR = "#000000"
-
-
-APPDIR = Path(__file__).parent
-FONT = images.font(APPDIR / "assets" / "FreeSerifBold.otf", C.TEXT_SIZE)
+    SCORE_FAILURE = -10
+    SCORE_REDUCE = -5
+    SCORE_SKIP = -5
 
 
 class Subsession(BaseSubsession):
@@ -54,16 +44,28 @@ class Player(BasePlayer):
 class Trial(ExtraModel):
     player = models.Link(Player)
     iteration = models.IntegerField(min=1)
+
     # status fields
     status = models.StringField(choices=['NEW', 'LOADED', 'COMPLETED'], initial='NEW')
     success = models.BooleanField(initial=None)
     score = models.IntegerField(initial=0)
+
     # task fields
-    text = models.StringField()
-    image = models.LongStringField()
+    expression = models.StringField()
+    solution = models.IntegerField()
+    option_1 = models.IntegerField()
+    option_2 = models.IntegerField()
+    option_3 = models.IntegerField()
+    option_4 = models.IntegerField()
+    options = models.StringField()
+
     # response fields
-    response_time = models.IntegerField()
+    decision_time = models.IntegerField()
+    decision = models.StringField()
+    answer_time = models.IntegerField()
+    choice = models.IntegerField()
     answer = models.IntegerField()
+
 
 
 def creating_session(subsession: Subsession):
@@ -88,34 +90,84 @@ def set_payoff(player: Player):
 
 def generate_trial(player: Player, iteration: int):
     """generate single trial of the task"""
-    text = "".join(random.sample(C.SYMBOLS, k=C.LENGTH))
-    image = images.text(
-        text, FONT, size=C.TEXT_SIZE, padding=C.TEXT_SIZE // 2, color=C.TEXT_COLOR, bgcolor=C.TEXT_BGCOLOR
-    )
-    image = images.distort(image)
-    image_data = images.encode(image)
+
+    if player.condition == 'MIXED':
+        a = random.randint(10, 99)
+        b = random.randint(10, 99)
+    elif player.condition == 'ODD':
+        a = random.randint(5, 49) * 2 + 1
+        b = random.randint(5, 49) * 2 + 1
+    elif player.condition == 'EVEN':
+        a = random.randint(5, 49) * 2
+        b = random.randint(5, 49) * 2
+
+    expr = f"{a} + {b}"
+    solution = a + b
+
+    options = [
+        solution,
+        solution + 10,
+        solution - 10,
+        random.randint(solution - 10, solution + 10),
+    ]
+    random.shuffle(options)
 
     return Trial.create(
         player=player,
         iteration=iteration,
-        text=text,
-        image=image_data,
+        expression=expr,
+        solution=solution,
+        option_1=options[0],
+        option_2=options[1],
+        option_3=options[2],
+        option_4=options[3],
+        options="1234"
     )
+
+def reduce_trial(trial: Trial):
+    """remove half of the options, keep correct one """
+    options = [1, 2, 3, 4]
+    correct = [trial.option_1, trial.option_2, trial.option_3, trial.option_4].index(trial.solution) + 1
+    options.pop(correct-1)
+    another = random.choice(options)
+    options = [correct, another]
+    trial.options = "".join(map(str, options))
+
+
+def evaluate_decision(trial: Trial, response: dict):
+    """evaluate first response"""
+    assert response["iteration"] == trial.iteration
+    assert response["decision"] in C.DECISIONS
+
+    trial.decision = response["decision"]
+    if trial.decision == 'SKIP':
+        trial.status = 'COMPLETED'
+        trial.score = C.SCORE_SKIP
+        return {
+            "success": trial.success,
+            "score": trial.score,
+        }
+    elif trial.decision == 'REDUCE':
+        reduce_trial(trial)
 
 
 def evaluate_response(trial: Trial, response: dict):
-    """evaluate response and update trial status and score, return feedback"""
+    """evaluate second response and update trial status and score, return feedback"""
     assert response["iteration"] == trial.iteration
+    assert isinstance(response["answer"], int)
 
-    answer = response["answer"].upper()
+    trial.answer = response["answer"]
+    trial.choice = [trial.option_1, trial.option_2, trial.option_3, trial.option_4].index(trial.answer) + 1
 
-    trial.answer = answer
-    trial.success = trial.answer == trial.text
+    trial.success = trial.answer == trial.solution
 
     if trial.success:
         trial.score = C.SCORE_SUCCESS
     else:
         trial.score = C.SCORE_FAILURE
+
+    if trial.decision == 'REDUCE':
+        trial.score += C.SCORE_REDUCE
 
     trial.status = 'COMPLETED'
 
@@ -141,6 +193,7 @@ def current_trial(player: Player):
     return trials[0] if trials else None
 
 
+
 #### FORMAT ####
 
 
@@ -156,7 +209,13 @@ def output_progress(player: Player):
 def output_trial(trial: Trial):
     return {
         "iteration": trial.iteration,
-        "image": trial.image,
+        "expression": trial.expression,
+        "options": {
+            1: trial.option_1,
+            2: trial.option_2,
+            3: trial.option_3,
+            4: trial.option_4,
+        }
     }
 
 
@@ -196,12 +255,31 @@ class Main(Page):
         yield "trial", output_trial(trial)
 
     @staticmethod
-    def live_response(player: Player, payload: dict):
+    def live_decision(player: Player, payload: dict):
         """handle response from player"""
         trial = current_trial(player)
         assert trial is not None
 
-        trial.response_time = payload["time"]
+        trial.decision_time = payload["time"]
+
+        feedback = evaluate_decision(trial, payload)
+
+        if feedback is not None:
+            update_progress(player, feedback)
+            yield "progress", output_progress(player)
+            yield "feedback", feedback
+        else:
+            yield "options", trial.options
+
+
+    @staticmethod
+    def live_answer(player: Player, payload: dict):
+        """handle response from player"""
+        trial = current_trial(player)
+        assert trial is not None
+
+        trial.answer_time = payload["time"]
+
         feedback = evaluate_response(trial, payload)
         update_progress(player, feedback)
 
@@ -243,9 +321,17 @@ def custom_export(players: list[Player]):
         #
         "trial.iteration",
         "trial.status",
-        "trial.text",
-        "trial.image",
-        "trial.response_time",
+        "trial.expression",
+        "trial.solution",
+        "trial.options.1",
+        "trial.options.2",
+        "trial.options.3",
+        "trial.options.4",
+        "trial.available",
+        "trial.decision_time",
+        "trial.answer_time",
+        "trial.decision",
+        "trial.choice",
         "trial.answer",
         "trial.success",
         "trial.score",
@@ -260,13 +346,22 @@ def custom_export(players: list[Player]):
             player.trials_played,
             player.total_score,
         ]
+
         for trial in Trial.filter(player=player):
             yield player_fields + [
                 trial.iteration,
                 trial.status,
-                trial.text,
-                trial.image,
-                trial.response_time,
+                trial.expression,
+                trial.solution,
+                trial.option_1,
+                trial.option_2,
+                trial.option_3,
+                trial.option_4,
+                trial.options,
+                trial.decision_time,
+                trial.answer_time,
+                trial.decision,
+                trial.choice,
                 trial.answer,
                 trial.success,
                 trial.score,
