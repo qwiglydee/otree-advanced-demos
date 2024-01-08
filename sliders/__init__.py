@@ -12,7 +12,7 @@ class C(BaseConstants):
 
     NUM_SLIDERS = 7
     SLIDER_RANGE = 10  # from -N to +N, target is always 0
-    MAX_OFFSET = 100   # pixels
+    MAX_OFFSET = 100  # pixels
     PAGE_TIMEOUT = 600  # seconds
 
     SCORE_CORRECT_MOVE = +5
@@ -42,7 +42,6 @@ class Slider(ExtraModel):
     solved = models.BooleanField(initial=False)
 
 
-
 def creating_session(subsession: Subsession):
     for player in subsession.get_players():
         init_player(player, subsession.session.config)
@@ -55,7 +54,9 @@ def init_player(player: Player, config: dict):
 
 def set_payoff(player: Player):
     """calculate final payoff"""
-    player.payoff = player.total_score * player.session.config["real_world_currency_per_point"]
+    player.payoff = (
+        player.total_score * player.session.config["real_world_currency_per_point"]
+    )
 
 
 def generate_slider(player: Player):
@@ -73,8 +74,8 @@ def generate_slider(player: Player):
 def evaluate_move(slider: Slider, response: dict):
     """evaluate a move of a slider and update, return feedback including score for a move"""
     slider.moves += 1
-    slider.value = response['value']
-    slider.solved = (slider.value == 0)
+    slider.value = response["value"]
+    slider.solved = slider.value == 0
 
     score = C.SCORE_CORRECT_MOVE if slider.solved else C.SCORE_INCORRECT_MOVE
 
@@ -88,7 +89,7 @@ def evaluate_move(slider: Slider, response: dict):
 
 def update_progress(player: Player, feedback: dict):
     """update players progress using last feedback"""
-    player.total_score += feedback['score']
+    player.total_score += feedback["score"]
     player.sliders_solved = len(Slider.filter(player=player, solved=True))
     player.terminated = player.sliders_solved == C.NUM_SLIDERS
 
@@ -131,19 +132,17 @@ class Sliders(Page):
 
     @staticmethod
     def js_vars(player: Player):
-        return { 'C': dict(vars(C)) }
+        return {"C": dict(vars(C))}
 
     @staticmethod
     def vars_for_template(player: Player):
         # sequence of ids for initial rendering only
-        return {
-            'sliders': [s.id for s in Slider.filter(player=player)]
-        }
+        return {"sliders": [s.id for s in Slider.filter(player=player)]}
 
     @staticmethod
     def live_reset(player: Player, _):
         yield "progress", output_progress(player)
-        yield "sliders", { s.id: output_slider(s) for s in Slider.filter(player=player)}
+        yield "sliders", {s.id: output_slider(s) for s in Slider.filter(player=player)}
 
     @staticmethod
     def live_slider(player: Player, payload: dict):

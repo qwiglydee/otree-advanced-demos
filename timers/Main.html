@@ -97,21 +97,19 @@
 
     function liveProgress(name, data) {
         vars.progress = data;
-        if (vars.progress.terminated) completeGame();
     };
-
-    async function completeGame() {
-        await ot.delay(FEEDBACK_DELAY); // wait for remaining delays from feedback
-        ot.submitPage();
-    }
 
     function nextIter() {
         resetTrial();
         ot.switchDisplays("guidance-wait");
         ot.disableInputs();
 
-        sendLive('iter');
-        // expecting live trial and progress...
+        if (vars.progress.terminated) {
+            ot.submitPage();
+        } else {
+            sendLive('iter');
+            // expecting live trial and progress...
+        }
     }
 
     function resetTrial() {

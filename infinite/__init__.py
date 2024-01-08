@@ -10,7 +10,7 @@ class C(BaseConstants):
     PLAYERS_PER_GROUP = None
     NUM_ROUNDS = 1
 
-    CONDITIONS = ['ODD', 'EVEN', 'MIXED']
+    CONDITIONS = ["ODD", "EVEN", "MIXED"]
 
     MAX_FAILURES = 5  # num of failures to abort the game
 
@@ -31,7 +31,8 @@ class Group(BaseGroup):
 
 class Player(BasePlayer):
     condition = models.StringField()
-    trials_played = models.IntegerField(initial=0)
+    trials_completed = models.IntegerField(initial=0)
+    trials_failed = models.IntegerField(initial=0)
     total_score = models.IntegerField(initial=0)
     terminated = models.BooleanField(initial=False)
 
@@ -40,7 +41,7 @@ class Trial(ExtraModel):
     player = models.Link(Player)
     iteration = models.IntegerField(min=1)
     # status fields
-    status = models.StringField(choices=['NEW', 'LOADED', 'COMPLETED'], initial='NEW')
+    status = models.StringField(choices=["NEW", "LOADED", "COMPLETED"], initial="NEW")
     success = models.BooleanField(initial=None)
     score = models.IntegerField(initial=0)
     # task fields
@@ -58,26 +59,28 @@ def creating_session(subsession: Subsession):
 
 def init_player(player: Player, config: dict):
     player.condition = random.choice(C.CONDITIONS)
-    if 'condition' in config and config['condition'] != 'random':
-        assert config['condition'] in C.CONDITIONS
-        player.condition = config['condition']
+    if "condition" in config and config["condition"] != "random":
+        assert config["condition"] in C.CONDITIONS
+        player.condition = config["condition"]
 
 
 def set_payoff(player: Player):
     """calculate final payoff"""
-    player.payoff = player.total_score * player.session.config["real_world_currency_per_point"]
+    player.payoff = (
+        player.total_score * player.session.config["real_world_currency_per_point"]
+    )
 
 
 def generate_trial(player: Player, iteration: int):
     """generate single trial of the task"""
 
-    if player.condition == 'MIXED':
+    if player.condition == "MIXED":
         a = random.randint(10, 99)
         b = random.randint(10, 99)
-    elif player.condition == 'ODD':
+    elif player.condition == "ODD":
         a = random.randint(5, 49) * 2 + 1
         b = random.randint(5, 49) * 2 + 1
-    elif player.condition == 'EVEN':
+    elif player.condition == "EVEN":
         a = random.randint(5, 49) * 2
         b = random.randint(5, 49) * 2
 
@@ -107,10 +110,10 @@ def evaluate_response(trial: Trial, response: dict):
     else:
         trial.score = C.SCORE_FAILURE
 
-    trial.status = 'COMPLETED'
+    trial.status = "COMPLETED"
 
     return {
-        "solution": trial.solution,
+        "completed": True,
         "success": trial.success,
         "score": trial.score,
     }
@@ -118,31 +121,34 @@ def evaluate_response(trial: Trial, response: dict):
 
 def update_progress(player: Player, feedback: dict):
     """update players progress using last feedback"""
-    player.trials_played += 1
-    player.total_score += feedback['score']
+    player.total_score += feedback["score"]
     player.total_score = max(0, player.total_score)
 
-    trials_failed = len(Trial.filter(player=player, success=False))
-    player.terminated = trials_failed >= C.MAX_FAILURES
+    if feedback["completed"]:
+        player.trials_completed += 1
+        if not feedback["success"]:
+            player.trials_failed += 1
+        player.terminated = player.trials_failed >= C.MAX_FAILURES
 
 
 def current_trial(player: Player):
     """retrieve current trial"""
-    trials = Trial.filter(player=player, iteration=player.trials_played + 1)
+    trials = Trial.filter(player=player, iteration=player.trials_completed + 1)
     return trials[0] if trials else None
 
 
 def next_trial(player: Player):
     """generate next trial"""
-    return generate_trial(player, player.trials_played + 1)
+    return generate_trial(player, player.trials_completed + 1)
 
 
 #### FORMAT ####
 
 
-def output_progress(player: Player):
+def output_progress(player: Player, trial: Trial):
     return {
-        "played": player.trials_played,
+        "completed": player.trials_completed,
+        "current": trial.iteration,
         "score": player.total_score,
         "terminated": player.terminated,
     }
@@ -174,33 +180,33 @@ class Main(Page):
 
     @staticmethod
     def js_vars(player: Player):
-        return { 'C': dict(vars(C)) }
+        return {"C": dict(vars(C))}
 
     @staticmethod
     def live_iter(player: Player, _):
         """retrieve current progress and trial"""
         # detect reloading of incomplete tasks
         trial = current_trial(player)
-        if trial is not None and trial.status == 'LOADED':
+        if trial is not None and trial.status == "LOADED":
             raise RuntimeError("Page reloading is prohibited")
 
         trial = next_trial(player)
-        trial.status = 'LOADED'
+        trial.status = "LOADED"
 
-        yield "progress", output_progress(player)
+        yield "progress", output_progress(player, trial)
         yield "trial", output_trial(trial)
 
     @staticmethod
     def live_response(player: Player, payload: dict):
         """handle response from player"""
         trial = current_trial(player)
-        assert trial is not None
+        assert trial is not None and trial.status == 'LOADED'
 
         trial.response_time = payload["time"]
         feedback = evaluate_response(trial, payload)
         update_progress(player, feedback)
 
-        yield "progress", output_progress(player)
+        yield "progress", output_progress(player, trial)
         yield "feedback", feedback
 
     @staticmethod
@@ -214,9 +220,9 @@ class Results(Page):
     @staticmethod
     def vars_for_template(player: Player):
         return {
-            'played': player.trials_played,
-            'solved': len(Trial.filter(player=player, success=True)),
-            'failed': len(Trial.filter(player=player, success=False)),
+            "completed": player.trials_completed,
+            "solved": len(Trial.filter(player=player, success=True)),
+            "failed": len(Trial.filter(player=player, success=False)),
         }
 
 
@@ -233,7 +239,7 @@ def custom_export(players: list[Player]):
         "participant.code",
         #
         "player.condition",
-        "player.trials_played",
+        "player.trials_completed",
         "player.total_score",
         #
         "trial.iteration",
@@ -252,7 +258,7 @@ def custom_export(players: list[Player]):
             player.participant.code,
             #
             player.condition,
-            player.trials_played,
+            player.trials_completed,
             player.total_score,
         ]
         for trial in Trial.filter(player=player):

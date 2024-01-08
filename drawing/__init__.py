@@ -39,7 +39,8 @@ class Group(BaseGroup):
 
 class Player(BasePlayer):
     condition = models.StringField()
-    trials_played = models.IntegerField(initial=0)
+    trials_completed = models.IntegerField(initial=0)
+    trials_failed = models.IntegerField(initial=0)
     total_score = models.IntegerField(initial=0)
     terminated = models.BooleanField(initial=False)
 
@@ -48,7 +49,7 @@ class Trial(ExtraModel):
     player = models.Link(Player)
     iteration = models.IntegerField(min=1)
     # status fields
-    status = models.StringField(choices=['NEW', 'LOADED', 'COMPLETED'], initial='NEW')
+    status = models.StringField(choices=["NEW", "LOADED", "COMPLETED"], initial="NEW")
     score = models.IntegerField(initial=0)
     # task fields
     image = models.StringField()
@@ -66,12 +67,14 @@ def init_player(player: Player, config: dict):
     images = random.sample(IMAGES, k=C.NUM_TRIALS)
 
     for i, img in enumerate(images):
-        generate_trial(player, i+1, img)
+        generate_trial(player, i + 1, img)
 
 
 def set_payoff(player: Player):
     """calculate final payoff"""
-    player.payoff = player.total_score * player.session.config["real_world_currency_per_point"]
+    player.payoff = (
+        player.total_score * player.session.config["real_world_currency_per_point"]
+    )
 
 
 def generate_trial(player: Player, iteration: int, image: Path):
@@ -88,40 +91,43 @@ def evaluate_response(trial: Trial, response: dict):
     assert response["iteration"] == trial.iteration
 
     if "drawing" in response:
-        trial.drawing = response['drawing']
+        trial.drawing = response["drawing"]
         trial.score = C.SCORE_DRAW
     else:
         trial.score = C.SCORE_SKIP
 
-    trial.status = 'COMPLETED'
+    trial.status = "COMPLETED"
 
     return {
+        "completed": True,
         "score": trial.score,
     }
 
 
 def update_progress(player: Player, feedback: dict):
     """update players progress using last feedback"""
-    player.trials_played += 1
-    player.total_score += feedback['score']
+    player.total_score += feedback["score"]
     player.total_score = max(0, player.total_score)
 
-    player.terminated = player.trials_played == C.NUM_TRIALS
+    if feedback["completed"]:
+        player.trials_completed += 1
+        player.terminated = player.trials_completed == C.NUM_TRIALS
 
 
 def current_trial(player: Player):
     """retrieve current trial"""
-    trials = Trial.filter(player=player, iteration=player.trials_played + 1)
+    trials = Trial.filter(player=player, iteration=player.trials_completed + 1)
     return trials[0] if trials else None
 
 
 #### FORMAT ####
 
 
-def output_progress(player: Player):
+def output_progress(player: Player, trial: Trial):
     return {
         "total": C.NUM_TRIALS,
-        "played": player.trials_played,
+        "completed": player.trials_completed,
+        "current": trial.iteration,
         "score": player.total_score,
         "terminated": player.terminated,
     }
@@ -153,7 +159,7 @@ class Main(Page):
 
     @staticmethod
     def js_vars(player: Player):
-        return { 'C': dict(vars(C)) }
+        return {"C": dict(vars(C))}
 
     @staticmethod
     def live_iter(player: Player, _):
@@ -162,24 +168,24 @@ class Main(Page):
         assert trial is not None
 
         # detect reloading incomplete tasks
-        # if trial.status == 'LOADED':
-        #     raise RuntimeError("Page reloading is prohibited")
-        # trial.status = 'LOADED'
+        if trial.status == 'LOADED':
+            raise RuntimeError("Page reloading is prohibited")
+        trial.status = 'LOADED'
 
-        yield "progress", output_progress(player)
+        yield "progress", output_progress(player, trial)
         yield "trial", output_trial(trial)
 
     @staticmethod
     def live_drawing(player: Player, payload: dict):
         """handle response from player"""
         trial = current_trial(player)
-        assert trial is not None
+        assert trial is not None and trial.status == 'LOADED'
 
         trial.response_time = payload["time"]
         feedback = evaluate_response(trial, payload)
         update_progress(player, feedback)
 
-        yield "progress", output_progress(player)
+        yield "progress", output_progress(player, trial)
         yield "feedback", feedback
 
     @staticmethod
@@ -193,7 +199,7 @@ class Results(Page):
     @staticmethod
     def vars_for_template(player: Player):
         return {
-            'played': player.trials_played,
+            "completed": player.trials_completed,
         }
 
 
@@ -210,7 +216,7 @@ def custom_export(players: list[Player]):
         "participant.code",
         #
         "player.condition",
-        "player.trials_played",
+        "player.trials_completed",
         "player.total_score",
         #
         "trial.iteration",
@@ -227,7 +233,7 @@ def custom_export(players: list[Player]):
             player.participant.code,
             #
             player.condition,
-            player.trials_played,
+            player.trials_completed,
             player.total_score,
         ]
         for trial in Trial.filter(player=player):

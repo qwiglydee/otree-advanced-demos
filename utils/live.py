@@ -61,8 +61,6 @@ def live_page(cls):
     def generic_live_method(player: BasePlayer, data: dict):
         group = player.group
 
-        print("recv", data)
-
         def route(response):
             "convert yielded responses to (id_in_group, type, payload)"
             match response:
@@ -103,7 +101,6 @@ def live_page(cls):
                         response[p] = {}
                     response[p][t] = d
 
-            print("send", response)
             return response
 
         except Warning as e:
