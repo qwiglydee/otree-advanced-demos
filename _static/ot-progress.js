@@ -15,77 +15,73 @@ class otProgress extends ot.ContentDirective {
 
     params = {
         max: {},
-        val: {},
-        val2: {},
+        value: { default: 0 },
+        value2: {},
         ticks: {}
     }
 
     render() {
-        if (this.elems == undefined) { // initial rendering
-            this.elem.classList.add("progress");
-            this.elem.innerHTML = `
-                <div class="progress-1 progress-bar"></div>
-                <div class="progress-2 progress-bar"></div>
-                <div class="progress-ticks"></div>
-            `;
-            // shortcuts to nested elems
-            this.elems = {
-                bar1: this.elem.querySelector(".progress-1"),
-                bar2: this.elem.querySelector(".progress-2"),
-                ticks: this.elem.querySelector(".progress-ticks"),
-            }
-        }
-
+        if (this.elems) return;
+        // only render first time
+        this.renderBase();
         this.renderTicks();
         this.resetBars();
     }
 
+    renderBase() {
+        this.elem.classList.add("progress");
+        this.elem.innerHTML = `
+            <div class="progress-1 progress-bar"></div>
+            <div class="progress-2 progress-bar"></div>
+            <div class="progress-ticks"></div>
+        `;
+        // shortcuts to nested elems
+        this.elems = {
+            bar1: this.elem.querySelector(".progress-1"),
+            bar2: this.elem.querySelector(".progress-2"),
+            ticks: this.elem.querySelector(".progress-ticks"),
+        }
+    }
+
     resetBars() {
-        this.elem.setAttribute("reset", "");
+        this.elem.setAttribute("reset", ""); // to disable css animation on reset
         this.elems.bar1.style.width = 0;
         this.elems.bar2.style.width = 0;
     }
 
     renderBars() {
-        let max = this.max;
-        let v1 = this.val;
-        let v2 = this.val2;
-
-        function offset(v) {
-            return Math.round((v / max) * 10000) / 100;
-        }
-
         this.elem.removeAttribute("reset", "");
 
-        if (v1 === undefined) return;
-        this.elems.bar1.style.width = `${offset(v1)}%`;
+        if (this.max === undefined || this.value === undefined) return;
 
-        if (v2 === undefined) return;
-        this.elems.bar2.style.width = `${offset(v2 - v1)}%`;
+        let relative = (val) => (100 * val / this.max).toFixed(2) + "%";
+
+        if (this.value !== undefined) {
+            this.elems.bar1.style.width = relative(this.value);
+        }
+        if (this.value !== undefined && this.value2 !== undefined) {
+            this.elems.bar2.style.width = relative(this.value2 - this.value);
+        }
     }
 
     renderTicks() {
-        let max = this.max;
-        let ticks = this.ticks;
-
-        // clean up
         this.elems.ticks.innerHTML = "";
-        if (max === undefined || ticks === undefined || ticks > max) return;
 
-        let n = Math.floor(max / ticks);
+        if (this.max === undefined || this.ticks === undefined || this.ticks > this.max) return;
 
-        function offset(i) {
-            return Math.round((i / n) * 10000) / 100;
-        }
-        this.elems.ticks.innerHTML = [...new Array(n - 1).keys()]
-            .map(i => `<i style="left: ${offset(i + 1)}%"></i>`)
-            .join("");
+        let num = Math.floor(this.max / this.ticks);
+
+        let relative = (idx) => (100 * idx / num).toFixed(2) + "%";
+
+        let ticks = Array.from({ length: num - 1 }).map((e, i) => relative(i + 1));
+
+        this.elems.ticks.innerHTML = ticks.map(p => `<i style="left: ${p}"></i>`).join("");
     }
 
     update(updated) {
         if (updated.has('max') || updated.has('ticks')) this.renderTicks();
-        if (updated.has('max') || updated.has('val') || updated.has('val2') ) {
-            if (this.val !== null) this.renderBars(); else this.resetBars();
+        if (updated.has('max') || updated.has('value') || updated.has('value2')) {
+            if (this.value !== null) this.renderBars(); else this.resetBars();
         }
     }
 }

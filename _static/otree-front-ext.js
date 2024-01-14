@@ -67,64 +67,14 @@ function getStyleProp(propname, selector) {
 }
 
 /**
- * Directive `ot-fade`
- *
- * Makes a marked section smoothly cross-fade when switched.
- *
- * Mark the section with `ot-fade`:
- * <main ot-fade></main>
- */
-
-class otFade extends ot.DirectiveBase {
-    init() {
-        this.state = "off";
-        this.render();
-        this.onPageEvent("fading", this.onFade)
-    }
-
-    render() {
-        this.elem.classList.remove("fade-off", "fade-on", "fade-in", "fade-out");
-        this.elem.classList.add(`fade-${this.state}`);
-    }
-
-    onFade(e) {
-        this.state = e.detail.state;
-        this.render();
-    }
-}
-
-ot.attachDirective(otFade, "[ot-fade]");
-
-/** turns off (no animation) */
-function fadeOff() {
-    ot.triggerEvent("fading", { state: "off" });
-}
-
-/** turns on (no animation) */
-function fadeOff() {
-    ot.triggerEvent("fading", { state: "on" });
-}
-
-/** make it fade in (with css animation) */
-function fadeIn() {
-    ot.triggerEvent("fading", { state: "in" });
-}
-
-/** make it fade out (with css animation) */
-function fadeOut() {
-    ot.triggerEvent("fading", { state: "out" });
-}
-
-/**
  * Directive `ot-puse`
  *
  * Creates pulsating dots.
  *
- * Initially hidden, use showDisplays(id_of_pulse) to toggle
+ * Use showDisplay(id_of_pulse) and hideDisplay(id_of_pulse) to toggle
  */
 class otPulse extends ot.DirectiveBase {
     init() {
-        this.elem.setAttribute("hidden", ""); // initially hidden
         this.render();
     }
 

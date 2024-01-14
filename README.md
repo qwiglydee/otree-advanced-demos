@@ -29,7 +29,6 @@ Detailed data for each trial is saved in additional data models and can be expor
 
 - [simple](simple): Pregenerated series of simple trials with text task and text input
 - [simple2](simple2): Trials with multiple inputs and a submit button.
-- [stages](stages): Trials with several different conditional stages.
 - [choices](choices): Trials with answer choices on buttons.
 - [choices2](choices2): Trials with answer choices on radio buttons with a submit button.
 - [infinite](infinite): Infinite series of simple trials, generated on demand.
@@ -45,19 +44,13 @@ Detailed data for each trial is saved in additional data models and can be expor
 The snippets are pieces of code for either back-end (python) or front-end (javascript) and styles (css)
 that can be attached and reused in any other otree app or a particular page.
 
-- csv utils [(back)](utils/csv.py): to load, filter, sample data from csv files
-- image utils [(back)](utils/images.py): to generate and encode images
-- pagetime utils [(back)](utils/pagetime.py): to track time spent on pages
-- live utils [(back)](utils/live.py), [(front)](_static/otree-front-live.js): to simplify and enhance message-oriented live communication.
-- fullscreen [(styles)](_static/fullscreen.css): for full-screen pages with auto-centered content
-- progress bar [(front)](_static/ot-progress.js), [(styles)](_stativ/ot-progress.css): a directive to display nice animated progress bar
-- various enhancements [(front)](_static/otree-front-ext.js), [(styles)](_static/otree-front-ext.css):
-  - some helpers to install handlers of `ot.onEvent` and for built-in oTree page timer
-  - some adjustments for form input styles
-  - directive `ot-fade` to make smooth transitions of main page areas
-  - directive `ot-switch` to make smooth switching between page fragments
-  - directive `ot-dim` to make hidden parts look dimmed instead of completely hiding
-  - directive `ot-pulse` to display pulsating dots to indicate "waiting" pauses
+- [csv](utils/csv.py): python module to load, filter, sample data from csv files
+- [image](utils/images.py): python module to generate and encode images
+- [pagetime](utils/pagetime.py): python module to track time spent on pages
+- [live.py](utils/live.py), [live.js](_static/otree-front-live.js): back and front utis to simplify and enhance message-oriented live communication.
+- [fullscreen layout](_static/fullscreen.css): styles for full-screen pages with auto-centered content
+- [progress bar](_static/ot-progress.js) and [(styles)](_static/ot-progress.css): a directive to display nice animated progress bar
+- [otree-front-ext.js](_static/otree-front-ext.js) and [otree-front-ext.css](_static/otree-front-ext.css): various behaviour and style enhancments, such as smooth transitions, pulsating dots, etc
 
 ## Usage
 
@@ -98,11 +91,11 @@ To reuse a style snippet:
   ```html
   <style>
     :root {
-        --ot-dim-opacity: 0.25;
+        --ot-fade-out-time: 100ms;
     }
 
-    section[ot-dim] {
-        --ot-dim-opacity: 0.75;
+    main {
+        --ot-fade-out-time: 200ms;
     }
   </style>
   ```

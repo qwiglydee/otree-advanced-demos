@@ -22,14 +22,14 @@
         <div class="message mx-2" ot-html="vars.chat.8"></div>
         <div class="message mx-2" ot-html="vars.chat.9"></div>
 
-        <input ot-input ot-key-input="Enter" type="text" class="form-control bg-light border-0" name="message" autofocus placeholder="type a message to send to chat" value="">
+        <input ot-input type="text" name="message" ot-key-input="Enter" class="form-control bg-light border-0" placeholder="type a message to send to chat">
     </div>
 </main>
 
 <footer>
     <div class="form-group">
         <label class="form-label">Your vote:</label>
-        <select ot-input class="form-select d-inline bg-light" name="vote">
+        <select ot-input name="vote" class="form-select d-inline bg-light">
             <option></option>
             {{ for i, option in options }}
             <option>{{option}}</option>
@@ -54,7 +54,7 @@
 {{ endblock }}
 
 {{ block scripts }}
-<script src="{{ static 'otree-front-2.0.b1.js' }}"></script>
+<script src="{{ static 'otree-front-2.0.b2.js' }}"></script>
 <script src="{{ static 'otree-front-ext.js' }}"></script>
 <script src="{{ static 'otree-front-live.js' }}"></script>
 <script>
@@ -65,7 +65,7 @@
     ot.onEvent('input', 'message', onInput(sendChat));
     ot.onEvent('live', 'votes', onLive(liveVotes));
     ot.onEvent('live', 'chat', onLive(liveChat));
-    ot.onEvent('live', 'failure', onLive(function (message) { alert(message); ot.submitPage(); }));
+    ot.onEvent('live', 'failure', onLive(function (message) { alert(message); ot.completePage(); }));
 
     function initPage() {
         vars.votes = [];
@@ -99,7 +99,7 @@
 
     async function completePage() {
         await ot.delay(1000);
-        ot.submitPage();
+        ot.completePage();
     }
 
 </script>

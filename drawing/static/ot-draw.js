@@ -5,7 +5,7 @@ class otDrawInput extends ot.WidgetDirective {
     }
 
     init() {
-        if (this.elem.nodeName != "CANVAS") throw new Error("The ot-draw-input should be attached to canvas element")
+        if (this.elem.nodeName != "CANVAS") throw new Error("The ot-draw-input should be attached to <canvas>")
         super.init();
         this.onElemEvent('pointerdown', this.onStartDrawing);
         this.onElemEvent('pointermove', this.onDraw);
@@ -18,13 +18,12 @@ class otDrawInput extends ot.WidgetDirective {
         this.last = null;
     }
 
-    update(updated) {
-        if (updated.has('value')) this.ctx.clearRect(0, 0, this.elem.width, this.elem.height);
+    reset() {
+        this.ctx.clearRect(0, 0, this.elem.width, this.elem.height);
     }
 
     commit() {
-        let data = this.elem.toDataURL("image/png");
-        super.commit(data);
+        super.commit(this.elem.toDataURL("image/png"));
     }
 
     onStartDrawing(event) {

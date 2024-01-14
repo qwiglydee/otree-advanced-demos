@@ -27,7 +27,7 @@ class C(BaseConstants):
         "response",
     ]
     RESPONSE_TIMEOUT = 3000  # timeout (ms) for response
-    FEEDBACK_DELAY = 2000  # time (ms) to show feedback before next trial
+    FEEDBACK_DELAY = 1000  # time (ms) to show feedback before next trial
     PAGE_TIMEOUT = 60  # total time limit for tasks page (seconds)
 
     SCORE_SUCCESS = +10

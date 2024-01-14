@@ -10,7 +10,7 @@ class C(BaseConstants):
     PLAYERS_PER_GROUP = None
     NUM_ROUNDS = 1
 
-    NUM_SLIDERS = 7
+    NUM_SLIDERS = 13
     SLIDER_RANGE = 10  # from -N to +N, target is always 0
     MAX_OFFSET = 100  # pixels
     PAGE_TIMEOUT = 600  # seconds
@@ -71,10 +71,15 @@ def generate_slider(player: Player):
     )
 
 
-def evaluate_move(slider: Slider, response: dict):
+def get_slider(player: Player, slider_id: int):
+    [slider] = Slider.filter(player=player, id=slider_id)
+    return slider
+
+
+def evaluate_move(slider: Slider, value: int):
     """evaluate a move of a slider and update, return feedback including score for a move"""
     slider.moves += 1
-    slider.value = response["value"]
+    slider.value = value
     slider.solved = slider.value == 0
 
     score = C.SCORE_CORRECT_MOVE if slider.solved else C.SCORE_INCORRECT_MOVE
@@ -146,9 +151,9 @@ class Sliders(Page):
 
     @staticmethod
     def live_slider(player: Player, payload: dict):
-        [slider] = Slider.filter(player=player, id=payload["id"])
+        slider = get_slider(player, payload["id"])
 
-        feedback = evaluate_move(slider, payload)
+        feedback = evaluate_move(slider, payload['value'])
         update_progress(player, feedback)
 
         yield "progress", output_progress(player)

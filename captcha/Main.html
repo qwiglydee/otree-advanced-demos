@@ -1,23 +1,23 @@
 {{ block content }}
 
 <header>
-    <ot-progress ticks="1" max="vars.progress.total" val="vars.progress.completed" val2="vars.progress.current">
+    <ot-progress ticks="1" max="vars.progress.total" value="vars.progress.completed" value2="vars.progress.current">
     </ot-progress>
     <div class="alert alert-secondary m-2">Total score: <b ot-text="vars.progress.score"></b></div>
-    <p id="feedback-gain">You <i ot-text="vars.gain_txt"></i></p>
+    <p id="gain">You <i ot-text="vars.gain_txt"></i></p>
 </header>
 
-<main ot-fade>
+<main id="main" class="ot-fade d-flex" hidden>
     <img class="m-3" ot-src="vars.trial.image">
 
     <div class="input-group">
-        <input type="text" class="form-control" ot-class="vars.feedback_style" ot-input name="answer" ot-key-input="Enter" value="" autofocus>
+        <input ot-input type="text" name="answer" class="form-control" ot-class="vars.feedback_style" ot-key-input="Enter" autofocus>
     </div>
 </main>
 
 <footer>
-    <p id="guidance-prompt">Enter your answer and press <kbd>Enter</kbd>.</p>
-    <ot-pulse id="guidance-wait"></ot-pulse>
+    <p id="prompt">Enter your answer and press <kbd>Enter</kbd>.</p>
+    <ot-pulse id="wait"></ot-pulse>
 </footer>
 
 {{ endblock }}
@@ -29,7 +29,7 @@
 {{ endblock }}
 
 {{ block scripts }}
-<script src="{{ static 'otree-front-2.0.b1.js' }}"></script>
+<script src="{{ static 'otree-front-2.0.b2.js' }}"></script>
 <script src="{{ static 'otree-front-ext.js' }}"></script>
 <script src="{{ static 'otree-front-live.js' }}"></script>
 <script src="{{ static 'ot-progress.js' }}"></script>
@@ -46,7 +46,7 @@
     ot.onEvent('live', 'trial', onLive(startTrial));
     ot.onEvent('input', 'answer', onInput(inputAnswer));
     ot.onEvent('live', 'feedback', onLive(liveFeedback));
-    ot.onEvent('live', 'failure', onLive(function (_, message) { alert(message); ot.submitPage(); }));
+    ot.onEvent('live', 'failure', onLive(function (_, message) { alert(message); ot.completePage(); }));
 
     function startGame() {
         ot.disableInputs();
@@ -60,12 +60,11 @@
     };
 
     function nextIter() {
-        resetTrial();
-        ot.switchDisplays("guidance-wait");
         ot.disableInputs();
+        resetTrial();
 
         if (vars.progress.terminated) {
-            ot.submitPage();
+            ot.completePage();
         } else {
             sendLive('iter');
             // expecting live trial and progress...
@@ -82,15 +81,20 @@
 
     function startTrial(name, data) {
         vars.trial = data;
-        fadeIn();
-        ot.switchDisplays("guidance-prompt");
+
+        ot.showDisplay("main");
+        ot.hideDisplay("wait");
+        ot.showDisplay("prompt");
+
         ot.enableInputs();
         ot.beginTimeMeasurement();
     }
 
     function inputAnswer(name, value) {
-        ot.switchDisplays("guidance-wait");
         ot.disableInputs();
+
+        ot.hideDisplay("prompt");
+        ot.showDisplay("wait");
 
         vars.answer = value;
 
@@ -109,7 +113,7 @@
         await ot.delay(FEEDBACK_DELAY);
         clearFeedback();
 
-        fadeOut();
+        ot.hideDisplay("main");
         await ot.delay(FADEOUT_TIME);
 
         nextIter();
@@ -118,13 +122,13 @@
     function clearFeedback() {
         vars.feedback_style = null;
         vars.gain_txt = null;
-        ot.switchDisplays('feedback-none');
+        ot.hideDisplay("gain");
     }
 
     function displayFeedback() {
         vars.feedback_style = vars.feedback.success ? "is-valid" : "is-invalid";
         vars.gain_txt = format_gain(vars.feedback.score);
-        ot.showDisplays('feedback-gain');
+        ot.showDisplay("gain");
     }
 
 </script>

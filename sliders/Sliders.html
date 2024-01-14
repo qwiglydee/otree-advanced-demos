@@ -1,14 +1,18 @@
 {{ block content }}
 
 <header>
-    <ot-progress max="vars.progress.total" ticks="1" val="vars.progress.solved"></ot-progress>
+    <ot-progress max="vars.progress.total" ticks="1" value="vars.progress.solved"></ot-progress>
     <div class="alert alert-info m-2">Total score: <b ot-text="vars.progress.score"></b></div>
 </header>
 
-<main>
+<main id="main" hidden>
     {{ for id in sliders }}
-    <ot-slider name="slider-{{id}}" min="-{{C.SLIDER_RANGE}}" max="{{C.SLIDER_RANGE}}"
-        offset="vars.sliders.{{id}}.offset" solved="vars.sliders.{{id}}.solved"></ot-slider>
+    <ot-slider
+        name="slider-{{id}}"
+        min="-{{C.SLIDER_RANGE}}" max="{{C.SLIDER_RANGE}}"
+        value="vars.sliders.{{id}}.value"
+        offset="vars.sliders.{{id}}.offset"
+        solved="vars.sliders.{{id}}.solved" ></ot-slider>
     {{ endfor }}
 </main>
 
@@ -25,7 +29,7 @@
 {{ endblock }}
 
 {{ block scripts }}
-<script src="{{ static 'otree-front-2.0.b1.js' }}"></script>
+<script src="{{ static 'otree-front-2.0.b2.js' }}"></script>
 <script src="{{ static 'otree-front-ext.js' }}"></script>
 <script src="{{ static 'otree-front-live.js' }}"></script>
 <script src="{{ static 'ot-progress.js' }}"></script>
@@ -37,37 +41,37 @@
     ot.onEvent('live', 'sliders', onLive(liveSliders));
     ot.onEvent('live', 'progress', onLive(liveProgress));
     ot.onEvent('live', 'feedback', onLive(liveFeedback));
-    ot.onEvent('live', 'failure', onLive(function (message) { alert(message); ot.submitPage(); }));
+    ot.onEvent('live', 'failure', onLive(function (message) { alert(message); ot.completePage(); }));
     ot.onEvent('input', (e) => e.detail.name.startsWith('slider-'), onInput(inputSlider));
 
     function startPage() {
         vars.sliders = {};  // map of { id: properties }
         ot.disableInputs();
         sendLive('reset');
-        // expecting reply 'progress', 'sliders'
+        // expecting reply 'sliders' and 'progress'
     };
 
     async function liveProgress(name, data) {
         vars.progress = data;
         if (vars.progress.terminated) {
             await ot.delay(1000);
-            ot.submitPage();
+            ot.completePage();
         }
     };
 
     function liveSliders(name, data) {
         vars.sliders = data;
-        for (let id in data) ot.resetInput(`slider-${id}`, data[id].value);
         ot.enableInputs();
+        ot.showDisplay("main");
     };
 
     function inputSlider(name, data) {
         let { id, value } = data;
         sendLive("slider", { id, value });
+        // expecting reply 'feedback' and 'progress'
     };
 
     function liveFeedback(name, data) {
-        console.debug(name, data);
         vars.sliders[data['id']].solved = data['solved'];
     };
 </script>

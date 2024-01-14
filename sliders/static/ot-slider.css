@@ -1,6 +1,12 @@
+:root {
+    --ot-slider-width: 512px;
+    --ot-slider-height: 24px;
+}
+
 ot-slider {
     position: relative;
-    width: 256px;
+    width: var(--ot-slider-width);
+    margin: 4px;
 }
 
 ot-slider input {
@@ -18,6 +24,30 @@ ot-slider::before {
     left: 50%;
     top: 25%;
     bottom: 25%;
+}
+
+ot-slider .form-range {
+    height: var(--ot-slider-height);
+}
+
+ot-slider .form-range::-webkit-slider-thumb {
+    margin: 0;
+    height: var(--ot-slider-height);
+    width: var(--ot-slider-height);
+}
+
+ot-slider .form-range::-moz-range-thumb {
+    margin: 0;
+    height: var(--ot-slider-height);
+    width: var(--ot-slider-height);
+}
+
+ot-slider .form-range::-webkit-slider-runnable-track {
+    height: var(--ot-slider-height);
+}
+
+ot-slider .form-range::-moz-range-track {
+    height: var(--ot-slider-height);
 }
 
 ot-slider.is-valid::before {
