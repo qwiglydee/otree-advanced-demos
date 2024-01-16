@@ -38,6 +38,18 @@ SESSION_CONFIGS = [
         condition="random",
     ),
     dict(
+        name="multistep",
+        display_name="Multiple sequential inputs in trials",
+        app_sequence=['multistep'],
+        condition="random",
+    ),
+    dict(
+        name="multistage",
+        display_name="Multiple nonregular stages of trials",
+        app_sequence=['multistage'],
+        condition="random",
+    ),
+    dict(
         name="sliders",
         display_name="Sliders task",
         app_sequence=["sliders"],

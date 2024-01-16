@@ -33,6 +33,7 @@ Detailed data for each trial is saved in additional data models and can be expor
 - [choices2](choices2): Trials with answer choices on radio buttons with a submit button.
 - [infinite](infinite): Infinite series of simple trials, generated on demand.
 - [timers](timers): Infinite series with animated timers for page and response timeouts.
+- [stages](stages): Multiple stages of input in trials, switching in-place
 - [phases](phases): Trials with several time-based phases.
 - [captcha](captcha): Trials with images generated from text.
 - [drawing](drawing): Trials with images and free-hand drawing input.
