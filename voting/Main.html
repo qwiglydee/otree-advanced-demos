@@ -74,20 +74,22 @@
     };
 
     function sendVote(name, value) {
-        sendLive('vote', { vote: value });
+        sendLive('vote', value);
     };
 
     function liveVotes(name, data) {
+        console.debug("live", name, data);
         vars.votes = data.votes;
         if (data.consensus) completePage();
     }
 
-    function sendChat(name,  text) {
-        sendLive('chat', { text });
+    function sendChat(name, text) {
+        sendLive('chat', text);
         ot.resetInput("message");
     };
 
-    function liveChat(name,  data) {
+    function liveChat(name, data) {
+        console.debug("live", name, data);
         if (data.text) displayChat(`Player ${data.player}`, data.text);
         if (data.vote) displayChat(`* Player ${data.player} votes`, data.vote);
     };

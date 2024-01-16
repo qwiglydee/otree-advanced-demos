@@ -20,11 +20,10 @@ if (!window.liveSocket) {
  */
 window.liveSocket.onmessage = function (e) {
     let data = JSON.parse(e.data);
-    if (!ot.isObject(data)) {
-        throw new Error("live socket received unrecognized data")
-    }
-    for (let [t, d] of Object.entries(data)) {
-        ot.emitEvent('live', { name: t, data: d });
+    if (!ot.isArray(data)) throw new Error("live socket received invalid data")
+    for (let msg of data) {
+        if (!ot.isObject(msg) || !Object.hasOwn(msg, 'type')) throw new Error("live socket received invalid data")
+        ot.emitEvent('live', { name: msg.type, data: msg.data });
     }
 }
 
@@ -52,6 +51,5 @@ function onLive(handler) {
  * @param {object} [data] message payload
  */
 function sendLive(type, data) {
-    if (data === undefined) data = null;
-    window.liveSocket.send(JSON.stringify({ [type]: data }))
+    window.liveSocket.send(JSON.stringify({ type, data }))
 }

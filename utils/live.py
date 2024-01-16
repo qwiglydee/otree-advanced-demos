@@ -38,8 +38,8 @@ Sending messages in multiplayers sessions:
 def live_something(player, payload):
     # a handler can send one or more messages to any player in the group of originating player
     ...
-    yield "all", "foo", data  # send a message to all players in the group
-    yield "all", "foo"        # send a message without payload
+    yield player.group, "foo", data  # send a message to all players in the group
+    yield player.group, "foo"        # send a message without payload
 
     another_player = player.group.get_player_by_role(...)  # get reference to another player
 
@@ -56,60 +56,69 @@ from otree.api import BasePlayer, BaseGroup
 
 
 def live_page(cls):
-    """Wrapper for page classes to make them smart live pages"""
+    """Wrapper for page classes to make them smart live pages
+    Routes incoming messages to corresponding live_something method
+    Collects all yielded responses into { rcpt: [ { type, data }, ...] }
+    Preserving order of yields.
+    """
 
-    def generic_live_method(player: BasePlayer, data: dict):
-        group = player.group
-
+    def generic_live_method(player: BasePlayer, payload: dict):
         def route(response):
-            "convert yielded responses to (id_in_group, type, payload)"
+            "convert yielded responses to (id_in_group, {type, data})"
             match response:
-                case ("all", str() as t):
-                    for p in group.get_players():
-                        yield p.id_in_group, t, None
-                case ("all", str() as t, data):
-                    for p in group.get_players():
-                        yield p.id_in_group, t, data
-                case str() as t:
-                    yield player.id_in_group, t, None
-                case (str() as t, data):
-                    yield player.id_in_group, t, data
+                case (BaseGroup() as g, str() as t):
+                    for p in g.get_players():
+                        yield p.id_in_group, {"type": t}
+                case (BaseGroup() as g, str() as t, data):
+                    for p in g.get_players():
+                        yield p.id_in_group, {"type": t, "data": data}
                 case (BasePlayer() as p, str() as t):
-                    yield p.id_in_group, t, None
+                    yield p.id_in_group, {"type": t}
                 case (BasePlayer() as p, str() as t, data):
-                    yield p.id_in_group, t, data
+                    yield p.id_in_group, {"type": t, "data": data}
+                case str() as t:
+                    yield player.id_in_group, {"type": t}
+                case (str() as t, data):
+                    yield player.id_in_group, {"type": t, "data": data}
                 case _:
-                    raise TypeError(f"Handler {handler_name} yielded invalid construction")
+                    raise TypeError(
+                        f"Handler {handler_name} yielded invalid construction"
+                    )
 
         try:
-            assert isinstance(data, dict) and len(data) == 1, "Incoming message should be single { type: data }"
+            assert (
+                isinstance(payload, dict) and "type" in payload
+            ), "Incoming message should be { type: ... , data: ... }"
 
-            msgtype, msgdata = list(data.items())[0]
-            handler_name = f"live_{msgtype}"
+            handler_name = "live_" + payload["type"]
 
-            assert hasattr(cls, handler_name), f"The page class misses method {handler_name}"
+            assert hasattr(
+                cls, handler_name
+            ), f"The page class misses method {handler_name}"
             handler = getattr(cls, handler_name)
 
-            responding = handler(player, msgdata)
-            assert isinstance(responding, types.GeneratorType), f"Method {handler_name} should `yield` some responses"
+            responding = handler(player, payload.get("data"))
+            assert isinstance(
+                responding, types.GeneratorType
+            ), f"Method {handler_name} should yield some responses"
 
-            # { rcpt: { type: payload, ...}, ... }
-            response = {}
+            responses = {}
             for resp in responding:
-                for p, t, d in route(resp):
-                    if p not in response:
-                        response[p] = {}
-                    response[p][t] = d
+                for p, msg in route(resp):
+                    if p not in responses:
+                        responses[p] = [msg]
+                    else:
+                        responses[p].append(msg)
 
-            return response
+            return responses
 
         except Warning as e:
             logging.exception("Exception in live handler")
-            return { 0: { "failure": str(e) } }
+            return {0: {"type": "failure", "data": str(e)}}
 
         except Exception:
             logging.exception("Exception in live handler")
-            return { 0: { "failure": "A failure occured" }}
+            return {0: {"type": "failure", "data": "A failure occured"}}
 
     cls.live_method = staticmethod(generic_live_method)
 

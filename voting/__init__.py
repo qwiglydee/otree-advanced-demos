@@ -79,15 +79,15 @@ class Main(Page):
         yield "votes", output_votes(player.group)
 
     @staticmethod
-    def live_vote(player: Player, payload: dict):
-        evaluate_votes(player, payload['vote'])
+    def live_vote(player: Player, payload: str):
+        evaluate_votes(player, payload)
 
-        yield "all", "votes", output_votes(player.group)
-        yield "all", "chat", {"player": player.id_in_group, "vote": player.vote}
+        yield player.group, "votes", output_votes(player.group)
+        yield player.group, "chat", {"player": player.id_in_group, "vote": player.vote}
 
     @staticmethod
-    def live_chat(player: Player, payload: dict):
-        yield "all", "chat", {"player": player.id_in_group, "text": payload["text"]}
+    def live_chat(player: Player, payload: str):
+        yield player.group, "chat", {"player": player.id_in_group, "text": payload}
 
 
 class Results(Page):
