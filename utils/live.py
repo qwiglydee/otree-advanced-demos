@@ -118,7 +118,7 @@ def live_page(cls):
 
         except Exception:
             logging.exception("Exception in live handler")
-            return {0: [{"type": "failure", "data": "Some failure on server occured"}]}
+            return {0: [{"type": "failure", "data": "Some page failure occured"}]}
 
     cls.live_method = staticmethod(generic_live_method)
 

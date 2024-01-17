@@ -209,6 +209,8 @@ class Main(Page):
 
     @staticmethod
     def live_next(player: Player, _):
+        assert not player.terminated
+
         trial = current_trial(player)
         if trial is not None and trial.status == "LOADED":
             raise Warning("Page reloading is prohibited")
