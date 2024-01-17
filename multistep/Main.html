@@ -37,7 +37,7 @@
 
 <footer>
     <p id="prompt">Enter or select your response, and press <b>Next</b> button or <kbd>Enter</kbd> key</p>
-    <ot-pulse id="wait"></ot-pulse>
+    <ot-pulse id="waiting"></ot-pulse>
 </footer>
 
 {{ endblock }}
@@ -92,7 +92,7 @@
     const FADEOUT_TIME = parseInt(getStyleProp("--ot-fade-out-time"));
 
     ot.onEvent('loaded', startGame);
-    ot.onEvent('live', 'progress', onLive(liveProgress));
+    ot.onEvent('live', 'progress', onLive(updateProgress));
     ot.onEvent('live', 'trial', onLive(startTrial));
     ot.onEvent('input', 'answer', onInput(inputResponse));
     ot.onEvent('input', 'confidence', onInput(inputResponse));
@@ -113,25 +113,21 @@
     }
 
     function startGame() {
-        ot.disableInputs();
         vars.progress = {};
         nextIter();
-        // expecting live trial and progress...
     };
 
-    function liveProgress(name, data) {
-        vars.progress = data;
+    function updateProgress(name, data) {
+        Object.assign(vars.progress, data);
     };
 
     function nextIter() {
-        ot.disableInputs();
         resetTrial();
 
         if (vars.progress.terminated) {
             ot.completePage();
         } else {
-            sendLive('iter');
-            // expecting live trial and progress...
+            sendLive('next');
         }
     }
 
@@ -140,8 +136,9 @@
         vars.inputs = {};
         vars.feedback = null;
         switchStage(null);
-        clearFeedback();
+        hideFeedback();
         ot.resetInputs();
+        ot.disableInputs();
     }
 
     function startTrial(name, data) {
@@ -150,7 +147,6 @@
         ot.showDisplay("main");
         ot.showDisplay("submit");
         ot.showDisplay("prompt");
-        ot.hideDisplay("wait");
 
         resetStage();
 
@@ -159,7 +155,6 @@
     }
 
     function inputResponse(name, value) {
-        // save all inputs until last stage
         vars.inputs[name] = value;
         ot.enableInput("submit");
     }
@@ -170,6 +165,7 @@
             advanceStage();
         } else {
             ot.disableInputs();
+            ot.hideDisplay("prompt");
             sendLive('response', {
                 iteration: vars.trial.iteration,
                 time: ot.getTimeMeasurement(),
@@ -177,38 +173,37 @@
                 confidence: vars.inputs.confidence,
                 difficulty: vars.inputs.difficulty
             });
-            // expecting live feedback and progress...
         };
     };
 
-    function liveFeedback(name, data) {
+    async function liveFeedback(name, data) {
         vars.feedback = data;
+
+        switchStage(null);
+        ot.hideDisplay("submit");
+
+        ot.showDisplay("waiting");
+        showFeedback();
+        await ot.delay(FEEDBACK_DELAY);
+        hideFeedback();
+        ot.hideDisplay("waiting");
+
         completeTrial();
     }
 
     async function completeTrial() {
-        switchStage(null);
-        ot.hideDisplay("submit");
-        ot.hideDisplay("prompt");
-        ot.showDisplay("wait");
-
-        displayFeedback();
-        await ot.delay(FEEDBACK_DELAY);
-        clearFeedback();
-
         ot.hideDisplay("main");
         await ot.delay(FADEOUT_TIME);
-
         nextIter();
-    };
+    }
 
-    function clearFeedback() {
+    function hideFeedback() {
         ot.hideDisplay("gain");
         vars.feedback_style = null;
         vars.gain_txt = null;
     }
 
-    function displayFeedback() {
+    function showFeedback() {
         vars.feedback_style = vars.feedback.success ? "text-success" : "text-danger";
         vars.gain_txt = format_gain(vars.feedback.score);
         ot.showDisplay("gain");

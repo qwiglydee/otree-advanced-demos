@@ -85,16 +85,8 @@ def init_player(player: Player, config: dict):
         generate_trial(player, i + 1)
 
 
-def set_payoff(player: Player):
-    """calculate final payoff"""
-    player.payoff = (
-        player.total_score * player.session.config["real_world_currency_per_point"]
-    )
-
 
 def generate_trial(player: Player, iteration: int):
-    """generate single trial of the task"""
-
     if player.condition == "MIXED":
         a = random.randint(10, 99)
         b = random.randint(10, 99)
@@ -122,8 +114,20 @@ def generate_trial(player: Player, iteration: int):
     )
 
 
+def current_trial(player: Player):
+    trials = Trial.filter(player=player, iteration=player.trials_completed + 1)
+    return trials[0] if trials else None
+
+
+def output_trial(trial: Trial):
+    return {
+        "iteration": trial.iteration,
+        "expression": trial.expression,
+        "suggestion": trial.suggestion,
+    }
+
+
 def evaluate_response(trial: Trial, response: dict):
-    """evaluate response and update trial status and score, return feedback"""
     assert response["iteration"] == trial.iteration
     assert response["answer"] in ("Y", "N")
 
@@ -131,11 +135,7 @@ def evaluate_response(trial: Trial, response: dict):
 
     trial.answer = answer
     trial.success = trial.answer == trial.correct_answer
-
-    if trial.success:
-        trial.score = C.SCORE_SUCCESS
-    else:
-        trial.score = C.SCORE_FAILURE
+    trial.score = C.SCORE_SUCCESS if trial.success else C.SCORE_FAILURE
 
     trial.status = "COMPLETED"
 
@@ -147,7 +147,6 @@ def evaluate_response(trial: Trial, response: dict):
 
 
 def evaluate_timeout(trial: Trial, response: dict):
-    """trial has timed out without answer"""
     assert response["iteration"] == trial.iteration
 
     trial.success = False
@@ -164,30 +163,28 @@ def evaluate_timeout(trial: Trial, response: dict):
 
 
 def update_progress(player: Player, feedback: dict):
-    """update players progress using last feedback"""
+    assert feedback["completed"]
+
+    player.trials_completed += 1
+    if not feedback["success"]:
+        player.trials_failed += 1
+
+    player.terminated = (
+        player.trials_completed == C.NUM_TRIALS
+        or player.trials_failed >= C.MAX_FAILURES
+    )
+
     player.total_score += feedback["score"]
     player.total_score = max(0, player.total_score)
 
-    if feedback["completed"]:
-        player.trials_completed += 1
-        if not feedback["success"]:
-            player.trials_failed += 1
-        player.terminated = (
-            player.trials_completed == C.NUM_TRIALS
-            or player.trials_failed >= C.MAX_FAILURES
-        )
+    return {
+        "completed": player.trials_completed,
+        "terminated": player.terminated,
+        "score": player.total_score,
+    }
 
 
-def current_trial(player: Player):
-    """retrieve current trial"""
-    trials = Trial.filter(player=player, iteration=player.trials_completed + 1)
-    return trials[0] if trials else None
-
-
-#### FORMAT ####
-
-
-def output_progress(player: Player, trial: Trial):
+def current_progress(player: Player, trial: Trial):
     return {
         "total": C.NUM_TRIALS,
         "completed": player.trials_completed,
@@ -197,12 +194,10 @@ def output_progress(player: Player, trial: Trial):
     }
 
 
-def output_trial(trial: Trial):
-    return {
-        "iteration": trial.iteration,
-        "expression": trial.expression,
-        "suggestion": trial.suggestion,
-    }
+def set_payoff(player: Player):
+    player.payoff = (
+        player.total_score * player.session.config["real_world_currency_per_point"]
+    )
 
 
 #### PAGES ####
@@ -213,10 +208,9 @@ class Intro(Page):
     def vars_for_template(player: Player):
         return { 'response_time_s' : C.RESPONSE_TIMEOUT / 1000 }
 
+
 @live_page
 class Main(Page):
-    """Live page with series of trials"""
-
     timeout_seconds = C.PAGE_TIMEOUT
 
     @staticmethod
@@ -228,31 +222,27 @@ class Main(Page):
         return {"C": dict(vars(C))}
 
     @staticmethod
-    def live_iter(player: Player, _):
-        """retrieve current progress and trial"""
+    def live_next(player: Player, _):
         trial = current_trial(player)
-        assert trial is not None
-
-        # detect reloading incomplete tasks
         if trial.status == "LOADED":
-            raise RuntimeError("Page reloading is prohibited")
+            raise Warning("Page reloading is prohibited")
         trial.status = "LOADED"
 
-        yield "progress", output_progress(player, trial)
+        yield "progress", current_progress(player, trial)
         yield "trial", output_trial(trial)
 
     @staticmethod
     def live_response(player: Player, payload: dict):
-        """handle response from player"""
         trial = current_trial(player)
         assert trial is not None and trial.status == 'LOADED'
 
         feedback = evaluate_response(trial, payload)
-        update_progress(player, feedback)
-        trial.response_time = payload["time"]
-
-        yield "progress", output_progress(player, trial)
         yield "feedback", feedback
+
+        if feedback['completed']:
+            trial.response_time = payload["time"]
+            progress = update_progress(player, feedback)
+            yield "progress", progress
 
     @staticmethod
     def live_timeout(player: Player, payload: dict):
@@ -260,10 +250,12 @@ class Main(Page):
         assert trial is not None and trial.status == 'LOADED'
 
         feedback = evaluate_timeout(trial, payload)
-        update_progress(player, feedback)
-
-        yield "progress", output_progress(player, trial)
         yield "feedback", feedback
+
+        if feedback['completed']:
+            trial.response_time = payload["time"]
+            progress = update_progress(player, feedback)
+            yield "progress", progress
 
     @staticmethod
     def before_next_page(player: Player, timeout_happened):

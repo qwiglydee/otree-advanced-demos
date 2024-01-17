@@ -21,17 +21,24 @@ class Group(BaseGroup):
     consensus = models.BooleanField(initial=False)
 
 
+class Player(BasePlayer):
+    vote = models.StringField(chocie=C.CHOICES, initial="")
+
+
 def get_votes(group: Group):
-    """return non-null votes as dictionary"""
+    """all non-null votes as dict { player: vote }"""
     return {
         p.id_in_group: p.vote
         for p in group.get_players()
-        if p.field_maybe_none("vote") is not None
+        if p.vote != ""
     }
 
 
-class Player(BasePlayer):
-    vote = models.StringField(chocie=C.CHOICES)
+def output_votes(group: Group):
+    return {
+        "votes": [{"player": f"Player {p}", "vote": v} for p, v in get_votes(group).items()],
+        "consensus": group.consensus,
+    }
 
 
 def evaluate_votes(player, vote):
@@ -48,13 +55,6 @@ def evaluate_votes(player, vote):
 
 
 # PAGES
-
-
-def output_votes(group: Group):
-    return {
-        "votes": [{"player": f"Player {p}", "choice": c} for p, c in get_votes(group).items()],
-        "consensus": group.consensus,
-    }
 
 
 class Intro(Page):
@@ -75,7 +75,6 @@ class Main(Page):
 
     @staticmethod
     def live_load(player: Player, _):
-        """send votes to a reloaded page"""
         yield "votes", output_votes(player.group)
 
     @staticmethod

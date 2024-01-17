@@ -25,7 +25,7 @@
         press <kbd ot-key-input="n" name="answer" value="N">N</kbd> if it's not.
         Only answer when you see <code>?</code>
     </p>
-    <ot-pulse id="wait"></ot-pulse>
+    <ot-pulse id="waiting"></ot-pulse>
 </footer>
 
 {{ endblock }}
@@ -58,7 +58,7 @@
     const FADEOUT_TIME = parseInt(getStyleProp("--ot-fade-out-time"));
 
     ot.onEvent('loaded', startGame);
-    ot.onEvent('live', 'progress', onLive(liveProgress));
+    ot.onEvent('live', 'progress', onLive(updateProgress));
     ot.onEvent('live', 'trial', onLive(startTrial));
     ot.onEvent('input', 'answer', onInput(inputAnswer));
     ot.onEvent('live', 'feedback', onLive(liveFeedback));
@@ -67,25 +67,21 @@
     ot.onEvent('timer', 'timeout', onTimer(timeoutAnswer));
 
     function startGame() {
-        ot.disableInputs();
         vars.progress = {};
         nextIter();
-        // expecting live trial and progress...
     };
 
-    function liveProgress(name, data) {
-        vars.progress = data;
+    function updateProgress(name, data) {
+        Object.assign(vars.progress, data);
     };
 
     function nextIter() {
-        ot.disableInputs();
         resetTrial();
 
         if (vars.progress.terminated) {
             ot.completePage();
         } else {
-            sendLive('iter');
-            // expecting live trial and progress...
+            sendLive('next');
         }
     }
 
@@ -93,8 +89,9 @@
         vars.trial = null;
         vars.answer = null;
         vars.feedback = null;
-        clearFeedback();
+        hideFeedback();
         ot.resetInputs();
+        ot.disableInputs();
         ot.cancelTimers();
     }
 
@@ -102,7 +99,6 @@
         vars.trial = data;
 
         ot.showDisplay("main");
-        ot.hideDisplay("wait");
         ot.showDisplay("prompt");
 
         ot.beginTimeMeasurement();
@@ -124,12 +120,11 @@
     function inputAnswer(name, value) {
         ot.disableInputs();
 
-        ot.cancelTimer('phase');
-        ot.cancelTimer('timeout');
+        ot.cancelTimer("timeout");
 
-        ot.hideDisplays('phase-*');
-        ot.hideDisplay('prompt');
-        ot.showDisplay('wait');
+        ot.hideDisplays("phase-*");
+        ot.hideDisplay("prompt");
+        ot.showDisplay("wait");
 
         vars.answer = value;
 
@@ -138,43 +133,45 @@
             time: ot.getTimeMeasurement(),
             answer: vars.answer
         });
-        // expecting live feedback and progress...
     };
 
     function timeoutAnswer() {
         ot.disableInputs();
 
-        ot.cancelTimer('phase');
+        ot.cancelTimer("phase");
 
-        ot.hideDisplays(`phase-*`);
+        ot.hideDisplays("phase-*");
         ot.hideDisplay("prompt");
-        ot.showDisplay("wait");
 
         sendLive('timeout', {
             iteration: vars.trial.iteration,
             time: ot.getTimeMeasurement(),
         });
-        // expecting live feedback and progress...
     }
 
     async function liveFeedback(name, data) {
         vars.feedback = data;
 
-        displayFeedback();
+        ot.showDisplay("waiting");
+        showFeedback();
         await ot.delay(FEEDBACK_DELAY);
-        clearFeedback();
+        hideFeedback();
+        ot.hideDisplay("waiting");
 
-        ot.hideDisplay("main");
-        await ot.delay(FADEOUT_TIME);
-
-        nextIter();
+        completeTrial();
     };
 
-    function clearFeedback() {
+    async function completeTrial() {
+        ot.hideDisplay("main");
+        await ot.delay(FADEOUT_TIME);
+        nextIter();
+    }
+
+    function hideFeedback() {
         ot.hideDisplays("feedback-*");
     }
 
-    function displayFeedback() {
+    function showFeedback() {
         if (vars.feedback.timeouted) {
             ot.showDisplay('feedback-timeout');
         } else if (vars.feedback.success) {

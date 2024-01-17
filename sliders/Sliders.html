@@ -7,12 +7,8 @@
 
 <main id="main" hidden>
     {{ for id in sliders }}
-    <ot-slider
-        name="slider-{{id}}"
-        min="-{{C.SLIDER_RANGE}}" max="{{C.SLIDER_RANGE}}"
-        value="vars.sliders.{{id}}.value"
-        offset="vars.sliders.{{id}}.offset"
-        solved="vars.sliders.{{id}}.solved" ></ot-slider>
+    <ot-slider name="slider-{{id}}" min="-{{C.SLIDER_RANGE}}" max="{{C.SLIDER_RANGE}}" value="vars.sliders.{{id}}.value"
+        offset="vars.sliders.{{id}}.offset" solved="vars.sliders.{{id}}.solved"></ot-slider>
     {{ endfor }}
 </main>
 
@@ -39,24 +35,19 @@
 
     ot.onEvent('loaded', startPage);
     ot.onEvent('live', 'sliders', onLive(liveSliders));
-    ot.onEvent('live', 'progress', onLive(liveProgress));
+    ot.onEvent('live', 'progress', onLive(updateProgress));
     ot.onEvent('live', 'feedback', onLive(liveFeedback));
     ot.onEvent('live', 'failure', onLive(function (message) { alert(message); ot.completePage(); }));
     ot.onEvent('input', (e) => e.detail.name.startsWith('slider-'), onInput(inputSlider));
 
     function startPage() {
-        vars.sliders = {};  // map of { id: properties }
-        ot.disableInputs();
+        vars.sliders = {};  // map of { id: { value, offset, solved } }
         sendLive('reset');
-        // expecting reply 'sliders' and 'progress'
     };
 
-    async function liveProgress(name, data) {
+    async function updateProgress(name, data) {
         vars.progress = data;
-        if (vars.progress.terminated) {
-            await ot.delay(1000);
-            ot.completePage();
-        }
+        if (vars.progress.terminated) completePage();
     };
 
     function liveSliders(name, data) {
@@ -68,11 +59,16 @@
     function inputSlider(name, data) {
         let { id, value } = data;
         sendLive("slider", { id, value });
-        // expecting reply 'feedback' and 'progress'
     };
 
     function liveFeedback(name, data) {
         vars.sliders[data['id']].solved = data['solved'];
     };
+
+    async function completePage() {
+        ot.disableInputs();
+        await ot.delay(1000);
+        ot.completePage();
+    }
 </script>
 {{ endblock }}

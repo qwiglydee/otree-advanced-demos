@@ -11,4 +11,7 @@
 },
 "python.analysis.enablePytestSupport": false,
 "python.analysis.reportGeneralTypeIssues": false,
+"pylint.args": [
+    "--disable W0237"
+],
 }

@@ -3,9 +3,9 @@
 <header>
     <h4>Votes:</h4>
     <ul class="w-25 list-group m-3">
-        <li class="list-group-item"><span ot-text="vars.votes.0.player"></span>&nbsp;<b ot-text="vars.votes.0.choice"></b></li>
-        <li class="list-group-item"><span ot-text="vars.votes.1.player"></span>&nbsp;<b ot-text="vars.votes.1.choice"></b></li>
-        <li class="list-group-item"><span ot-text="vars.votes.2.player"></span>&nbsp;<b ot-text="vars.votes.2.choice"></b></li>
+        <li class="list-group-item"><span ot-text="vars.votes.0.player"></span>&nbsp;<b ot-text="vars.votes.0.vote"></b></li>
+        <li class="list-group-item"><span ot-text="vars.votes.1.player"></span>&nbsp;<b ot-text="vars.votes.1.vote"></b></li>
+        <li class="list-group-item"><span ot-text="vars.votes.2.player"></span>&nbsp;<b ot-text="vars.votes.2.vote"></b></li>
     </ul>
 </header>
 
@@ -22,7 +22,7 @@
         <div class="message mx-2" ot-html="vars.chat.8"></div>
         <div class="message mx-2" ot-html="vars.chat.9"></div>
 
-        <input ot-input type="text" name="message" ot-key-input="Enter" class="form-control bg-light border-0" placeholder="type a message to send to chat">
+        <input ot-input type="text" name="message" ot-key-input="Enter" class="form-control border-0" placeholder="type a message to send to chat">
     </div>
 </main>
 
@@ -78,7 +78,6 @@
     };
 
     function liveVotes(name, data) {
-        console.debug("live", name, data);
         vars.votes = data.votes;
         if (data.consensus) completePage();
     }
@@ -89,7 +88,6 @@
     };
 
     function liveChat(name, data) {
-        console.debug("live", name, data);
         if (data.text) displayChat(`Player ${data.player}`, data.text);
         if (data.vote) displayChat(`* Player ${data.player} votes`, data.vote);
     };
@@ -100,6 +98,7 @@
     }
 
     async function completePage() {
+        ot.disableInputs();
         await ot.delay(1000);
         ot.completePage();
     }

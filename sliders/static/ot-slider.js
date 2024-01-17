@@ -12,7 +12,7 @@ class otSlider extends ot.WidgetDirective {
     }
 
     render() {
-        this.elem.innerHTML = `<input type="range" class="form-range" min="${this.min}" max="${this.max}" step="1">`;
+        this.elem.innerHTML = `<input type="range" name="${this.name}" class="form-range" min="${this.min}" max="${this.max}" step="1">`;
         this.input = this.elem.querySelector("input");
     }
 

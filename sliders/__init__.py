@@ -52,13 +52,6 @@ def init_player(player: Player, config: dict):
         generate_slider(player)
 
 
-def set_payoff(player: Player):
-    """calculate final payoff"""
-    player.payoff = (
-        player.total_score * player.session.config["real_world_currency_per_point"]
-    )
-
-
 def generate_slider(player: Player):
     offset = random.randint(0, C.MAX_OFFSET)
     value = random.randint(1, C.SLIDER_RANGE) * random.choice([-1, +1])
@@ -76,10 +69,18 @@ def get_slider(player: Player, slider_id: int):
     return slider
 
 
-def evaluate_move(slider: Slider, value: int):
-    """evaluate a move of a slider and update, return feedback including score for a move"""
+def output_slider(slider: Slider):
+    return {
+        "id": slider.id,
+        "value": slider.value,
+        "offset": slider.offset,
+        "solved": slider.solved,
+    }
+
+
+def evaluate_move(slider: Slider, response: dict):
     slider.moves += 1
-    slider.value = value
+    slider.value = response['value']
     slider.solved = slider.value == 0
 
     score = C.SCORE_CORRECT_MOVE if slider.solved else C.SCORE_INCORRECT_MOVE
@@ -93,16 +94,13 @@ def evaluate_move(slider: Slider, value: int):
 
 
 def update_progress(player: Player, feedback: dict):
-    """update players progress using last feedback"""
     player.total_score += feedback["score"]
     player.sliders_solved = len(Slider.filter(player=player, solved=True))
     player.terminated = player.sliders_solved == C.NUM_SLIDERS
 
 
-#### OUTPUTS ####
 
-
-def output_progress(player: Player):
+def current_progress(player: Player):
     return {
         "total": C.NUM_SLIDERS,
         "solved": player.sliders_solved,
@@ -111,13 +109,10 @@ def output_progress(player: Player):
     }
 
 
-def output_slider(slider: Slider):
-    return {
-        "id": slider.id,
-        "value": slider.value,
-        "offset": slider.offset,
-        "solved": slider.solved,
-    }
+def set_payoff(player: Player):
+    player.payoff = (
+        player.total_score * player.session.config["real_world_currency_per_point"]
+    )
 
 
 #### PAGES ####
@@ -146,17 +141,17 @@ class Sliders(Page):
 
     @staticmethod
     def live_reset(player: Player, _):
-        yield "progress", output_progress(player)
+        yield "progress", current_progress(player)
         yield "sliders", {s.id: output_slider(s) for s in Slider.filter(player=player)}
 
     @staticmethod
     def live_slider(player: Player, payload: dict):
         slider = get_slider(player, payload["id"])
 
-        feedback = evaluate_move(slider, payload['value'])
+        feedback = evaluate_move(slider, payload)
         update_progress(player, feedback)
 
-        yield "progress", output_progress(player)
+        yield "progress", current_progress(player)
         yield "feedback", feedback
 
     @staticmethod
