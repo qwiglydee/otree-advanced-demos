@@ -9,6 +9,10 @@ ot-slider {
     margin: 4px;
 }
 
+ot-slider[disabled] {
+    opacity: 0.5;
+}
+
 ot-slider input {
     display: block;
     z-index: 2;

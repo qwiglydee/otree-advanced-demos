@@ -14,7 +14,7 @@ class C(BaseConstants):
 
     MAX_FAILURES = 5  # num of failures to abort the game
 
-    PAGE_TIMEOUT = 60  # (seconds) total time limit for tasks page
+    PAGE_TIMEOUT = 30  # (seconds) total time limit for tasks page
     RESPONSE_TIMEOUT = 5  # (seconds) time limit for single trial
     FEEDBACK_DELAY = 2000  # (ms) time to show feedback before next trial
 
@@ -226,7 +226,7 @@ class Main(Page):
         trial = current_trial(player)
         assert trial is not None and trial.status == "LOADED"
 
-        feedback = evaluate_response(trial, payload)
+        feedback = evaluate_timeout(trial, payload)
         yield "feedback", feedback
 
         if feedback['completed']:

@@ -8,7 +8,9 @@
 </header>
 
 <main id="main" class="ot-fade d-flex" hidden>
-    <div class="fs-1 m-3" ot-text="vars.trial.expression"></div>
+    <div class="fs-1 m-3">
+        <span ot-text="vars.trial.expression"></span> = ...
+    </div>
 
     <div class="input-group">
         <span class="input-group-text">=</span>
@@ -62,15 +64,15 @@
     const TIMEOUT_STEP = parseInt(getStyleProp("--ot-progress-animation-time", ".timer-trial"));
     const FADEOUT_TIME = parseInt(getStyleProp("--ot-fade-out-time"));
 
-    ot.onEvent('loaded', startGame);
-    ot.onEvent('live', 'progress', onLive(updateProgress));
-    ot.onEvent('live', 'trial', onLive(startTrial));
-    ot.onEvent('input', 'answer', onInput(inputAnswer));
-    ot.onEvent('live', 'feedback', onLive(liveFeedback));
-    ot.onEvent('live', 'failure', onLive(function (_, message) { alert(message); ot.completePage(); }));
-    ot.onEvent('countdown', onCountdown(updatePageTimer));
-    ot.onEvent('timer', 'timebar', onTimer(updateTrialTimer));
-    ot.onEvent('timer', 'timeout', onTimer(timeoutTrial));
+    onLoad(startGame);
+    onLive('progress', updateProgress);
+    onLive('trial', startTrial);
+    onInput('answer', inputAnswer);
+    onLive('feedback', liveFeedback);
+    onLive('failure', function (message) { alert(message); ot.completePage(); });
+    onCountdown(updatePageTimer);
+    onTimer('timebar', updateTrialTimer);
+    onTimer('timeout', timeoutTrial);
 
     function startGame() {
         vars.progress = {};
@@ -84,7 +86,7 @@
         vars.page_timer.elapsed = PAGE_TIMEOUT - remaining + 1;
     }
 
-    async function updateTrialTimer(name, elapsed, count) {
+    async function updateTrialTimer(elapsed, count) {
         if (count == 0) {
             // reset the bar, w/out animation
             vars.trial_timer.elapsed = null;
@@ -94,7 +96,7 @@
         vars.trial_timer.elapsed = (count + 1) * TIMEOUT_STEP;
     }
 
-    function updateProgress(name, data) {
+    function updateProgress(data) {
         Object.assign(vars.progress, data);
     };
 
@@ -118,7 +120,7 @@
         ot.cancelTimers();
     }
 
-    function startTrial(name, data) {
+    function startTrial(data) {
         vars.trial = data;
 
         ot.showDisplay("main");
@@ -130,7 +132,7 @@
         ot.beginTimeMeasurement();
     }
 
-    function inputAnswer(name, value) {
+    function inputAnswer(value) {
         if (value === "") return;
         ot.disableInputs();
 
@@ -160,7 +162,7 @@
         });
     }
 
-    async function liveFeedback(name, data) {
+    async function liveFeedback(data) {
         vars.feedback = data;
 
         ot.showDisplay("waiting");

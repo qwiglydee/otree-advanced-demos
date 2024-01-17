@@ -57,21 +57,21 @@
     const FEEDBACK_DELAY = js_vars.C.FEEDBACK_DELAY;
     const FADEOUT_TIME = parseInt(getStyleProp("--ot-fade-out-time"));
 
-    ot.onEvent('loaded', startGame);
-    ot.onEvent('live', 'progress', onLive(updateProgress));
-    ot.onEvent('live', 'trial', onLive(startTrial));
-    ot.onEvent('input', 'answer', onInput(inputAnswer));
-    ot.onEvent('live', 'feedback', onLive(liveFeedback));
-    ot.onEvent('live', 'failure', onLive(function (_, message) { alert(message); ot.completePage(); }));
-    ot.onEvent('timer', 'phase', onTimer(switchPhase));
-    ot.onEvent('timer', 'timeout', onTimer(timeoutAnswer));
+    onLoad(startGame);
+    onLive('progress', updateProgress);
+    onLive('trial', startTrial);
+    onInput('answer', inputAnswer);
+    onLive('feedback', liveFeedback);
+    onLive('failure', function (message) { alert(message); ot.completePage(); });
+    onTimer('phase', switchPhase);
+    onTimer('timeout', timeoutAnswer);
 
     function startGame() {
         vars.progress = {};
         nextIter();
     };
 
-    function updateProgress(name, data) {
+    function updateProgress(data) {
         Object.assign(vars.progress, data);
     };
 
@@ -95,7 +95,7 @@
         ot.cancelTimers();
     }
 
-    function startTrial(name, data) {
+    function startTrial(data) {
         vars.trial = data;
 
         ot.showDisplay("main");
@@ -105,7 +105,7 @@
         ot.startTimerSequence('phase', SCHEDULE_SEQUENCE);
     }
 
-    function switchPhase(name, elapsed, count) {
+    function switchPhase(elapsed, count) {
         let phase = SCHEDULE_PHASES[count];  // NB: count starts at 0
         ot.hideDisplays("phase-*");
         ot.showDisplay(`phase-${phase}`);
@@ -117,14 +117,13 @@
         }
     }
 
-    function inputAnswer(name, value) {
+    function inputAnswer(value) {
         ot.disableInputs();
 
         ot.cancelTimer("timeout");
 
         ot.hideDisplays("phase-*");
         ot.hideDisplay("prompt");
-        ot.showDisplay("wait");
 
         vars.answer = value;
 
@@ -149,7 +148,7 @@
         });
     }
 
-    async function liveFeedback(name, data) {
+    async function liveFeedback(data) {
         vars.feedback = data;
 
         ot.showDisplay("waiting");

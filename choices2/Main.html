@@ -8,7 +8,9 @@
 </header>
 
 <main id="main" class="ot-fade d-flex" hidden>
-    <div class="fs-1 m-3" ot-text="vars.trial.expression"></div>
+    <div class="fs-1 m-3">
+        <span ot-text="vars.trial.expression"></span> = ...
+    </div>
 
     <div class="d-flex flex-row gap-3">
         <div class="form-check">
@@ -29,11 +31,11 @@
         </div>
     </div>
 
-    <button type="button" class="btn btn-primary m-3" ot-click-input name="confirm">Confirm</button>
+    <button type="button" class="btn btn-primary m-3" ot-click-input name="submit">Submit</button>
 </main>
 
 <footer>
-    <p id="prompt">Click on a button with your solution.</p>
+    <p id="prompt">Choose an option with your solution and press <kbd>Submit</kbd>.</p>
     <ot-pulse id="waiting"></ot-pulse>
 </footer>
 
@@ -58,20 +60,20 @@
     const FEEDBACK_DELAY = js_vars.C.FEEDBACK_DELAY;
     const FADEOUT_TIME = parseInt(getStyleProp("--ot-fade-out-time"));
 
-    ot.onEvent('loaded', startGame);
-    ot.onEvent('live', 'progress', onLive(updateProgress));
-    ot.onEvent('live', 'trial', onLive(startTrial));
-    ot.onEvent('input', 'answer', onInput(inputAnswer));
-    ot.onEvent('input', 'confirm', onInput(confirmAnswer));
-    ot.onEvent('live', 'feedback', onLive(liveFeedback));
-    ot.onEvent('live', 'failure', onLive(function (_, message) { alert(message); ot.completePage(); }));
+    onLoad(startGame);
+    onLive('progress', updateProgress);
+    onLive('trial', startTrial);
+    onInput('answer', inputAnswer);
+    onInput('submit', submitAnswer);
+    onLive('feedback', liveFeedback);
+    onLive('failure', function (message) { alert(message); ot.completePage(); });
 
     function startGame() {
         vars.progress = {};
         nextIter();
     };
 
-    function updateProgress(name, data) {
+    function updateProgress(data) {
         Object.assign(vars.progress, data);
     };
 
@@ -96,22 +98,23 @@
         ot.disableInputs();
     }
 
-    function startTrial(name, data) {
+    function startTrial(data) {
         vars.trial = data;
 
         ot.showDisplay("main");
         ot.showDisplay("prompt");
 
-        ot.enableInputs();
+        ot.enableInputs("answer"); // NB: submit remains disabled
         ot.beginTimeMeasurement();
     }
 
-    function inputAnswer(name, position) {
+    function inputAnswer(position) {
         vars.choice = Number(position);
         vars.answer = vars.trial.options[position];
+        ot.enableInput("submit");
     }
 
-    function confirmAnswer() {
+    function submitAnswer() {
         ot.disableInputs();
 
         ot.hideDisplay("prompt");
@@ -125,7 +128,7 @@
     };
 
 
-    async function liveFeedback(name, data) {
+    async function liveFeedback(data) {
         vars.feedback = data;
 
         ot.showDisplay("waiting");

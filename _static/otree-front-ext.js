@@ -3,52 +3,72 @@
  */
 
 /**
- * Warapper for a input handler.
+ * Wrappers for lifecycle handlers.
  *
  * @example
- * ot.onEvent('input', onInput(handleInput));
- * ot.onEvent('input', 'inputname', onInput(handleInput));
+ * onLoad(startGame);
+ * onSubmit(doSomething);
  *
- * function handleInput(name, value) { ... }
+ * function startGame() { ... }
+ * function doSomething() { ... }
  */
-function onInput(handler) {
-    return (e) => handler(e.detail.name, e.detail.value);
+function onLoad(handler) {
+    ot.onEvent('loaded', handler);
+}
+function onSubmit(handler) {
+    ot.onEvent('submitted', handler);
 }
 
 /**
- * Warapper for a timer handler.
+ * Warapper for input handler.
  *
  * @example
- * ot.onEvent('timer', onTimer(handleTimer));
- * ot.onEvent('timer', 'timername', onTimer(handleTimer));
+ * onInput('inputname', inputSomething);
+ * onInputs(inputAll);
  *
- * function handleTimer(name, value) { ... }
+ * function inputSomething(value) { ... }
+ * function inputAll(name, value) { ... }
  */
-function onTimer(handler) {
-    return (e) => handler(e.detail.name, e.detail.elapsed, e.detail.count);
+function onInputs(handler) {
+    ot.onEvent('input', (e) => handler(e.detail.name, e.detail.value));
+}
+function onInput(name,  handler) {
+    ot.onEvent('input', name, (e) => handler(e.detail.value));
 }
 
-
 /**
- * Converting built-in otree page timeout counter to ot-events.
- *
- * The event triggers every second and reports remaining time in seconds.
+ * Warapper for timer handlers.
  *
  * @example
- * ot.onEvent('countdown', onCountdown(handlePageTimer));
+ * onTimer(name, handleTimer);
+ * onTimers(handleTimers));
  *
- * function handlePageTimer(remaining) {
- *   ...
- * }
+ * function handleTimer(elapsed, counter) { ... }
+ * function handleTimers(name, elapsed, counter) { ... }
  */
+function onTimers(handler) {
+    ot.onEvent('timer', (e) => handler(e.detail.name, e.detail.elapsed, e.detail.count));
+}
+function onTimer(name, handler) {
+    ot.onEvent('timer', name, (e) => handler(e.detail.elapsed, e.detail.count));
+}
+
+/**
+ * Wrapper for built-in oTree page timer.
+ *
+ * @example
+ * onCountdown(handleCountdown);
+ *
+ * function handleCountdown(remaining_seconds) { ... }
+ */
+function onCountdown(handler) {
+    ot.onEvent('countdown', (e) => handler(e.detail.remaining))
+}
+
 if (document.querySelector(".otree-timer")) {
     $(".otree-timer__time-left").on("update.countdown", function (e) {
         ot.triggerEvent('countdown', { remaining: e.offset.totalSeconds });
     });
-
-    function onCountdown(handler) {
-        return (e) => handler(e.detail.remaining);
-    };
 }
 
 
@@ -69,12 +89,13 @@ function getStyleProp(propname, selector) {
 /**
  * Directive `ot-puse`
  *
- * Creates pulsating dots.
+ * Creates dots to pulsate by css.
  *
  * Use showDisplay(id_of_pulse) and hideDisplay(id_of_pulse) to toggle
  */
 class otPulse extends ot.DirectiveBase {
     init() {
+        this.elem.hidden = true;
         this.render();
     }
 

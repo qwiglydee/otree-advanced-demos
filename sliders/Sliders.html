@@ -5,7 +5,7 @@
     <div class="alert alert-info m-2">Total score: <b ot-text="vars.progress.score"></b></div>
 </header>
 
-<main id="main" hidden>
+<main id="main" class="ot-fade d-flex" hidden>
     {{ for id in sliders }}
     <ot-slider name="slider-{{id}}" min="-{{C.SLIDER_RANGE}}" max="{{C.SLIDER_RANGE}}" value="vars.sliders.{{id}}.value"
         offset="vars.sliders.{{id}}.offset" solved="vars.sliders.{{id}}.solved"></ot-slider>
@@ -20,8 +20,14 @@
 
 {{ block styles }}
 <link rel="stylesheet" href="{{ static 'fullscreen.css' }}">
+<link rel="stylesheet" href="{{ static 'otree-front-ext.css' }}">
 <link rel="stylesheet" href="{{ static 'ot-progress.css' }}">
 <link rel="stylesheet" href="{{ static 'ot-slider.css' }}">
+<style>
+    :root {
+        --ot-fade-out-time: 1000ms;
+    }
+</style>
 {{ endblock }}
 
 {{ block scripts }}
@@ -33,40 +39,41 @@
 <script>
     "use strict";
 
-    ot.onEvent('loaded', startPage);
-    ot.onEvent('live', 'sliders', onLive(liveSliders));
-    ot.onEvent('live', 'progress', onLive(updateProgress));
-    ot.onEvent('live', 'feedback', onLive(liveFeedback));
-    ot.onEvent('live', 'failure', onLive(function (message) { alert(message); ot.completePage(); }));
-    ot.onEvent('input', (e) => e.detail.name.startsWith('slider-'), onInput(inputSlider));
+    onLoad(startGame);
+    onLive('sliders', liveSliders);
+    onLive('progress', updateProgress);
+    onLive('feedback', liveFeedback);
+    onLive('failure', function (message) { alert(message); ot.completePage(); });
+    onInput((e) => e.detail.name.startsWith('slider-'), inputSlider);
 
-    function startPage() {
+    function startGame() {
         vars.sliders = {};  // map of { id: { value, offset, solved } }
         sendLive('reset');
     };
 
-    async function updateProgress(name, data) {
+    function updateProgress(data) {
         vars.progress = data;
-        if (vars.progress.terminated) completePage();
+        if (vars.progress.terminated) completeGame();
     };
 
-    function liveSliders(name, data) {
+    function liveSliders(data) {
         vars.sliders = data;
         ot.enableInputs();
         ot.showDisplay("main");
     };
 
-    function inputSlider(name, data) {
+    function inputSlider(data) {
         let { id, value } = data;
         sendLive("slider", { id, value });
     };
 
-    function liveFeedback(name, data) {
+    function liveFeedback(data) {
         vars.sliders[data['id']].solved = data['solved'];
     };
 
-    async function completePage() {
+    async function completeGame() {
         ot.disableInputs();
+        ot.hideDisplay("main");
         await ot.delay(1000);
         ot.completePage();
     }

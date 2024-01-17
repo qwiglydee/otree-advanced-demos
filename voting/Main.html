@@ -60,12 +60,12 @@
 <script>
     const CHAT_SIZE = 10;
 
-    ot.onEvent('loaded', initPage);
-    ot.onEvent('input', 'vote', onInput(sendVote));
-    ot.onEvent('input', 'message', onInput(sendChat));
-    ot.onEvent('live', 'votes', onLive(liveVotes));
-    ot.onEvent('live', 'chat', onLive(liveChat));
-    ot.onEvent('live', 'failure', onLive(function (message) { alert(message); ot.completePage(); }));
+    onLoad(initPage);
+    onInput('vote', sendVote);
+    onInput('message', sendChat);
+    onLive('votes', liveVotes);
+    onLive('chat', liveChat);
+    onLive('failure', function (message) { alert(message); ot.completePage(); });
 
     function initPage() {
         vars.votes = [];
@@ -73,21 +73,21 @@
         sendLive('load');
     };
 
-    function sendVote(name, value) {
+    function sendVote(value) {
         sendLive('vote', value);
     };
 
-    function liveVotes(name, data) {
+    function liveVotes(data) {
         vars.votes = data.votes;
         if (data.consensus) completePage();
     }
 
-    function sendChat(name, text) {
+    function sendChat(text) {
         sendLive('chat', text);
         ot.resetInput("message");
     };
 
-    function liveChat(name, data) {
+    function liveChat(data) {
         if (data.text) displayChat(`Player ${data.player}`, data.text);
         if (data.vote) displayChat(`* Player ${data.player} votes`, data.vote);
     };

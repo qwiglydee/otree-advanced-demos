@@ -4,9 +4,36 @@
  * Live communication happens in form of messages that have type and payload.
  */
 
-
 if (!window.liveSocket) {
     throw new Error("otree-front-live.js doesn't see live socket")
+}
+
+
+/**
+ * Warapper for live handlers.
+ *
+ * @example
+ * onLive('message_type', handleLive);
+ *
+ * function handleLive(data) { ... }
+ */
+function onLive(name, handler) {
+    ot.onEvent('live', name,  (e) => handler(e.detail.data));
+}
+
+/**
+ * Sending a live message.
+ *
+ * @example
+ * sendLive("something", { ... } );
+ * sendLive("something", "foo");
+ * sendLive("something");
+ *
+ * @param {string} type type of the message
+ * @param {object} [data] message payload
+ */
+function sendLive(type, data) {
+    window.liveSocket.send(JSON.stringify({ type, data }))
 }
 
 /**
@@ -25,31 +52,4 @@ window.liveSocket.onmessage = function (e) {
         if (!ot.isObject(msg) || !Object.hasOwn(msg, 'type')) throw new Error("live socket received invalid data")
         ot.emitEvent('live', { name: msg.type, data: msg.data });
     }
-}
-
-/**
- * Warapper for a live handler.
- *
- * @example
- * ot.onEvent('live', onLive(handleLive));
- * ot.onEvent('live', 'type', onLive(handleLive));
- *
- * function handleLive(type, data) { ... }
- */
-function onLive(handler) {
-    return (e) => handler(e.detail.name, e.detail.data);
-}
-
-
-/**
- * Sending live message of a given type.
- *
- * @example
- * sendLive(type, payload)
- *
- * @param {string} type type of the message
- * @param {object} [data] message payload
- */
-function sendLive(type, data) {
-    window.liveSocket.send(JSON.stringify({ type, data }))
 }

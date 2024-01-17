@@ -41,19 +41,19 @@
     const FEEDBACK_DELAY = js_vars.C.FEEDBACK_DELAY;
     const FADEOUT_TIME = parseInt(getStyleProp("--ot-fade-out-time"));
 
-    ot.onEvent('loaded', startGame);
-    ot.onEvent('live', 'progress', onLive(updateProgress));
-    ot.onEvent('live', 'trial', onLive(startTrial));
-    ot.onEvent('input', 'answer', onInput(inputAnswer));
-    ot.onEvent('live', 'feedback', onLive(liveFeedback));
-    ot.onEvent('live', 'failure', onLive(function (_, message) { alert(message); ot.completePage(); }));
+    onLoad(startGame);
+    onLive('progress', updateProgress);
+    onLive('trial', startTrial);
+    onInput('answer', inputAnswer);
+    onLive('feedback', liveFeedback);
+    onLive('failure', function (message) { alert(message); ot.completePage(); });
 
     function startGame() {
         vars.progress = {};
         nextIter();
     };
 
-    function updateProgress(name, data) {
+    function updateProgress(data) {
         Object.assign(vars.progress, data);
     };
 
@@ -76,7 +76,7 @@
         ot.disableInputs();
     }
 
-    function startTrial(name, data) {
+    function startTrial(data) {
         vars.trial = data;
 
         ot.showDisplay("main");
@@ -86,7 +86,7 @@
         ot.beginTimeMeasurement();
     }
 
-    function inputAnswer(name, value) {
+    function inputAnswer(value) {
         ot.disableInputs();
 
         ot.hideDisplay("prompt");
@@ -100,7 +100,7 @@
         });
     };
 
-    async function liveFeedback(name, data) {
+    async function liveFeedback(data) {
         vars.feedback = data;
 
         ot.showDisplay("waiting");
