@@ -43,7 +43,7 @@
     }
     ot-progress.timer-trial {
         /* high precision to make it stop quickly when answer given */
-        --ot-progress-animation-time: 250ms;
+        --ot-progress-animation-time: 100ms;
     }
 </style>
 {{ endblock }}
@@ -76,10 +76,11 @@
     onTimer('timebar', updateTrialTimer);
     onTimer('timeout', timeoutTrial);
 
+
     function startGame() {
         vars.progress = {};
-        vars.page_timer = { total: PAGE_TIMEOUT };
-        vars.trial_timer = { total: RESPONSE_TIMEOUT };
+        vars.page_timer = { total: PAGE_TIMEOUT, elapsed: null };
+        vars.trial_timer = { total: RESPONSE_TIMEOUT, elapsed: null };
         nextIter();
     };
 
@@ -89,11 +90,6 @@
     }
 
     async function updateTrialTimer(elapsed, count) {
-        if (count == 0) {
-            // reset the bar, w/out animation
-            vars.trial_timer.elapsed = null;
-            await ot.delay(15); // FIXME: this should not be 15ms
-        }
         // animate towards next step
         vars.trial_timer.elapsed = (count + 1) * TIMEOUT_STEP;
     }
@@ -102,24 +98,25 @@
         Object.assign(vars.progress, data);
     };
 
-    function nextIter() {
+    async function nextIter() {
         resetTrial();
 
         if (vars.progress.terminated) {
-            ot.completePage();
+            // ot.completePage();
         } else {
             sendLive('next');
         }
     }
 
-    function resetTrial() {
+    async function resetTrial() {
+        ot.cancelTimers();
+        vars.trial_timer.elapsed = null;  // reset progress
         vars.trial = null;
         vars.answer = null;
         vars.feedback = null;
         hideFeedback();
         ot.resetInputs();
         ot.disableInputs();
-        ot.cancelTimers();
     }
 
     function startTrial(data) {

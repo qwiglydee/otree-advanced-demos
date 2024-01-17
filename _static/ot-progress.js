@@ -6,6 +6,9 @@
  *
  * All the parameters can be either constants or variable references.
  *
+ * When value is set exactly to `null` the progress bar resets to zero without animations.
+ * And i has special attribute `reset` so that some special css can be applied.
+ *
  * Use together with `ot-progress.css`
  * @example:
  * <ot-progress max="..." ticks="..." value="..." value2="..."></ot-progress>
@@ -80,7 +83,7 @@ class otProgress extends ot.ContentDirective {
     update(updated) {
         if (updated.has('max') || updated.has('ticks')) this.renderTicks();
         if (updated.has('max') || updated.has('value') || updated.has('value2')) {
-            if (this.value !== null) this.renderBars(); else this.resetBars();
+            if (this.value === null) this.resetBars(); else this.renderBars();
         }
     }
 }
