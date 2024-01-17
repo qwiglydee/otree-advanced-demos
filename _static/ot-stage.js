@@ -1,12 +1,19 @@
 /**
- * ot-stage="name"
+ * Directive ot-stage="name"
  *
  * Marks elements and inputs to be switched by `switchStage(name)`
  *
- * Elements of matching stage get enabled and unhidden, and got class "active".
+ * Elements of matching stage get enabled and reviealed, and got class "active".
  * Elements of other stages get hidden and disabled.
  *
- * If stage name is numeric, then preceeding stages get css class "passed" and following get css class "further"
+ * If stage name is numeric, then inactive elements additionally get css classes "passed" or "further"
+ *
+ * @example
+ * <section ot-stage="1">...</section>
+ * <section ot-stage="2">...</section>
+ * <section ot-stage="3">...</section>
+ *
+ * switchStage(2);
  */
 class otStage extends ot.DirectiveBase {
     params = {

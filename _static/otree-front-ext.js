@@ -86,25 +86,4 @@ function getStyleProp(propname, selector) {
     return window.getComputedStyle(elem).getPropertyValue(propname);
 }
 
-/**
- * Directive `ot-puse`
- *
- * Creates dots to pulsate by css.
- *
- * Use showDisplay(id_of_pulse) and hideDisplay(id_of_pulse) to toggle
- */
-class otPulse extends ot.DirectiveBase {
-    init() {
-        this.elem.hidden = true;
-        this.render();
-    }
-
-    render() {
-        this.elem.innerHTML = "<i></i><i></i><i></i>";
-    }
-}
-
-ot.attachDirective(otPulse, "ot-pulse");
-
-
 

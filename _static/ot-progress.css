@@ -1,6 +1,5 @@
-/** Styles for directive ot-progress
- *
- * To tweak appearence, redefine --ot-progress-something in a page styles
+/**
+ * Styles for directive <ot-progress> from `ot-progress.js`
  */
 
  :root {

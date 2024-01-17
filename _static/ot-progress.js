@@ -4,12 +4,11 @@
  * Draws progress with two layers and smooth transitions.
  * Using bootsreap-5.0 styles and ot-progress.css
  *
- * https://github.com/qwiglydee/otree-advanced-demos
- *
- * Usage:
- * <ot-progress max="..." ticks="..." value="..." value2="..."></ot-progress>
- *
  * All the parameters can be either constants or variable references.
+ *
+ * Use together with `ot-progress.css`
+ * @example:
+ * <ot-progress max="..." ticks="..." value="..." value2="..."></ot-progress>
  */
 class otProgress extends ot.ContentDirective {
 

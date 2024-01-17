@@ -1,27 +1,40 @@
 /**
- * Some css tricks for otree-front
+ * Some css enhancements
  */
 
 :root {
-    /* for .fade */
     --ot-fade-out-time: 150ms;
     --ot-fade-in-time: 150ms;
-    /** Styles for directive ot-pulse */
-    --ot-pulse-size: 0.5rem;
 }
 
 
 /**
-  * Makes hidden section to hold space and prevent content from collapsing and re-aligning
-  */
+ * Makes hidden sections to hold space and prevent content from collapsing and re-aligning
+ *
+ * @example
+ * <section id="foo" class="hole-space">...</section>
+ *
+ * ot.hideDisplay("foo"); // makes it blank space
+ */
 .hold-space[hidden] {
     display: initial !important;
     opacity: 0;
 }
 
-
 /**
- * Makes element to hide and show smoothly
+ * Makes elements to hide out and show up smoothly.
+ *
+ * NB: if the element is flexible/aligning (like fullscreen main) it also needs class `d-flex` to work properly
+ *
+ * To avoid initial appearence animation, put `hidden` in original html
+ *
+ * @example
+ * <main id="main" class="ot-fade d-flex" hidden>
+ *   <section id="foo" class="ot-fade"> ... </section>
+ * </main>
+ *
+ * ot.showDisplay("main");
+ * ot.showDisplay("foo");
  */
 .ot-fade {
     opacity: 1;
@@ -39,7 +52,17 @@
 }
 
 /**
- * Makes all nested sections/divs appear on top of each other for in-place switching
+ * Makes all nested sections/divs appear on top of each other for in-place switching.
+ *
+ * @example
+ * <ot-stacked>
+ *   <section id="question-1">...</section>
+ *   <section id="question-2">...</section>
+ *   <section id="question-2">...</section>
+ * </ot-stacked>
+ *
+ * ot.hideDisplays("question-*");
+ * ot.showDisplay("question-2");
  */
 ot-stacked {
     display: grid;
@@ -55,52 +78,6 @@ ot-stacked > *[hidden] {
     grid-area: content;
     z-index: -1;
 }
-
-/**
- * Directive <ot-pulse> draws pulsating dots
- */
-ot-pulse {
-    display: flex;
-}
-
-ot-pulse i {
-    display: block;
-    width: var(--ot-pulse-size);
-    height: var(--ot-pulse-size);
-    background-color: currentColor;
-    border-radius: 50%;
-    animation: 1000ms ease-in-out infinite ot-pulsating;
-}
-
-@keyframes ot-pulsating {
-    0% {
-        opacity: 0;
-        transform: scale(0);
-    }
-
-    50% {
-        opacity: 1;
-        transform: none;
-    }
-
-    100% {
-        opacity: 0;
-        transform: scale(0);
-    }
-}
-
-ot-pulse i:nth-child(1) {
-    animation-delay: 0ms;
-}
-
-ot-pulse i:nth-child(2) {
-    animation-delay: 250ms;
-}
-
-ot-pulse i:nth-child(3) {
-    animation-delay: 500ms;
-}
-
 
 
 /** make numbers input small and right aligned */
@@ -146,8 +123,3 @@ input[type="number"] {
  {
     opacity: 0.75;
  }
-
-/** reserve space for validation icon */
-something {
-    paiding-right: 2.25rem;
-}
