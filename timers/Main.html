@@ -2,7 +2,10 @@
 
 <header>
     <ot-progress class="timer timer-page" max="vars.page_timer.total" value="vars.page_timer.elapsed"></ot-progress>
-    <div class="alert alert-secondary m-2">Total score: <b ot-text="vars.progress.score"></b></div>
+    <div class="d-flex">
+        <div class="alert alert-secondary otree-timer-custom m-2">Time left: <b class="otree-timer__time-left">0:00</b></div>
+        <div class="alert alert-secondary m-2">Total score: <b ot-text="vars.progress.score"></b></div>
+    </div>
     <p id="timeout">You have run out of time.</p>
     <p id="gain">You <i ot-text="vars.gain_txt"></i></p>
 </header>
