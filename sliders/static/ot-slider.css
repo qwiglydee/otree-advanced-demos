@@ -1,11 +1,11 @@
 :root {
-    --ot-slider-width: 512px;
-    --ot-slider-height: 24px;
+    --ot-slider-length: 512px;
+    --ot-slider-width: 24px;
 }
 
 ot-slider {
     position: relative;
-    width: var(--ot-slider-width);
+    width: var(--ot-slider-length);
     margin: 4px;
 }
 
@@ -26,31 +26,31 @@ ot-slider i {
     left: 50%;
     top: 25%;
     bottom: 25%;
-    margin-left: calc(var(--ot-slider-height) / 2);
+    margin-left: calc(var(--ot-slider-width) / 2);
 }
 
 ot-slider .form-range {
-    height: var(--ot-slider-height);
+    height: var(--ot-slider-width);
 }
 
 ot-slider .form-range::-webkit-slider-thumb {
     margin: 0;
-    height: var(--ot-slider-height);
-    width: var(--ot-slider-height);
+    height: var(--ot-slider-width);
+    width: var(--ot-slider-width);
 }
 
 ot-slider .form-range::-moz-range-thumb {
     margin: 0;
-    height: var(--ot-slider-height);
-    width: var(--ot-slider-height);
+    height: var(--ot-slider-width);
+    width: var(--ot-slider-width);
 }
 
 ot-slider .form-range::-webkit-slider-runnable-track {
-    height: var(--ot-slider-height);
+    height: var(--ot-slider-width);
 }
 
 ot-slider .form-range::-moz-range-track {
-    height: var(--ot-slider-height);
+    height: var(--ot-slider-width);
 }
 
 ot-slider.is-valid i {
