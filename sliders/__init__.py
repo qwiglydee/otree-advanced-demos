@@ -34,9 +34,11 @@ class Player(BasePlayer):
 
 
 class Slider(ExtraModel):
+    # id = built-in field
     player = models.Link(Player)
     offset = models.IntegerField()
     initial = models.IntegerField()
+    target = models.IntegerField()
     value = models.IntegerField()
     moves = models.IntegerField(initial=0)
     solved = models.BooleanField(initial=False)
@@ -54,13 +56,17 @@ def init_player(player: Player, config: dict):
 
 def generate_slider(player: Player):
     offset = random.randint(0, C.MAX_OFFSET)
-    value = random.randint(1, C.SLIDER_RANGE) * random.choice([-1, +1])
+    target = random.randint(-C.SLIDER_RANGE+1, C.SLIDER_RANGE-1)
+    initial = random.randint(-C.SLIDER_RANGE+1, C.SLIDER_RANGE-1)
+    if initial == target:
+        initial += random.choice([-1, +1])
 
     return Slider.create(
         player=player,
         offset=offset,
-        initial=value,
-        value=value,
+        initial=initial,
+        target=target,
+        value=initial,
     )
 
 
@@ -73,6 +79,7 @@ def output_slider(slider: Slider):
     return {
         "id": slider.id,
         "value": slider.value,
+        "target": slider.target,
         "offset": slider.offset,
         "solved": slider.solved,
     }
@@ -81,7 +88,7 @@ def output_slider(slider: Slider):
 def evaluate_move(slider: Slider, response: dict):
     slider.moves += 1
     slider.value = response['value']
-    slider.solved = slider.value == 0
+    slider.solved = slider.value == slider.target
 
     score = C.SCORE_CORRECT_MOVE if slider.solved else C.SCORE_INCORRECT_MOVE
 
@@ -136,7 +143,7 @@ class Sliders(Page):
 
     @staticmethod
     def vars_for_template(player: Player):
-        # sequence of ids for initial rendering only
+        # only sequence of ids for initial rendering only
         return {"sliders": [s.id for s in Slider.filter(player=player)]}
 
     @staticmethod
@@ -181,6 +188,7 @@ def custom_export(players: list[Player]):
         "player.total_score",
         #
         "slider.id",
+        "slider.target",
         "slider.initial",
         "slider.moves",
         "slider.value",
@@ -198,6 +206,7 @@ def custom_export(players: list[Player]):
         for slider in Slider.filter(player=player):
             yield player_fields + [
                 slider.id,
+                slider.target,
                 slider.initial,
                 slider.moves,
                 slider.value,

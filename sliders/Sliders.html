@@ -10,7 +10,8 @@
 
 <main id="main" class="ot-fade d-flex" hidden>
     {{ for id in sliders }}
-    <ot-slider name="slider-{{id}}" min="-{{C.SLIDER_RANGE}}" max="{{C.SLIDER_RANGE}}" value="vars.sliders.{{id}}.value"
+    <ot-slider name="slider-{{id}}" min="-{{C.SLIDER_RANGE}}" max="{{C.SLIDER_RANGE}}"
+        target="vars.sliders.{{id}}.target" value="vars.sliders.{{id}}.value"
         offset="vars.sliders.{{id}}.offset" solved="vars.sliders.{{id}}.solved"></ot-slider>
     {{ endfor }}
 </main>
@@ -50,7 +51,7 @@
     onInput((e) => e.detail.name.startsWith('slider-'), inputSlider);
 
     function startGame() {
-        vars.sliders = {};  // map of { id: { value, offset, solved } }
+        vars.sliders = {};  // map of { id: { value, offset, solved, ... } }
         sendLive('reset');
     };
 

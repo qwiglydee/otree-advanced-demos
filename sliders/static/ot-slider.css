@@ -18,16 +18,15 @@ ot-slider input {
     z-index: 2;
 }
 
-ot-slider::before {
-    content: "";
+ot-slider i {
     display: block;
     position: absolute;
-    background-color: black;
-    opacity: 0.25;
+    background-color: rgba(0, 0, 0, 0.5);
     width: 2px;
     left: 50%;
     top: 25%;
     bottom: 25%;
+    margin-left: calc(var(--ot-slider-height) / 2);
 }
 
 ot-slider .form-range {
@@ -54,7 +53,7 @@ ot-slider .form-range::-moz-range-track {
     height: var(--ot-slider-height);
 }
 
-ot-slider.is-valid::before {
+ot-slider.is-valid i {
     display: none;
 }
 
