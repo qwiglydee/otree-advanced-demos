@@ -182,8 +182,8 @@ class Main(Page):
         assert not player.terminated
 
         trial = current_trial(player)
-        # if trial.status == "LOADED":
-        #     raise Warning("Page reloading is prohibited")
+        if trial.status == "LOADED":
+            raise Warning("Page reloading is prohibited")
         trial.status = "LOADED"
 
         yield "progress", current_progress(player, trial)

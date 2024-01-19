@@ -90,3 +90,5 @@ ADMIN_PASSWORD = environ.get("OTREE_ADMIN_PASSWORD")
 # PARTICIPANT_FIELDS = ['dropout']
 
 SECRET_KEY = "12345"
+
+DEBUG = False

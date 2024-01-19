@@ -13,8 +13,6 @@ class C(BaseConstants):
     PLAYERS_PER_GROUP = None
     NUM_ROUNDS = 1
 
-    CONDITIONS = ["ODD", "EVEN", "MIXED"]
-
     NUM_TRIALS = 10  # total number of trials to generate
     MAX_FAILURES = 5  # num of failures to abort the game
 
@@ -73,11 +71,6 @@ def creating_session(subsession: Subsession):
 
 
 def init_player(player: Player, config: dict):
-    player.condition = random.choice(C.CONDITIONS)
-    if "condition" in config and config["condition"] != "random":
-        assert config["condition"] in C.CONDITIONS
-        player.condition = config["condition"]
-
     for i in range(C.NUM_TRIALS):
         generate_trial(player, i + 1)
 

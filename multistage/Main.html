@@ -126,9 +126,9 @@
         vars.trial = data;
 
         ot.showDisplay("main");
-        ot.showDisplay("prompt");
 
         switchStage('A');
+        ot.showDisplay("prompt");
 
         ot.disableInput("submit");
         ot.beginTimeMeasurement();
@@ -182,6 +182,7 @@
             completeTrial();
         } else {
             switchStage(feedback.next);
+            ot.showDisplay("prompt");
         }
     }
 
