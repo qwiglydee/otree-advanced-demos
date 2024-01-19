@@ -3,8 +3,8 @@
  */
 
  :root {
-    --ot-progress-1-color: rgba(13, 202, 240, 1.0);
-    --ot-progress-2-color: rgba(13, 202, 240, 0.25);
+    --ot-progress-color: rgba(33, 37, 41, 0.75);
+    --ot-progress-color-2: rgba(33, 37, 41, 0.5);
     --ot-progress-tick-color: rgba(0, 0, 0, 0.25);
     --ot-progress-animation-time: 150ms;
     --ot-progress-animation-style: ease-in-out;
@@ -18,11 +18,11 @@
 }
 
 ot-progress .progress-bar.progress-1 {
-    background-color: var(--ot-progress-1-color);
+    background-color: var(--ot-progress-color);
 }
 
 ot-progress .progress-bar.progress-2 {
-    background-color: var(--ot-progress-2-color);
+    background-color: var(--ot-progress-color-2);
 }
 
 ot-progress .progress-bar {
