@@ -6,6 +6,8 @@ Condition for each player determines if numbers in the expressions are all odd, 
 
 The game is limited in number of trials, allowed number of failures, and page timeout.
 
+![screenshot](../_screenshots/multistep.png)
+
 ## Workflow
 
 - predefined number of random trials are generated on session creation

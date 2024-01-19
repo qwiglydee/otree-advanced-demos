@@ -6,6 +6,8 @@ Condition for each player determines if numbers in the expressions are all odd, 
 The game is not limited in number of trials, but ony limited in allowed number of failures, and page timeout.
 Player is limited in time to solve each task.
 
+![screenshot](../_screenshots/timers.png)
+
 ## Workflow
 
 - random trials are generated on demand as player is running the series

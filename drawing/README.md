@@ -5,6 +5,8 @@ Player should reproduce an emoji they see in each task.
 
 The game is limited in number of trials and page timeout.
 
+![screenshot](../_screenshots/drawing.png)
+
 ## Workflow
 
 - predefined number of random trials are generated on session creation

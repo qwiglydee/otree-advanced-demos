@@ -5,6 +5,8 @@ Player should move handles of all sliders in their middle position.
 
 The game is limited by page timeout.
 
+![screenshot](../_screenshots/sliders.png)
+
 ## Workflow
 
 - predefined number of slider with random shifts are generated on session creation

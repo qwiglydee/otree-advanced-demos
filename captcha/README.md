@@ -5,6 +5,8 @@ Player should recognize distorted text on image and respond with text answer.
 
 The game is limited in number of trials, allowed number of failures, and page timeout.
 
+![screenshot](../_screenshots/captcha.png)
+
 ## Workflow
 
 - predefined number of random trials are generated on session creation
