@@ -1,3 +1,11 @@
+/**
+ * Directive ot-draw for free-hand drawing on canvas.
+ *
+ * Reacts on `commitInput()` and generates an input event with image data encoded as png image in data-uri format.
+ *
+ * Usage:
+ * <canvas ot-draw-input width="..." heght="..."></canvas>
+ */
 class otDrawInput extends ot.WidgetDirective {
     params = {
         feather: { default: 4 },

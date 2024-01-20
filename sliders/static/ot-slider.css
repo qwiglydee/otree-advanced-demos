@@ -1,3 +1,7 @@
+/**
+ * Styles for directive <ot-slider> from `ot-slider.js`
+ */
+
 :root {
     --ot-slider-length: 512px;
     --ot-slider-width: 24px;

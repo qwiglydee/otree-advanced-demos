@@ -1,8 +1,4 @@
 /**
- * Some extensions for otree-front
- */
-
-/**
  * Wrappers for lifecycle handlers.
  *
  * @example

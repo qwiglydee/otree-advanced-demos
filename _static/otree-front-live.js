@@ -1,7 +1,5 @@
 /**
  * Helpers to communicate with backend driven by `utils/live.py`
- *
- * Live communication happens in form of messages that have type and payload.
  */
 
 if (window.liveSocket) {

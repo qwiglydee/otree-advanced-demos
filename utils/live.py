@@ -4,49 +4,6 @@ Best used with otree-front-live.js
 
 The communication consists of exchening messages each has a type and payload.
 Both ends use separate handlers bound to particular message types.
-
-Receiving messages form page::
-
-```
-@live_page
-class SomePage(Page):
-
-    @staticmethod
-    def live_foo(player, payload):
-        # handle incoming message of type 'foo'
-        ...
-
-    @staticmethod
-    def live_bar(player, payload):
-        # handle incoming message of type 'bar'
-        ...
-
-```
-
-Sending messages back to page:
-```
-@staticmethod
-def live_something(player, payload):
-    # a handler can send one or more messages back to the originating player
-    yield "foo", data   # send a response of type "foo" and payloaded with the data
-    yield "foo"         # send a response without payload
-```
-
-Sending messages in multiplayers sessions:
-```
-@staticmethod
-def live_something(player, payload):
-    # a handler can send one or more messages to any player in the group of originating player
-    ...
-    yield player.group, "foo", data  # send a message to all players in the group
-    yield player.group, "foo"        # send a message without payload
-
-    another_player = player.group.get_player_by_role(...)  # get reference to another player
-
-    yield another_player, "bar", data   # send a message to another player
-    yield another_player, "bar"         # send a message without payload
-```
-
 """
 
 import types
@@ -60,6 +17,32 @@ def live_page(cls):
     Routes incoming messages to corresponding live_something method
     Collects all yielded responses into { rcpt: [ { type, data }, ...] }
     Preserving order of yields.
+
+    Usage:
+
+    @live_page
+    class SomePage(Page):
+
+        @staticmethod
+        def live_foo(player: Player, payload):
+            # this handler is called when a message of type 'foo' received from browser
+            ...
+            # this sends message of type 'bar' and data payload back to browser
+            yield 'bar', data
+
+            # this sends message of type 'bar' without payload
+            yield 'bar'
+
+
+        @staticmethod
+        def live_baz(player: Player, payload):
+            # this handler is called when a message of another type 'baz' received from browser
+            ...
+            # send a message to all players in the group
+            yield player.group, 'bar', data
+
+            # send a message to another player
+            yield another_player, 'bar', data
     """
 
     def generic_live_method(player: BasePlayer, payload: dict):

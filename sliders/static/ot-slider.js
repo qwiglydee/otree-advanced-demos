@@ -1,3 +1,9 @@
+/**
+ * Directive <ot-slider name=... min=... max=... target=... offset=... solved=...></ot-slider>
+ *
+ * Draws a slider input with marked target position.
+ * The directive reuses native browser widget input[type=range] which may behave differently in different browsers.
+ */
 class otSlider extends ot.WidgetDirective {
     params = {
         min: { default: -100 },
