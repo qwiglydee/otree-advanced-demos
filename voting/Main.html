@@ -11,6 +11,7 @@
 
 <main>
     <div class="w-100 chat rounded border pt-2">
+        <!-- NB: the chat is limited to fixed number of lines -->
         <div class="message mx-2" ot-html="vars.chat.0"></div>
         <div class="message mx-2" ot-html="vars.chat.1"></div>
         <div class="message mx-2" ot-html="vars.chat.2"></div>
@@ -27,14 +28,16 @@
 </main>
 
 <footer>
-    <div class="form-group">
-        <label class="form-label">Your vote:</label>
-        <select ot-input name="vote" class="form-select d-inline bg-light">
-            <option></option>
-            {{ for i, option in options }}
-            <option>{{option}}</option>
-            {{ endfor }}
-        </select>
+    <h4>Your choice:</h4>
+    <div class="bg-light border rounded p-3 m-3">
+        {{ for i, option in options }}
+        <div class="form-check form-check-inline">
+            <input ot-input class="form-check-input" type="radio" name="choice" id="option-{{i}}" value="{{option}}">
+            <label class="form-check-label" for="option-{{i}}">{{option}}</label>
+        </div>
+        {{ endfor }}
+    </div>
+    <button ot-click-input type="button" name="vote" class="btn btn-primary">Vote</button>
     </div>
 </footer>
 
@@ -43,12 +46,12 @@
 {{ block styles }}
 <link rel="stylesheet" href="{{ static 'fullscreen.css' }}">
 <style>
-    input.form-control {
-        max-width: none;
-    }
-
     .message {
         height: 2em;
+    }
+
+    input[name=message] {
+        max-width: none;
     }
 </style>
 {{ endblock }}
@@ -61,6 +64,7 @@
     const CHAT_SIZE = 10;
 
     onLoad(initPage);
+    onInput('choice', inputChoice);
     onInput('vote', sendVote);
     onInput('message', sendChat);
     onLive('votes', liveVotes);
@@ -70,15 +74,19 @@
     function initPage() {
         vars.votes = [];
         vars.chat = [];
-        sendLive('load');
     };
 
-    function sendVote(value) {
-        sendLive('vote', value);
+    function inputChoice(value) {
+        vars.choice = value;
+    }
+
+    function sendVote() {
+        sendLive('vote', vars.choice);
     };
 
     function liveVotes(data) {
         vars.votes = data.votes;
+        vars.choice = null;
         if (data.consensus) completePage();
     }
 
@@ -88,12 +96,20 @@
     };
 
     function liveChat(data) {
-        if (data.text) displayChat(`Player ${data.player}`, data.text);
-        if (data.vote) displayChat(`* Player ${data.player} votes`, data.vote);
+        if (data.text) updateChat(fmtChatMessage(data.player, data.text));
+        if (data.vote) updateChat(fmtVoteMessage(data.player, data.vote));
     };
 
-    function displayChat(player, msg) {
-        vars.chat.push(`<b>${player}</b> ${msg}`);
+    function fmtChatMessage(player, msg) {
+        return `<b>Player ${player}</b> : ${msg}`;
+    }
+
+    function fmtVoteMessage(player, vote) {
+        return `<b>Player ${player} votes</b> : ${vote}`;
+    }
+
+    function updateChat(msg) {
+        vars.chat.push(msg);
         vars.chat = vars.chat.splice(-CHAT_SIZE);
     }
 

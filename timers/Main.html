@@ -106,7 +106,7 @@
         resetTrial();
 
         if (vars.progress.terminated) {
-            // ot.completePage();
+            ot.completePage();
         } else {
             sendLive('next');
         }
@@ -114,7 +114,7 @@
 
     async function resetTrial() {
         ot.cancelTimers();
-        vars.trial_timer.elapsed = null;  // reset progress
+        vars.trial_timer.elapsed = null;  // reset progress bar
         vars.trial = null;
         vars.answer = null;
         vars.feedback = null;

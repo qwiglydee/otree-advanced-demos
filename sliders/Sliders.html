@@ -43,16 +43,20 @@
 <script>
     "use strict";
 
+    const FADEOUT_TIME = parseInt(getStyleProp("--ot-fade-out-time"));
+
     onLoad(startGame);
     onLive('sliders', liveSliders);
     onLive('progress', updateProgress);
     onLive('feedback', liveFeedback);
     onLive('failure', function (message) { alert(message); ot.completePage(); });
-    onInput((e) => e.detail.name.startsWith('slider-'), inputSlider);
+    onInputs(inputSlider);
 
     function startGame() {
-        vars.sliders = {};  // map of { id: { value, offset, solved, ... } }
-        sendLive('reset');
+        // all aliders data, { id: { value, offset, solved, ... } }
+        vars.sliders = {};
+
+        sendLive('reset'); // servers replies 'sliders'
     };
 
     function updateProgress(data) {
@@ -66,9 +70,10 @@
         ot.showDisplay("main");
     };
 
-    function inputSlider(data) {
-        let { id, value } = data;
-        sendLive("slider", { id, value });
+    function inputSlider(name, value) {
+        if (!name.startsWith("slider-")) return; // ignore non-slider inputs, if any
+        let id = name.slice(7); // strip "slider-"
+        sendLive("slider", { id, value }); // -> server replies 'feedback' and 'progress'
     };
 
     function liveFeedback(data) {
@@ -78,7 +83,7 @@
     async function completeGame() {
         ot.disableInputs();
         ot.hideDisplay("main");
-        await ot.delay(1000);
+        await ot.delay(FADEOUT_TIME);
         ot.completePage();
     }
 </script>

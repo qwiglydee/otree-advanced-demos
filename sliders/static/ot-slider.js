@@ -10,17 +10,12 @@ class otSlider extends ot.WidgetDirective {
     init() {
         super.init();
         this.range = this.max - this.min + 1;
-        this.slider_id = this.name.split('-')[1];
     }
 
     render() {
         this.elem.innerHTML = `<i></i><input type="range" name="${this.name}" class="form-range" min="${this.min}" max="${this.max}" step="1">`;
         this.input = this.elem.querySelector("input");
         this.tick = this.elem.querySelector("i");
-    }
-
-    commit() {
-        super.commit({ id: this.slider_id, value: parseInt(this.value) });
     }
 
     reset() {
@@ -31,6 +26,10 @@ class otSlider extends ot.WidgetDirective {
         if(updated.has('target')) this.tick.style.left = (100 * (this.target - this.min) / this.range).toFixed(2) + "%";
         if(updated.has('offset')) this.elem.style.marginLeft = `${this.offset}px`;
         if(updated.has('solved')) this.elem.classList.toggle('is-valid', this.solved);
+    }
+
+    commit() {
+        super.commit(Number(this.value))
     }
 }
 

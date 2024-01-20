@@ -62,7 +62,7 @@
     };
 
     function updateProgress(data) {
-        Object.assign(vars.progress, data);
+        Object.assign(vars.progress, data); // update object fields
     };
 
     function nextIter() {
@@ -71,7 +71,7 @@
         if (vars.progress.terminated) {
             ot.completePage();
         } else {
-            sendLive('next');
+            sendLive('next'); // -> server replies progress and trial
         }
     }
 
@@ -95,7 +95,7 @@
     }
 
     function inputAnswer(value) {
-        ot.disableInputs();
+        ot.disableInputs(); // prevent double-commit
 
         ot.hideDisplay("prompt");
 
@@ -105,7 +105,7 @@
             iteration: vars.trial.iteration,
             time: ot.getTimeMeasurement(),
             answer: vars.answer
-        });
+        }); // -> server replies feedback and progress
     };
 
     async function liveFeedback(value) {

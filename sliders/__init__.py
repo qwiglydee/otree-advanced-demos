@@ -86,6 +86,9 @@ def output_slider(slider: Slider):
 
 
 def evaluate_move(slider: Slider, response: dict):
+    assert 'value' in response
+    assert isinstance(response['value'], int)
+
     slider.moves += 1
     slider.value = response['value']
     slider.solved = slider.value == slider.target
@@ -94,7 +97,6 @@ def evaluate_move(slider: Slider, response: dict):
 
     return {
         "id": slider.id,
-        "value": slider.value,
         "solved": slider.solved,
         "score": score,
     }

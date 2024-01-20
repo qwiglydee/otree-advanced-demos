@@ -52,8 +52,8 @@
 <script>
     "use strict";
 
-    const SCHEDULE_SEQUENCE = js_vars.C.SCHEDULE.filter(e => typeof (e) == 'number');
     const SCHEDULE_PHASES = js_vars.C.SCHEDULE.filter(e => typeof (e) == 'string');
+    const SCHEDULE_DURATIONS = js_vars.C.SCHEDULE.filter(e => typeof (e) == 'number');
     const RESPONSE_TIMEOUT = js_vars.C.RESPONSE_TIMEOUT;
     const FEEDBACK_DELAY = js_vars.C.FEEDBACK_DELAY;
     const FADEOUT_TIME = parseInt(getStyleProp("--ot-fade-out-time"));
@@ -103,7 +103,7 @@
         ot.showDisplay("prompt");
 
         ot.beginTimeMeasurement();
-        ot.startTimerSequence('phase', SCHEDULE_SEQUENCE);
+        ot.startTimerSequence('phase', SCHEDULE_DURATIONS);
     }
 
     function switchPhase(elapsed, count) {
@@ -137,8 +137,6 @@
 
     function timeoutAnswer() {
         ot.disableInputs();
-
-        ot.cancelTimer("phase");
 
         ot.hideDisplays("phase-*");
         ot.hideDisplay("prompt");

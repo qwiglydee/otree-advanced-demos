@@ -19,6 +19,7 @@ The game is limited by page timeout.
 
 - target position of each slider is indicated by a tick
 - validity of each slider is indicated by color of the handle
+- player can move slider from away from target position
 - overall progress is indicated by a progress bar
 
 ## Features
