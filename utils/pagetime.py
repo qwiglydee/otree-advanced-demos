@@ -11,6 +11,10 @@ class SomePage(Page):
         player.time_somepage = pagetime.last(player.participant)  # time of the current page
         player.time_total = pagetime.total(player.participant)    # time from the beginning of session
 """
+# This file is originally a part of https://github.com/qwiglydee/otree-advanced-demos
+# SPDX-FileCopyrightText: © 2024 Maxim Vasilyev <qwiglydee@gmail.com>
+# SPDX-License-Identifier: MIT
+
 from time import time
 
 def track(cls):

@@ -5,6 +5,9 @@ Best used with otree-front-live.js
 The communication consists of exchening messages each has a type and payload.
 Both ends use separate handlers bound to particular message types.
 """
+# This file is originally a part of https://github.com/qwiglydee/otree-advanced-demos
+# SPDX-FileCopyrightText: © 2024 Maxim Vasilyev <qwiglydee@gmail.com>
+# SPDX-License-Identifier: MIT
 
 import types
 import logging

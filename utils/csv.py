@@ -2,6 +2,10 @@
 
 It is loaded into a list of dicts representing all loaded rows and columns as dicts' fields.
 """
+# This file is originally a part of https://github.com/qwiglydee/otree-advanced-demos
+# SPDX-FileCopyrightText: © 2024 Maxim Vasilyev <qwiglydee@gmail.com>
+# SPDX-License-Identifier: MIT
+
 import csv
 from pathlib import Path
 from random import sample

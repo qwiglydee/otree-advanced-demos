@@ -1,6 +1,10 @@
 """
 Utilities to generate and manipulate images
 """
+# This file is originally a part of https://github.com/qwiglydee/otree-advanced-demos
+# SPDX-FileCopyrightText: © 2024 Maxim Vasilyev <qwiglydee@gmail.com>
+# SPDX-License-Identifier: MIT
+
 from io import BytesIO
 from base64 import b64decode, b64encode
 
