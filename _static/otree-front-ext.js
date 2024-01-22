@@ -89,3 +89,23 @@ function getStyleProp(propname, selector) {
 }
 
 
+/**
+ * Switch display subsections like <div id="secttion-subsection">
+ *
+ * It shows one specified subsection and hides all sibling subsections with the same prefix.
+ *
+ * @example
+ * <div id="feedback-success">...</div>
+ * <div id="feedback-failure">...</div>
+ * <div id="feedback-timeout">...</div>
+ *
+ * switchDisplays("feedback-failure");
+ */
+function switchDisplays(selector) {
+    let split = selector.lastIndexOf("-");
+    if(split == -1 || selector.endsWith('*')) throw Error("switchDisplays expects id like `prefix-subsection`");
+
+    let pattern = selector.slice(0, split+1) + "*";
+    ot.hideDisplays(pattern);
+    ot.showDisplays(selector);
+}

@@ -108,9 +108,7 @@
 
     function switchPhase(elapsed, count) {
         let phase = SCHEDULE_PHASES[count];  // NB: count starts at 0
-        ot.hideDisplays("phase-*");
-        ot.showDisplay(`phase-${phase}`);
-
+        switchDisplays(`phase-${phase}`);
         if (phase == 'response') {
             ot.enableInputs();
             ot.beginTimeMeasurement();
@@ -171,11 +169,11 @@
 
     function showFeedback() {
         if (vars.feedback.timeouted) {
-            ot.showDisplay('feedback-timeout');
+            switchDisplays('feedback-timeout');
         } else if (vars.feedback.success) {
-            ot.showDisplay('feedback-success');
+            switchDisplays('feedback-success');
         } else {
-            ot.showDisplay('feedback-failure');
+            switchDisplays('feedback-failure');
         }
     }
 
