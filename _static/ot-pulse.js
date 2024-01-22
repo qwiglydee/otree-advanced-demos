@@ -8,21 +8,17 @@
  * Directive `<ot-puse>`
  *
  * Creates dots to pulsate by css.
- * USe togather with `ot-pulse.css`
+ * Use togather with `ot-pulse.css`
+ *
+ * Add 'hidden' attribute to make it hidden initially.
  *
  * @example
- * <ot-pulse id="waiting"></ot-pulse>
+ * <ot-pulse id="waiting" hidden></ot-pulse>
  *
  * showDisplay("waiting");
- * hideDisplay("waiting");
  */
 class otPulse extends ot.DirectiveBase {
     init() {
-        this.elem.hidden = true;
-        this.render();
-    }
-
-    render() {
         this.elem.innerHTML = "<i></i><i></i><i></i>";
     }
 }
