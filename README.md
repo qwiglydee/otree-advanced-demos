@@ -37,6 +37,7 @@ For detail, navigate into subdirectory of corresponding app.
 - [drawing](drawing): Trials with images and free-hand drawing input.
 - [sliders](sliders): Classic slider tasks, with real-time feedback.
 - [voting](voting): Group voting with online chat.
+- [ultimatum](ultimatum): Ultimatum game with screener and interactive page.
 
 ## Snippets
 
