@@ -70,6 +70,12 @@ SESSION_CONFIGS = [
         display_name="Sliders task",
         app_sequence=["sliders"],
     ),
+    dict(
+        name="ultimatum",
+        display_name="Utimatum game",
+        app_sequence=['ultimatum_screener', 'ultimatum_game'],
+        num_demo_participants=2,
+    )
 ]
 
 SESSION_CONFIG_DEFAULTS = dict(

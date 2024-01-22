@@ -1,0 +1,209 @@
+{{ block content }}
+<div class="alert alert-secondary otree-timer-custom">Time left:<br><b class="otree-timer__time-left">0:00</b></div>
+
+
+<section class="ot-fade bg-light border rounded p-3 m-3">
+    <p>The endowment is <b>{{C.ENDOWMENT}}</b></p>
+</section>
+
+{{ if player.role == C.PROPOSER_ROLE }}
+
+<section ot-stage="1" class="ot-fade bg-light border rounded p-3 m-3">
+    <h4>Proposal</h4>
+    <input ot-input type="range" name="proposal" min="0" max="{{C.ENDOWMENT}}" step="1" class="form-range" ot-stage="1">
+    <div class="w-100 d-flex justify-content-between">
+        <p class="text-center">You share:<br><b ot-text="vars.proposed">...</b></p>
+        <p class="text-center">You leave:<br><b ot-text="vars.remained">...</b></p>
+    </div>
+    <button ot-click-input type="button" name="propose" class="btn btn-primary d-block m-auto" disabled>Submit</button>
+</section>
+
+<section ot-stage="2" class="ot-fade bg-light border rounded p-3 m-3">
+    <div id="deciding-wait">
+        <p>Wait while your partner is deciding</p>
+        <ot-pulse></ot-pulse>
+    </div>
+    <div id="deciding-done">
+        <p id="decision-ACCEPT">Your partner has accepted your proposal.</p>
+        <p id="decision-REJECT">Your partner has rejected your proposal.</p>
+    </div>
+</section>
+
+<section ot-stage="3" class="ot-fade bg-light border rounded p-3 m-3">
+    <p>Your bonus: <b ot-text="vars.bonus.Proposer"></b></p>
+    <p>Your partner's bonus: <b ot-text="vars.bonus.Receiver"></b></p>
+    <button ot-click-input type="button" name="complete" class="btn btn-primary m-3" ot-stage="3">Complete</button>
+</section>
+
+{{ endif }}
+
+{{ if player.role == C.RECEIVER_ROLE }}
+
+<section ot-stage="1" class="ot-fade bg-light border rounded p-3 m-3">
+    <h4>Proposal</h4>
+    <div id="proposing-wait">
+        <p>Wait while your partner is deciding</p>
+        <ot-pulse></ot-pulse>
+    </div>
+    <div id="proposing-done">
+        <p>Your partner shared: <b ot-text="vars.proposal"></b></p>
+    </div>
+</section>
+
+<section ot-stage="2" class="ot-fade bg-light border rounded p-3 m-3">
+    <h4>Decision</h4>
+    <div class="d-flex m-3">
+        <div class="form-check form-check-inline">
+            <input ot-input type="radio" id="accept" name="decision" value="ACCEPT" class="form-check-input" ot-stage="2">
+            <label for="accept" class="form-check-label">Accept</label>
+        </div>
+        <div class="form-check form-check-inline">
+            <input ot-input type="radio" id="reject" name="decision" value="REJECT" class="form-check-input" ot-stage="2">
+            <label for="reject" class="form-check-label">Reject</label>
+        </div>
+    </div>
+    <button ot-click-input type="button" name="decide" class="btn btn-primary d-block m-auto" disabled>Submit</button>
+</section>
+
+<section ot-stage="3" class="ot-fade bg-light border rounded p-3 m-3" hidden>
+    <p>Your bonus: <b ot-text="vars.bonus.Receiver"></b></p>
+    <p>Your partner's bonus: <b ot-text="vars.bonus.Proposer"></b></p>
+    <button ot-click-input type="button" name="complete" class="btn btn-primary m-3" ot-stage="3">Complete</button>
+</section>
+
+{{ endif }}
+
+{{ endblock }}
+
+{{ block styles }}
+<link rel="stylesheet" href="{{ static 'otree-front-ext.css' }}">
+<link rel="stylesheet" href="{{ static 'ot-pulse.css' }}">
+<style>
+    .otree-timer {
+        display: none;
+    }
+    .otree-timer-custom {
+        display: block;
+        position: absolute;
+        right: 1rem;
+        top: 1rem;
+    }
+
+    /* unhide passed stages */
+    [ot-stage].passed[hidden] {
+        display: block !important;
+        opacity: 1.0;
+    }
+
+    /* outline active stage */
+    [ot-stage].active {
+        box-shadow: 0 .5rem 1rem rgba(0, 0, 0, .15);
+    }
+</style>
+{{ endblock }}
+
+{{ block scripts }}
+<script src="{{ static 'otree-front-2.0.b2.js' }}"></script>
+<script src="{{ static 'otree-front-ext.js' }}"></script>
+<script src="{{ static 'otree-front-live.js' }}"></script>
+<script src="{{ static 'ot-pulse.js' }}"></script>
+<script src="{{ static 'ot-stage.js' }}"></script>
+
+<script>
+    "use strict";
+
+    const ENDOWMENT = js_vars.C.ENDOWMENT;
+    const ROLE = js_vars.role;
+
+    onLoad(startPage);
+    onLive('game', updateGame); // on page load and after each step
+    onInput('proposal', inputProposal);
+    onInput('propose', sendProposal);
+    onInput('decision', inputDecision);
+    onInput('decide', sendDecision);
+    onInput('complete', completeGame);
+
+    function startPage() {
+        vars.stage = null;
+        vars.proposal = null;
+        vars.decision = null;
+        vars.proposed = 50;
+        vars.remained = 50;
+        sendLive('start');
+    }
+
+    /* generic game state update */
+    function updateGame(data) {
+        console.debug("state=", data);
+
+        vars.stage = data.stage;
+        vars.proposal = data.proposal;
+        vars.decision = data.decision;
+        vars.bonus = data.bonus;
+
+        if (ROLE == "Proposer") switch (vars.stage) {
+            case 'PROPOSING':
+                switchStage(1); // this enables inputs as well
+                ot.beginTimeMeasurement();
+                break;
+            case 'DECIDING':
+                switchStage(2);
+                switchDisplays("deciding-wait");
+                break;
+            case 'COMPLETED':
+                switchDisplays("deciding-done");
+                switchStage(3);
+                switchDisplays(`decision-${vars.decision}`);
+                break;
+        }
+
+        if (ROLE == "Receiver") switch (vars.stage) {
+            case 'PROPOSING':
+                switchStage(1);
+                switchDisplays("proposing-wait");
+                break;
+            case 'DECIDING':
+                switchDisplays("proposing-done");
+                switchStage(2); // this enables inputs as well
+                ot.beginTimeMeasurement();
+                break;
+            case 'COMPLETED':
+                switchStage(3);
+                break;
+        }
+    }
+
+    function inputProposal(value) {
+        vars.proposal = value;
+        vars.proposed = value;
+        vars.remained = ENDOWMENT - value;
+
+        ot.enableInput('propose');
+    }
+
+    function sendProposal() {
+        ot.disableInputs();
+        sendLive("proposal", {
+            time: ot.getTimeMeasurement(),
+            proposal: vars.proposal
+        });
+    }
+
+    function inputDecision(value) {
+        vars.decision = value;
+        ot.enableInput('decide');
+    }
+
+    function sendDecision() {
+        ot.disableInputs();
+        sendLive('decision', {
+            time: ot.getTimeMeasurement(),
+            decision: vars.decision
+        });
+    }
+
+    function completeGame() {
+        ot.completePage();
+    }
+</script>
+{{ endblock }}

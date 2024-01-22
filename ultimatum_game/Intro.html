@@ -1,0 +1,16 @@
+{{ block title }}
+    Instructions
+{{ endblock }}
+
+{{ block content }}
+
+<p>
+    You are {{player.role}} in this game.
+    And your partner is {{partner.age}} years old
+    {{if partner.gender == 'M'}}male{{endif}}{{if partner.gender == 'F'}}female{{endif}}.
+</p>
+
+<p>(...instructions...)</p>
+
+{{ next_button }}
+{{ endblock }}
