@@ -12,7 +12,7 @@ class C(BaseConstants):
     SCREENER_FIELDS = ["gender", "age"]
 
     ENDOWMENT = 100
-    GAME_TIMEOUT = 30
+    GAME_TIMEOUT = 60
 
     PROPOSER_ROLE = "Proposer"
     RECEIVER_ROLE = "Receiver"
@@ -23,7 +23,7 @@ class Subsession(BaseSubsession):
 
 
 class Group(BaseGroup):
-    stage = models.StringField(initial="NEW", choices=["NEW", "PROPOSING", "DECIDING", "COMPLETED"])
+    stage = models.StringField(initial="NEW", choices=["STARTING", "PROPOSING", "DECIDING", "COMPLETED"])
     dropped = models.BooleanField(initial=False)
 
     endowment = models.IntegerField(initial=C.ENDOWMENT)
@@ -57,6 +57,7 @@ class Player(BasePlayer):
     gender = models.StringField()
     age = models.IntegerField()
 
+    checkin = models.BooleanField(initial=False)
     response_time = models.IntegerField()
 
 
@@ -137,8 +138,14 @@ class Main(Page):
     @staticmethod
     def live_start(player: Player, payload: None):
         group = player.group
-        group.stage = "PROPOSING"
-        yield "game", output_game(group)
+        player.checkin = True
+
+        checked = sum(p.checkin for p in group.get_players())
+        if checked < C.PLAYERS_PER_GROUP:
+            group.stage = "STARTING"
+        else:
+            group.stage = "PROPOSING"
+        yield group, "game", output_game(group)
 
     @staticmethod
     def live_proposal(player: Player, payload: dict):
@@ -183,7 +190,7 @@ class Main(Page):
 class Failure(Page):
     @staticmethod
     def is_displayed(player: Player):
-        return not player.group.dropped
+        return player.group.dropped
 
 
 class Results(Page):

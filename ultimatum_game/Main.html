@@ -1,8 +1,12 @@
 {{ block content }}
 <div class="alert alert-secondary otree-timer-custom">Time left:<br><b class="otree-timer__time-left">0:00</b></div>
 
+<section id="waiting" class="bg-light border rounded p-3 m-3">
+    <p>Waiting for other players to arrive</p>
+    <ot-pulse></ot-pulse>
+</section>
 
-<section class="ot-fade bg-light border rounded p-3 m-3">
+<section id="endowment" class="ot-fade bg-light border rounded p-3 m-3" hidden>
     <p>The endowment is <b>{{C.ENDOWMENT}}</b></p>
 </section>
 
@@ -137,6 +141,14 @@
         console.debug("state=", data);
 
         vars.stage = data.stage;
+
+        if (data.stage == 'STARTING') {
+            return;
+        } else {
+            ot.hideDisplay("waiting");
+            ot.showDisplay("endowment");
+        }
+
         vars.proposal = data.proposal;
         vars.decision = data.decision;
         vars.bonus = data.bonus;
