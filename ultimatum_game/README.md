@@ -5,6 +5,9 @@ It also reveals age and gender of players.
 
 The game is limited by time.
 
+![screenshot](../_screenshots/ultimatum-1.png)
+![screenshot](../_screenshots/ultimatum-2.png)
+
 
 ## Workflow
 
