@@ -107,7 +107,11 @@ def update_progress(player: Player, feedback: dict):
     player.sliders_solved = len(Slider.filter(player=player, solved=True))
     player.terminated = player.sliders_solved == C.NUM_SLIDERS
 
-
+    return {
+        "solved": player.sliders_solved,
+        "score": player.total_score,
+        "terminated": player.terminated,
+    }
 
 def current_progress(player: Player):
     return {
@@ -158,10 +162,10 @@ class Sliders(Page):
         slider = get_slider(player, payload["id"])
 
         feedback = evaluate_move(slider, payload)
-        update_progress(player, feedback)
-
-        yield "progress", current_progress(player)
         yield "feedback", feedback
+
+        progress = update_progress(player, feedback)
+        yield "progress", progress
 
     @staticmethod
     def before_next_page(player: Player, timeout_happened):

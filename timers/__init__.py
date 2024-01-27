@@ -151,7 +151,6 @@ def update_progress(player: Player, feedback: dict):
     player.terminated = player.trials_failed >= C.MAX_FAILURES
 
     player.total_score += feedback["score"]
-    player.total_score = max(0, player.total_score)
 
     return {
         "completed": player.trials_completed,
