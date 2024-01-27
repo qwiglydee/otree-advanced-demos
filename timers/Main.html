@@ -112,7 +112,7 @@
         }
     }
 
-    async function resetTrial() {
+    function resetTrial() {
         ot.cancelTimers();
         vars.trial_timer.elapsed = null;  // reset progress bar
         vars.trial = null;
@@ -121,6 +121,7 @@
         hideFeedback();
         ot.resetInputs();
         ot.disableInputs();
+        ot.updatePage();
     }
 
     function startTrial(data) {
@@ -133,6 +134,7 @@
         ot.startTimer('timeout', RESPONSE_TIMEOUT);
         ot.startTimerPeriodic('timebar', TIMEOUT_STEP);
         ot.beginTimeMeasurement();
+        ot.updatePage();
     }
 
     function inputAnswer(value) {

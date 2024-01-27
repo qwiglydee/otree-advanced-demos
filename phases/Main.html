@@ -94,6 +94,7 @@
         ot.resetInputs();
         ot.disableInputs();
         ot.cancelTimers();
+        ot.updatePage();
     }
 
     function startTrial(data) {
@@ -104,6 +105,7 @@
 
         ot.beginTimeMeasurement();
         ot.startTimerSequence('phase', SCHEDULE_DURATIONS);
+        ot.updatePage();
     }
 
     function switchPhase(elapsed, count) {

@@ -80,6 +80,7 @@
         hideFeedback();
         ot.resetInputs();
         ot.disableInputs();
+        ot.updatePage();
     }
 
     function startTrial(data) {
@@ -90,6 +91,7 @@
 
         ot.enableInputs();
         ot.beginTimeMeasurement();
+        ot.updatePage();
     }
 
     function inputAnswer(value) {

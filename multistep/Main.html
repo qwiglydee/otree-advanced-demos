@@ -141,6 +141,7 @@
         hideFeedback();
         ot.resetInputs();
         ot.disableInputs();
+        ot.updatePage();
     }
 
     function startTrial(data) {
@@ -154,6 +155,7 @@
 
         ot.disableInput("submit");
         ot.beginTimeMeasurement();
+        ot.updatePage();
     }
 
     function inputResponses(name, value) {

@@ -100,6 +100,7 @@
         hideFeedback();
         ot.resetInputs();
         ot.disableInputs();
+        ot.updatePage();
     }
 
     function startTrial(data) {
@@ -110,6 +111,7 @@
 
         ot.enableInputs("answer"); // NB: submit remains disabled
         ot.beginTimeMeasurement();
+        ot.updatePage();
     }
 
     function inputAnswer(position) {
