@@ -2,21 +2,18 @@ import random
 
 from otree.api import *
 
-from utils.live import live_page
-
 
 class C(BaseConstants):
-    NAME_IN_URL = "choices"
+    NAME_IN_URL = "local"
     PLAYERS_PER_GROUP = None
     NUM_ROUNDS = 1
 
     CONDITIONS = ["ODD", "EVEN", "MIXED"]
 
     NUM_TRIALS = 10  # total number of trials to generate
-    MAX_FAILURES = 5  # num of failures to abort the game
 
-    PAGE_TIMEOUT = 600  # total time limit for tasks page (seconds)
-    FEEDBACK_DELAY = 2000  # time (ms) to show feedback before next trial
+    PAGE_TIMEOUT = 30  # total time limit for tasks page (seconds)
+    FEEDBACK_DELAY = 250  # time (ms) before next trial
 
     SCORE_SUCCESS = +10
     SCORE_FAILURE = -1
@@ -33,9 +30,10 @@ class Group(BaseGroup):
 class Player(BasePlayer):
     condition = models.StringField()
     trials_completed = models.IntegerField(initial=0)
-    trials_failed = models.IntegerField(initial=0)
     total_score = models.IntegerField(initial=0)
-    terminated = models.BooleanField(initial=False)
+
+    # ;-separated answers
+    answers = models.LongStringField()
 
 
 class Trial(ExtraModel):
@@ -54,9 +52,8 @@ class Trial(ExtraModel):
     option_4 = models.IntegerField()
 
     # response fields
-    response_time = models.IntegerField()
-    choice = models.IntegerField()
     answer = models.IntegerField()
+    choice = models.IntegerField()
 
 
 def creating_session(subsession: Subsession):
@@ -108,9 +105,9 @@ def generate_trial(player: Player, iteration: int):
     )
 
 
-def current_trial(player: Player):
-    trials = Trial.filter(player=player, iteration=player.trials_completed + 1)
-    return trials[0] if trials else None
+def get_trials(player: Player):
+    # NB: this relies on preserving order of creation to match iterations
+    return Trial.filter(player=player)
 
 
 def output_trial(trial: Trial):
@@ -126,66 +123,33 @@ def output_trial(trial: Trial):
     }
 
 
-def evaluate_response(trial: Trial, response: dict):
-    assert response["iteration"] == trial.iteration
-    assert isinstance(response["answer"], int)
+def evaluate_responses(player: Player, answers: list):
+    player.trials_completed = len(answers)
+
+    # NB: this cuts trials list in case of less answer
+    for trial, answer in zip(get_trials(player), answers):
+        evaluate_response(trial, answer)
+
+
+def evaluate_response(trial: Trial, answer: int):
     choices = [
         trial.option_1,
         trial.option_2,
         trial.option_3,
         trial.option_4,
     ]
-    assert response["answer"] in choices
+    assert answer in choices
 
-    trial.answer = response["answer"]
+    trial.answer = answer
     trial.choice = choices.index(trial.answer) + 1
     trial.success = trial.answer == trial.solution
     trial.score = C.SCORE_SUCCESS if trial.success else C.SCORE_FAILURE
-
     trial.status = "COMPLETED"
-
-    return {
-        "completed": True,
-        "success": trial.success,
-        "score": trial.score,
-    }
-
-
-def update_progress(player: Player, feedback: dict):
-    assert feedback["completed"]
-
-    player.trials_completed += 1
-    if not feedback["success"]:
-        player.trials_failed += 1
-
-    player.terminated = (
-        player.trials_completed == C.NUM_TRIALS
-        or player.trials_failed >= C.MAX_FAILURES
-    )
-
-    player.total_score += feedback["score"]
-
-    return {
-        "completed": player.trials_completed,
-        "terminated": player.terminated,
-        "score": player.total_score,
-    }
-
-
-def current_progress(player: Player, trial: Trial):
-    return {
-        "total": C.NUM_TRIALS,
-        "completed": player.trials_completed,
-        "current": trial.iteration,
-        "score": player.total_score,
-        "terminated": player.terminated,
-    }
 
 
 def set_payoff(player: Player):
-    player.payoff = (
-        player.total_score * player.session.config["real_world_currency_per_point"]
-    )
+    player.total_score = sum(t.score for t in get_trials(player))
+    player.payoff = max(0, player.total_score) * player.session.config["real_world_currency_per_point"]
 
 
 #### PAGES ####
@@ -195,47 +159,23 @@ class Intro(Page):
     pass
 
 
-@live_page
 class Main(Page):
+    form_model = "player"
+    form_fields = ["answers"]
+
     timeout_seconds = C.PAGE_TIMEOUT
 
     @staticmethod
-    def is_displayed(player: Player):
-        return not player.terminated
-
-    @staticmethod
     def js_vars(player: Player):
-        return {"C": dict(vars(C))}
-
-    @staticmethod
-    def live_next(player: Player, _):
-        assert not player.terminated
-
-        trial = current_trial(player)
-        if trial is not None and trial.status == "LOADED":
-            raise Warning("Page reloading is prohibited")
-        trial.status = "LOADED"
-
-        yield "progress", current_progress(player, trial)
-        yield "trial", output_trial(trial)
-
-    @staticmethod
-    def live_response(player: Player, payload: dict):
-        trial = current_trial(player)
-        assert trial is not None and trial.status == "LOADED"
-
-        feedback = evaluate_response(trial, payload)
-        yield "feedback", feedback
-
-        if feedback["completed"]:
-            trial.response_time = payload["time"]
-            progress = update_progress(player, feedback)
-            yield "progress", progress
+        return {
+            "C": dict(vars(C)),
+            "TRIALS": {t.iteration: output_trial(t) for t in get_trials(player)},
+        }
 
     @staticmethod
     def before_next_page(player: Player, timeout_happened):
-        if timeout_happened:
-            player.terminated = True
+        answers = list(map(int, player.answers.split(";")))
+        evaluate_responses(player, answers)
         set_payoff(player)
 
 
@@ -273,7 +213,6 @@ def custom_export(players: list[Player]):
         "trial.options.2",
         "trial.options.3",
         "trial.options.4",
-        "trial.response_time",
         "trial.choice",
         "trial.answer",
         "trial.success",
@@ -300,7 +239,6 @@ def custom_export(players: list[Player]):
                 trial.option_2,
                 trial.option_3,
                 trial.option_4,
-                trial.response_time,
                 trial.choice,
                 trial.answer,
                 trial.success,

@@ -8,6 +8,12 @@ SESSION_CONFIGS = [
         condition="random",
     ),
     dict(
+        name="trials_local",
+        display_name="Local fast trials",
+        app_sequence=["local"],
+        condition="random"
+    ),
+    dict(
         name="trials_choices_buttons",
         display_name="Choices with buttons",
         app_sequence=["choices"],
@@ -101,4 +107,4 @@ ADMIN_PASSWORD = environ.get("OTREE_ADMIN_PASSWORD")
 
 SECRET_KEY = "12345"
 
-DEBUG = False
+DEBUG = environ.get("DEBUG", False)

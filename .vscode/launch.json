@@ -11,7 +11,8 @@
       "program": ".venv/bin/otree",
       "args": ["devserver_inner"],
       "console": "integratedTerminal",
-      "justMyCode": false
+      "justMyCode": false,
+      "env": { "DEBUG": "1" }
     }
   ]
 }
