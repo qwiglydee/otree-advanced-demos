@@ -69,18 +69,23 @@ def init_group(group: Group):
     config = group.session.config
 
     for p in group.get_players():
-        copy_player(p)
+        init_player(p)
 
 
-def copy_player(player: Player):
+def init_player(player: Player):
+    copy_player_fields(player)
+
+
+def copy_player_fields(player: Player):
     "copy player data of SCREENER_FIELDS from SCREENER_APP"
-    [screener] = [
+    [screener_player] = [
         p
         for p in player.participant.get_players()
         if p.get_folder_name() == C.SCREENER_APP
     ]
+
     for fld in C.SCREENER_FIELDS:
-        setattr(player, fld, getattr(screener, fld))
+        setattr(player, fld, getattr(screener_player, fld))
 
 
 def set_payoffs(group: Group):

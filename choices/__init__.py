@@ -62,6 +62,7 @@ class Trial(ExtraModel):
 def creating_session(subsession: Subsession):
     for player in subsession.get_players():
         init_player(player, subsession.session.config)
+        generate_trials(player, subsession.session.config)
 
 
 def init_player(player: Player, config: dict):
@@ -70,6 +71,8 @@ def init_player(player: Player, config: dict):
         assert config["condition"] in C.CONDITIONS
         player.condition = config["condition"]
 
+
+def generate_trials(player: Player, config: dict):
     for i in range(C.NUM_TRIALS):
         generate_trial(player, i + 1)
 
@@ -158,10 +161,7 @@ def update_progress(player: Player, feedback: dict):
     if not feedback["success"]:
         player.trials_failed += 1
 
-    player.terminated = (
-        player.trials_completed == C.NUM_TRIALS
-        or player.trials_failed >= C.MAX_FAILURES
-    )
+    player.terminated = player.trials_completed == C.NUM_TRIALS or player.trials_failed >= C.MAX_FAILURES
 
     player.total_score += feedback["score"]
 
@@ -183,9 +183,7 @@ def current_progress(player: Player, trial: Trial):
 
 
 def set_payoff(player: Player):
-    player.payoff = (
-        player.total_score * player.session.config["real_world_currency_per_point"]
-    )
+    player.payoff = player.total_score * player.session.config["real_world_currency_per_point"]
 
 
 #### PAGES ####

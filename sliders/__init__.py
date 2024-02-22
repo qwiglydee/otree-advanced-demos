@@ -47,9 +47,14 @@ class Slider(ExtraModel):
 def creating_session(subsession: Subsession):
     for player in subsession.get_players():
         init_player(player, subsession.session.config)
+        generate_sliders(player, subsession.session.config)
 
 
 def init_player(player: Player, config: dict):
+    pass
+
+
+def generate_sliders(player, config: dict):
     for i in range(C.NUM_SLIDERS):
         generate_slider(player)
 
