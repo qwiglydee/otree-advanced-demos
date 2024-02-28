@@ -124,19 +124,16 @@ def evaluate_response(trial: Trial, response: dict):
     }
 
 
-def update_progress(player: Player, feedback: dict):
-    assert feedback["completed"]
+def update_progress(player: Player, trial: Trial, feedback: dict):
+    assert trial.status == "COMPLETED"
 
     player.trials_completed += 1
-    if not feedback["success"]:
+    if not trial.success:
         player.trials_failed += 1
 
-    player.terminated = (
-        player.trials_completed == C.NUM_TRIALS
-        or player.trials_failed >= C.MAX_FAILURES
-    )
+    player.terminated = player.trials_completed == C.NUM_TRIALS or player.trials_failed >= C.MAX_FAILURES
 
-    player.total_score += feedback["score"]
+    player.total_score += trial.score
 
     return {
         "completed": player.trials_completed,
@@ -157,6 +154,7 @@ def current_progress(player: Player, trial: Trial):
 
 def set_payoff(player: Player):
     player.payoff = max(0, player.total_score) * player.session.config["real_world_currency_per_point"]
+
 
 #### PAGES ####
 
@@ -192,14 +190,14 @@ class Main(Page):
     @staticmethod
     def live_response(player: Player, payload: dict):
         trial = current_trial(player)
-        assert trial is not None and trial.status == 'LOADED'
+        assert trial is not None and trial.status == "LOADED"
 
         feedback = evaluate_response(trial, payload)
         yield "feedback", feedback
 
-        if feedback['completed']:
+        if feedback["completed"]:
             trial.response_time = payload["time"]
-            progress = update_progress(player, feedback)
+            progress = update_progress(player, trial, feedback)
             yield "progress", progress
 
     @staticmethod

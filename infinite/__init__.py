@@ -120,19 +120,16 @@ def evaluate_response(trial: Trial, response: dict):
         "score": trial.score,
     }
 
-
-def update_progress(player: Player, feedback: dict):
-    assert feedback["completed"]
+def update_progress(player: Player, trial: Trial, feedback: dict):
+    assert trial.status == 'COMPLETED'
 
     player.trials_completed += 1
-    if not feedback["success"]:
+    if not trial.success:
         player.trials_failed += 1
 
-    player.terminated = (
-        player.trials_failed >= C.MAX_FAILURES
-    )
+    player.terminated = player.trials_failed >= C.MAX_FAILURES
 
-    player.total_score += feedback["score"]
+    player.total_score += trial.score
 
     return {
         "completed": player.trials_completed,
@@ -197,7 +194,7 @@ class Main(Page):
 
         if feedback['completed']:
             trial.response_time = payload["time"]
-            progress = update_progress(player, feedback)
+            progress = update_progress(player, trial, feedback)
             yield "progress", progress
 
     @staticmethod

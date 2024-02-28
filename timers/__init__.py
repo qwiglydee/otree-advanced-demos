@@ -43,9 +43,7 @@ class Trial(ExtraModel):
     player = models.Link(Player)
     iteration = models.IntegerField(min=1)
     # status fields
-    status = models.StringField(
-        choices=["NEW", "LOADED", "TIMEOUTED", "COMPLETED"], initial="NEW"
-    )
+    status = models.StringField(choices=["NEW", "LOADED", "TIMEOUTED", "COMPLETED"], initial="NEW")
     success = models.BooleanField(initial=None)
     score = models.IntegerField(initial=0)
     # task fields
@@ -141,16 +139,16 @@ def evaluate_timeout(trial: Trial, response: dict):
     }
 
 
-def update_progress(player: Player, feedback: dict):
-    assert feedback["completed"]
+def update_progress(player: Player, trial: Trial, feedback: dict):
+    assert trial.status in ("COMPLETED", "TIMEOUTED")
 
     player.trials_completed += 1
-    if not feedback["success"]:
+    if not trial.success:
         player.trials_failed += 1
 
     player.terminated = player.trials_failed >= C.MAX_FAILURES
 
-    player.total_score += feedback["score"]
+    player.total_score += trial.score
 
     return {
         "completed": player.trials_completed,
@@ -215,9 +213,9 @@ class Main(Page):
         feedback = evaluate_response(trial, payload)
         yield "feedback", feedback
 
-        if feedback['completed']:
+        if feedback["completed"]:
             trial.response_time = payload["time"]
-            progress = update_progress(player, feedback)
+            progress = update_progress(player, trial, feedback)
             yield "progress", progress
 
     @staticmethod
@@ -228,9 +226,9 @@ class Main(Page):
         feedback = evaluate_timeout(trial, payload)
         yield "feedback", feedback
 
-        if feedback['completed']:
+        if feedback["completed"]:
             trial.response_time = payload["time"]
-            progress = update_progress(player, feedback)
+            progress = update_progress(player, trial, feedback)
             yield "progress", progress
 
     @staticmethod

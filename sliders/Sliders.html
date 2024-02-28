@@ -55,12 +55,13 @@
     function startGame() {
         // all aliders data, { id: { value, offset, solved, ... } }
         vars.sliders = {};
+        vars.progress = {};
 
         sendLive('reset'); // servers replies 'sliders'
     };
 
     function updateProgress(data) {
-        vars.progress = data;
+        Object.assign(vars.progress, data);
         if (vars.progress.terminated) completeGame();
     };
 

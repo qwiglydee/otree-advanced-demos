@@ -56,9 +56,7 @@ class Trial(ExtraModel):
     player = models.Link(Player)
     iteration = models.IntegerField(min=1)
     # status fields
-    status = models.StringField(
-        choices=["NEW", "LOADED", "TIMEOUTED", "COMPLETED"], initial="NEW"
-    )
+    status = models.StringField(choices=["NEW", "LOADED", "TIMEOUTED", "COMPLETED"], initial="NEW")
     success = models.BooleanField(initial=None)
     score = models.IntegerField(initial=0)
     # task fields
@@ -89,7 +87,6 @@ def generate_trials(player, config: dict):
         generate_trial(player, i + 1)
 
 
-
 def generate_trial(player: Player, iteration: int):
     if player.condition == "MIXED":
         a = random.randint(10, 99)
@@ -104,9 +101,7 @@ def generate_trial(player: Player, iteration: int):
     expr = f"{a} + {b}"
     solution = a + b
 
-    suggestion = bernulchoice(
-        C.PROB_EQUAL, solution, solution + random.choice([-10, +10])
-    )
+    suggestion = bernulchoice(C.PROB_EQUAL, solution, solution + random.choice([-10, +10]))
 
     return Trial.create(
         player=player,
@@ -166,19 +161,16 @@ def evaluate_timeout(trial: Trial, response: dict):
     }
 
 
-def update_progress(player: Player, feedback: dict):
-    assert feedback["completed"]
+def update_progress(player: Player, trial: Trial, feedback: dict):
+    assert trial.status in ("COMPLETED", "TIMEOUTED")
 
     player.trials_completed += 1
-    if not feedback["success"]:
+    if not trial.success:
         player.trials_failed += 1
 
-    player.terminated = (
-        player.trials_completed == C.NUM_TRIALS
-        or player.trials_failed >= C.MAX_FAILURES
-    )
+    player.terminated = player.trials_completed == C.NUM_TRIALS or player.trials_failed >= C.MAX_FAILURES
 
-    player.total_score += feedback["score"]
+    player.total_score += trial.score
 
     return {
         "completed": player.trials_completed,
@@ -207,7 +199,7 @@ def set_payoff(player: Player):
 class Intro(Page):
     @staticmethod
     def vars_for_template(player: Player):
-        return { 'response_time_s' : C.RESPONSE_TIMEOUT / 1000 }
+        return {"response_time_s": C.RESPONSE_TIMEOUT / 1000}
 
 
 @live_page
@@ -237,27 +229,27 @@ class Main(Page):
     @staticmethod
     def live_response(player: Player, payload: dict):
         trial = current_trial(player)
-        assert trial is not None and trial.status == 'LOADED'
+        assert trial is not None and trial.status == "LOADED"
 
         feedback = evaluate_response(trial, payload)
         yield "feedback", feedback
 
-        if feedback['completed']:
+        if feedback["completed"]:
             trial.response_time = payload["time"]
-            progress = update_progress(player, feedback)
+            progress = update_progress(player, trial, feedback)
             yield "progress", progress
 
     @staticmethod
     def live_timeout(player: Player, payload: dict):
         trial = current_trial(player)
-        assert trial is not None and trial.status == 'LOADED'
+        assert trial is not None and trial.status == "LOADED"
 
         feedback = evaluate_timeout(trial, payload)
         yield "feedback", feedback
 
-        if feedback['completed']:
+        if feedback["completed"]:
             trial.response_time = payload["time"]
-            progress = update_progress(player, feedback)
+            progress = update_progress(player, trial, feedback)
             yield "progress", progress
 
     @staticmethod

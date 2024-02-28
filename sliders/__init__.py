@@ -107,7 +107,7 @@ def evaluate_move(slider: Slider, response: dict):
     }
 
 
-def update_progress(player: Player, feedback: dict):
+def update_progress(player: Player, slider: Slider, feedback: dict):
     player.total_score += feedback["score"]
     player.sliders_solved = len(Slider.filter(player=player, solved=True))
     player.terminated = player.sliders_solved == C.NUM_SLIDERS
@@ -167,7 +167,7 @@ class Sliders(Page):
         feedback = evaluate_move(slider, payload)
         yield "feedback", feedback
 
-        progress = update_progress(player, feedback)
+        progress = update_progress(player, slider, feedback)
         yield "progress", progress
 
     @staticmethod
