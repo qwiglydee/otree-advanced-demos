@@ -160,10 +160,7 @@ def update_progress(player: Player, feedback: dict):
     if not feedback["success"]:
         player.trials_failed += 1
 
-    player.terminated = (
-        player.trials_completed == C.NUM_TRIALS
-        or player.trials_failed >= C.MAX_FAILURES
-    )
+    player.terminated = player.trials_completed == C.NUM_TRIALS or player.trials_failed >= C.MAX_FAILURES
 
     player.total_score += feedback["score"]
 
@@ -185,9 +182,7 @@ def current_progress(player: Player, trial: Trial):
 
 
 def set_payoff(player: Player):
-    player.payoff = (
-        player.total_score * player.session.config["real_world_currency_per_point"]
-    )
+    player.payoff = max(0, player.total_score) * player.session.config["real_world_currency_per_point"]
 
 
 #### PAGES ####
@@ -229,7 +224,7 @@ class Main(Page):
         feedback = evaluate_response(trial, payload)
         yield "feedback", feedback
 
-        if feedback['completed']:
+        if feedback["completed"]:
             trial.response_time = payload["time"]
             progress = update_progress(player, feedback)
             yield "progress", progress

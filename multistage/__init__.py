@@ -198,9 +198,7 @@ def current_progress(player: Player, trial: Trial):
 
 
 def set_payoff(player: Player):
-    player.payoff = (
-        player.total_score * player.session.config["real_world_currency_per_point"]
-    )
+    player.payoff = max(0, player.total_score) * player.session.config["real_world_currency_per_point"]
 
 
 #### PAGES ####
