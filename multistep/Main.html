@@ -21,13 +21,13 @@
         <input ot-input type="number" name="answer" class="form-control" autofocus autocommit ot-stage="1">
     </section>
 
-    <section ot-stage="2" class="bg-light border rounded mb-3 p-3 ot-fade">
+    <section ot-stage="2" class="bg-light border rounded mb-3 p-3 ot-fade w-50">
         <p>How confident you are in yor answer?</p>
         <input ot-input type="range" name="confidence" min="1" max="5" value="3" class="form-range" autofocus
             ot-stage="2">
     </section>
 
-    <section ot-stage="3" class="bg-light border rounded mb-3 p-3 ot-fade" hidden>
+    <section ot-stage="3" class="bg-light border rounded mb-3 p-3 ot-fade w-50">
         <p>Assess difficulty of the task</p>
         <input ot-input type="range" name="difficulty" min="0" max="10" value="5" class="form-range" autofocus
             ot-stage="3">
@@ -63,6 +63,7 @@
         --ot-fade-out-time: 100ms;
         --ot-fade-in-time: 100ms;
         transition: box-shadow 100ms ease-in-out;
+        text-align: center;
     }
 
     section.active {

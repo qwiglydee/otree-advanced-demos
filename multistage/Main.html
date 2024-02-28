@@ -16,7 +16,7 @@
         <span ot-text="vars.inputs.answer" ot-class="vars.feedback_style" class="answer"></span>
     </div>
 
-    <ot-stacked>
+    <ot-stacked class="w-50">
         <section ot-stage="A" class="bg-light border rounded p-3 ot-fade">
             <p>Enter your answer</p>
             <input ot-input type="number" name="answer" class="form-control" autofocus autocommit ot-stage="A">
@@ -24,13 +24,13 @@
                 class="btn btn-primary m-3" ot-stage="A">Next</button>
         </section>
 
-        <section ot-stage="C" class="bg-light border rounded p-3 ot-fade">
+        <section ot-stage="C" class="bg-light border rounded p-3 ot-fade w-100">
             <p>How confident you are in yor answer?</p>
             <input ot-input type="range" name="confidence" min="1" max="5" value="3" class="form-range" autofocus ot-stage="C">
             <button ot-click-input ot-key-input="Enter" type="button" name="submit" value="C" class="btn btn-primary m-3" ot-stage="C">Next</button>
         </section>
 
-        <section ot-stage="D" class="bg-light border rounded p-3 ot-fade" hidden>
+        <section ot-stage="D" class="bg-light border rounded p-3 ot-fade w-100">
             <p>Assess difficulty of the task</p>
             <input ot-input type="range" name="difficulty" min="0" max="10" value="5" class="form-range" autofocus ot-stage="D">
             <button ot-click-input ot-key-input="Enter" type="button" name="submit" value="D" class="btn btn-primary m-3" ot-stage="D">Next</button>
@@ -61,7 +61,8 @@
     }
 
     section {
-        margin: auto; /* make each centered */
+        margin: auto;
+        text-align: center;
     }
 
     section.active {
