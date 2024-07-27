@@ -1,15 +1,15 @@
-# Proto app of infinite trials
+# Proto app of simple trials
 
 The app runs series of math tasks. Player should calculate expressions and respond with correct answers.
 Condition for each player determines if numbers in the expressions are all odd, even or mixed.
 
-The game is not limited in number of trials, but ony limited in allowed number of failures, and page timeout.
+The game is limited in number of trials, allowed number of failures, and page timeout.
 
-![screenshot](../_screenshots/infinite.png)
+![screenshot](../_screenshots/simple.png)
 
 ## Workflow
 
-- random trials are generated on demand as player is running the series
+- predefined number of random trials are generated on session creation
 - the trials are sequentially displayed to a player
 - player responds with their answer
 - the answer is validated on server and feedback is given
@@ -21,10 +21,11 @@ The game is not limited in number of trials, but ony limited in allowed number o
 - player gives response by typing into a text field and pressing 'Enter'
 - validity of an answer is indicated by highlighting the input field
 - feedback is shown with resulting score for each trial
+- overall progress is indicated by nice animated progress bar
 
 ## Features
 
 - trials are generated randomly
-- response time is measures
+- response time is measured
 - all data is recorded for each trial
 - series are terminated when player reloades page or navigates back/forth
