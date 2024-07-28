@@ -12,11 +12,11 @@ class C(BaseConstants):
 
     CONDITIONS = ["ODD", "EVEN", "MIXED"]
 
-    NUM_TRIALS = None  # total number of trials to generate
+    MAX_TRIALS = 10  # max total trials completed to complete the game
     MAX_FAILURES = 5  # num of failures to abort the game
 
     PAGE_TIMEOUT = 600  # total time limit for tasks page (seconds)
-    FEEDBACK_DELAY = 2000  # time (ms) to show feedback before next trial
+    FEEDBACK_DELAY = 3  # time (s) to show feedback before next trial
 
     SCORE_SUCCESS = +10
     SCORE_FAILURE = -1
@@ -115,6 +115,7 @@ def output_trial(trial: Trial):
 
 
 def evaluate_response(trial: Trial, response: dict):
+    assert response["iteration"] == trial.iteration
     assert isinstance(response.get("answer"), int)
 
     answer = response["answer"]
@@ -142,12 +143,11 @@ def update_progress(player: Player, trial: Trial, feedback: dict):
     if not trial.success:
         player.trials_failed += 1
 
-    player.terminated = player.trials_completed == C.NUM_TRIALS or player.trials_failed >= C.MAX_FAILURES
+    player.terminated = player.trials_completed == C.MAX_TRIALS or player.trials_failed >= C.MAX_FAILURES
 
 
 def current_progress(player: Player, current: Trial = None):
     return {
-        "total": C.NUM_TRIALS,
         "completed": player.trials_completed,
         "current": current.iteration if current else None,
         "score": player.total_score,
@@ -190,7 +190,6 @@ class Main(Page):
     def live_response(player: Player, response: dict):
         trial = Trial.current(player)
         assert trial is not None
-        assert response["iteration"] == trial.iteration
 
         feedback = evaluate_response(trial, response)
         yield "feedback", feedback

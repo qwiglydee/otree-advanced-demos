@@ -1,8 +1,5 @@
 {% block content %}
 <header>
-    {% if C.NUM_TRIALS %}
-    <ot-progress ticks="1" max="vars.progress.total" value="vars.progress.completed" value2="vars.progress.current"></ot-progress>
-    {% endif %}
     <div class="d-flex">
         {% if C.PAGE_TIMEOUT %}
         <div class="alert alert-secondary otree-timer-custom m-2">
@@ -61,7 +58,7 @@
 <script>
     "use strict";
 
-    const FEEDBACK_DELAY = js_vars.C.FEEDBACK_DELAY;
+    const FEEDBACK_DELAY = js_vars.C.FEEDBACK_DELAY * 1000;
     const FADEOUT_TIME = parseInt(getStyleProp("--ot-fade-out-time"));
 
     onLoad(startGame);
