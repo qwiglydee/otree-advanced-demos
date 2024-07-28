@@ -1,5 +1,4 @@
-{{ block content }}
-
+{% block content %}
 <header>
     <ot-progress ticks="1" max="vars.progress.total" value="vars.progress.completed" value2="vars.progress.current"></ot-progress>
     <div class="d-flex">
@@ -11,14 +10,15 @@
 
 <main id="main" class="ot-fade d-flex" hidden>
     <div class="fs-1 m-3">
-        <span ot-text="vars.trial.expression"></span> = ...
+        <span ot-text="vars.trial.expression"></span>
+        =
+        <span ot-text="vars.answer" ot-class="vars.feedback_txt_style" class="answer"></span>
     </div>
 
     <div class="d-flex flex-row gap-3">
-        <button type="button" class="btn" ot-class="vars.styles.1" ot-click-input name="answer" value="1" ot-text="vars.trial.options.1"></button>
-        <button type="button" class="btn" ot-class="vars.styles.2" ot-click-input name="answer" value="2" ot-text="vars.trial.options.2"></button>
-        <button type="button" class="btn" ot-class="vars.styles.3" ot-click-input name="answer" value="3" ot-text="vars.trial.options.3"></button>
-        <button type="button" class="btn" ot-class="vars.styles.4" ot-click-input name="answer" value="4" ot-text="vars.trial.options.4"></button>
+        <button type="button" class="btn" ot-class="vars.btn_styles.1" ot-click-input name="choice" value="1" ot-text="vars.trial.options.1"></button>
+        <button type="button" class="btn" ot-class="vars.btn_styles.2" ot-click-input name="choice" value="2" ot-text="vars.trial.options.2"></button>
+        <button type="button" class="btn" ot-class="vars.btn_styles.3" ot-click-input name="choice" value="3" ot-text="vars.trial.options.3"></button>
     </div>
 </main>
 
@@ -27,16 +27,26 @@
     <ot-pulse id="waiting" hidden></ot-pulse>
 </footer>
 
-{{ endblock }}
+{% endblock %}
 
-{{ block styles }}
+{% block styles %}
 <link rel="stylesheet" href="{{ static 'fullscreen.css' }}">
 <link rel="stylesheet" href="{{ static 'otree-front-ext.css' }}">
 <link rel="stylesheet" href="{{ static 'ot-progress.css' }}">
 <link rel="stylesheet" href="{{ static 'ot-pulse.css' }}">
-{{ endblock }}
+<style>
+    .answer {
+        display: inline-block;
+        min-width: 2em;
+    }
 
-{{ block scripts }}
+    .answer:empty::before {
+        content: "...";
+    }
+</style>
+{% endblock %}
+
+{% block scripts %}
 <script src="{{ static 'otree-front-2.0.b2.js' }}"></script>
 <script src="{{ static 'otree-front-ext.js' }}"></script>
 <script src="{{ static 'otree-front-live.js' }}"></script>
@@ -53,7 +63,7 @@
     onLoad(startGame);
     onLive('progress', updateProgress);
     onLive('trial', startTrial);
-    onInput('answer', inputAnswer);
+    onInput('choice', inputChoice);
     onLive('feedback', liveFeedback);
     onLive('failure', function (message) { alert(message); ot.completePage(); });
 
@@ -81,8 +91,9 @@
         vars.choice = null;
         vars.answer = null;
         vars.feedback = null;
-        clearChoice();
-        hideFeedback();
+        ot.hideDisplays(['main', 'prompt', 'waiting', 'gain']);
+        clearButtons();
+        clearFeedback();
         ot.resetInputs();
         ot.disableInputs();
         ot.updatePage();
@@ -99,12 +110,12 @@
         ot.updatePage();
     }
 
-    function inputAnswer(value) {
+    function inputChoice(value) {
         ot.disableInputs();
 
         ot.hideDisplay("prompt");
 
-        vars.choice = Number(value);
+        vars.choice = value;
         vars.answer = vars.trial.options[value];
 
         highlightChoice();
@@ -112,57 +123,52 @@
         sendLive('response', {
             iteration: vars.trial.iteration,
             time: ot.getTimeMeasurement(),
-            answer: vars.answer
+            choice: vars.choice
         });
     };
 
     async function liveFeedback(data) {
         vars.feedback = data;
-
-        ot.showDisplay("waiting");
-        showFeedback();
+        displayFeedback();
+        ot.showDisplays(["waiting", "gain"]);
         await ot.delay(FEEDBACK_DELAY);
-        hideFeedback();
-        ot.hideDisplay("waiting");
-
+        ot.showDisplays(["waiting", "gain"]);
         completeTrial();
     };
+
+
+    function clearButtons() {
+        vars.btn_styles = {
+            1: "btn-primary",
+            2: "btn-primary",
+            3: "btn-primary",
+        }
+    }
+
+    function clearFeedback() {
+        vars.gain_txt = null;
+        vars.feedback_txt_style = null;
+    }
+
+    function displayFeedback() {
+        vars.gain_txt = format_gain(vars.feedback.score);
+        vars.btn_styles[vars.choice] = vars.feedback.success ? ["selected", "btn-success"] : ["selected", "btn-danger"];
+        vars.feedback_txt_style = vars.feedback.success ? "text-success" : "text-danger";
+    }
+
+    function highlightChoice() {
+        vars.btn_styles = {
+            1: "btn-outline-dark",
+            2: "btn-outline-dark",
+            3: "btn-outline-dark",
+        }
+        vars.btn_styles[vars.choice] = ["selected", "btn-dark"];
+    }
 
     async function completeTrial() {
         ot.hideDisplay("main");
         await ot.delay(FADEOUT_TIME);
         nextIter();
     }
-
-    function hideFeedback() {
-        ot.hideDisplay("gain");
-        vars.gain_txt = null;
-    }
-
-    function showFeedback() {
-        vars.gain_txt = format_gain(vars.feedback.score);
-        vars.styles[vars.choice] = vars.feedback.success ? ["selected", "btn-success"] : ["selected", "btn-danger"];
-        ot.showDisplay("gain");
-    }
-
-    function clearChoice() {
-        vars.styles = {
-            1: "btn-primary",
-            2: "btn-primary",
-            3: "btn-primary",
-            4: "btn-primary",
-        }
-    }
-
-    function highlightChoice() {
-        vars.styles = {
-            1: "btn-outline-dark",
-            2: "btn-outline-dark",
-            3: "btn-outline-dark",
-            4: "btn-outline-dark",
-        }
-        vars.styles[vars.choice] = ["selected", "btn-dark"];
-    }
-
 </script>
-{{ endblock }}
+{% endblock %}

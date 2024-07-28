@@ -3,7 +3,7 @@ from os import environ
 SESSION_CONFIGS = [
     dict(
         name="trials",
-        display_name="Simple trials",
+        display_name="Simple trials (pregenerated)",
         app_sequence=["simple"],
         condition="random",
     ),
@@ -11,6 +11,18 @@ SESSION_CONFIGS = [
         name="trials_ondemand",
         display_name="Simple trials (generating on demand)",
         app_sequence=["simple_ondemand"],
+        condition="random",
+    ),
+    dict(
+        name="trials_choices",
+        display_name="Choice trials with buttons",
+        app_sequence=["choices"],
+        condition="random",
+    ),
+    dict(
+        name="trials_radio",
+        display_name="Choice trials with radio and submit",
+        app_sequence=["choices_radio"],
         condition="random",
     ),
     dict(
