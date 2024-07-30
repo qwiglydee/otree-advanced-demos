@@ -29,6 +29,12 @@ SESSION_CONFIGS = [
         name="forms",
         app_sequence=["forms"],
     ),
+    dict(
+        name="ultimatum",
+        display_name="Ultimatum game (2 players)",
+        app_sequence=["ultimatum_screener", "ultimatum_game"],
+        num_demo_participants=2,
+    ),
 ]
 
 SESSION_CONFIG_DEFAULTS = dict(

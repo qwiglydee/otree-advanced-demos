@@ -1,4 +1,4 @@
-{{ block content }}
+{% block content %}
 <div class="alert alert-secondary otree-timer-custom">Time left:<br><b class="otree-timer__time-left">0:00</b></div>
 
 <section id="waiting" class="bg-light border rounded p-3 m-3">
@@ -10,7 +10,7 @@
     <p>The endowment is <b>{{C.ENDOWMENT}}</b></p>
 </section>
 
-{{ if player.role == C.PROPOSER_ROLE }}
+{% if player.role == C.PROPOSER_ROLE %}
 
 <section ot-stage="1" class="ot-fade bg-light border rounded p-3 m-3">
     <h4>Proposal</h4>
@@ -39,9 +39,9 @@
     <button ot-click-input type="button" name="complete" class="btn btn-primary m-3" ot-stage="3">Complete</button>
 </section>
 
-{{ endif }}
+{% endif %}
 
-{{ if player.role == C.RECEIVER_ROLE }}
+{% if player.role == C.RECEIVER_ROLE %}
 
 <section ot-stage="1" class="ot-fade bg-light border rounded p-3 m-3">
     <h4>Proposal</h4>
@@ -75,17 +75,18 @@
     <button ot-click-input type="button" name="complete" class="btn btn-primary m-3" ot-stage="3">Complete</button>
 </section>
 
-{{ endif }}
+{% endif %}
 
-{{ endblock }}
+{% endblock %}
 
-{{ block styles }}
+{% block styles %}
 <link rel="stylesheet" href="{{ static 'otree-front-ext.css' }}">
 <link rel="stylesheet" href="{{ static 'ot-pulse.css' }}">
 <style>
     .otree-timer {
         display: none;
     }
+
     .otree-timer-custom {
         display: block;
         position: absolute;
@@ -104,9 +105,9 @@
         box-shadow: 0 .5rem 1rem rgba(0, 0, 0, .15);
     }
 </style>
-{{ endblock }}
+{% endblock %}
 
-{{ block scripts }}
+{% block scripts %}
 <script src="{{ static 'otree-front-2.0.b2.js' }}"></script>
 <script src="{{ static 'otree-front-ext.js' }}"></script>
 <script src="{{ static 'otree-front-live.js' }}"></script>
@@ -116,7 +117,7 @@
 <script>
     "use strict";
 
-    const ENDOWMENT = js_vars.C.ENDOWMENT;
+    const ENDOWMENT = Number("{{group.endowment}}");
     const ROLE = js_vars.role;
 
     onLoad(startPage);
@@ -218,4 +219,4 @@
         ot.completePage();
     }
 </script>
-{{ endblock }}
+{% endblock %}

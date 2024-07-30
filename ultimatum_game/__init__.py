@@ -25,8 +25,9 @@ class Subsession(BaseSubsession):
 class Group(BaseGroup):
     stage = models.StringField(initial="NEW", choices=["STARTING", "PROPOSING", "DECIDING", "COMPLETED"])
     dropped = models.BooleanField(initial=False)
+    completed = models.BooleanField(initial=False)
 
-    endowment = models.IntegerField(initial=C.ENDOWMENT)
+    endowment = models.IntegerField()
     proposal = models.IntegerField()
     decision = models.StringField(choices=["ACCEPT", "REJECT"])
 
@@ -37,6 +38,9 @@ class Group(BaseGroup):
     @property
     def receiver(self):
         return self.get_player_by_role(C.RECEIVER_ROLE)
+
+    def init(group, config):
+        group.endowment = C.ENDOWMENT
 
 
 def get_bonus(group: Group):
@@ -60,32 +64,19 @@ class Player(BasePlayer):
     checkin = models.BooleanField(initial=False)
     response_time = models.IntegerField()
 
+    def get_adjacent_player(player, app_name):
+        [screener_player] = [p for p in player.participant.get_players() if p.get_folder_name() == app_name]
+        return screener_player
+
+    def init(player, config):
+        screener_player = player.get_adjacent_player(C.SCREENER_APP)
+        for fld in C.SCREENER_FIELDS:
+            setattr(player, fld, getattr(screener_player, fld))
+
 
 def creating_session(subsession: BaseSubsession):
+    # init is postponed until Gather page
     pass
-
-
-def init_group(group: Group):
-    config = group.session.config
-
-    for p in group.get_players():
-        init_player(p)
-
-
-def init_player(player: Player):
-    copy_player_fields(player)
-
-
-def copy_player_fields(player: Player):
-    "copy player data of SCREENER_FIELDS from SCREENER_APP"
-    [screener_player] = [
-        p
-        for p in player.participant.get_players()
-        if p.get_folder_name() == C.SCREENER_APP
-    ]
-
-    for fld in C.SCREENER_FIELDS:
-        setattr(player, fld, getattr(screener_player, fld))
 
 
 def set_payoffs(group: Group):
@@ -98,6 +89,9 @@ def set_payoffs(group: Group):
     if bonus:
         group.proposer.payoff = bonus[C.PROPOSER_ROLE] * rate
         group.receiver.payoff = bonus[C.RECEIVER_ROLE] * rate
+
+
+# I/O
 
 
 def output_game(group: Group):
@@ -118,14 +112,16 @@ class Gather(WaitPage):
 
     @staticmethod
     def after_all_players_arrive(group: Group):
-        init_group(group)
+        group.init(group.session.config)
+        for player in group.get_players():
+            player.init(group.session.config)
 
 
 class Intro(Page):
     @staticmethod
     def vars_for_template(player: Player):
         [partner] = player.get_others_in_group()
-        return { 'partner': partner }
+        return {"partner": partner}
 
 
 @live_page
@@ -134,7 +130,7 @@ class Main(Page):
 
     @staticmethod
     def is_displayed(player: Player):
-        return not player.group.dropped
+        return not player.group.dropped and not player.group.completed
 
     @staticmethod
     def js_vars(player: Player):
@@ -179,6 +175,7 @@ class Main(Page):
         player.response_time = payload["time"]
         group.decision = payload["decision"]
         group.stage = "COMPLETED"
+        group.completed = True
 
         yield group, "game", output_game(group)
 
