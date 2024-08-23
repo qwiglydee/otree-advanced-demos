@@ -1,23 +1,22 @@
-{{ block content }}
-
+{% block content %}
 
 <header>
     <ot-progress ticks="1" max="vars.progress.total" value="vars.progress.completed" value2="vars.progress.current"></ot-progress>
-    <div class="d-flex">
-        <div class="alert alert-secondary otree-timer-custom m-2">Time left: <b class="otree-timer__time-left">0:00</b></div>
-        <div class="alert alert-secondary m-2">Total score: <b ot-text="vars.progress.score"></b></div>
-    </div>
-    <p id="gain">You <i ot-text="vars.gain_txt"></i></p>
+    <div class="alert alert-secondary otree-timer-custom m-2">Time left: <b class="otree-timer__time-left">0:00</b></div>
+    <div class="alert alert-secondary m-2">Total score: <b ot-text="vars.progress.score"></b></div>
+    <p id="gain" hidden>You <i ot-text="vars.gain"></i></p>
 </header>
 
 <main id="main" class="ot-fade d-flex" hidden>
     <div class="fs-1 m-3">
-        <span ot-text="vars.trial.expression"></span> = ...
+        <span ot-text="vars.trial.expression"></span>
+        =
+        <span ot-text="vars.answer" ot-class="vars.styles.ans" class="answer"></span>
     </div>
 
     <div class="input-group">
         <span class="input-group-text">=</span>
-        <input ot-input type="number" name="answer" class="form-control" ot-class="vars.feedback_style" ot-key-input="Enter" autofocus>
+        <input ot-input type="number" name="answer" class="form-control" ot-class="vars.styles.inp" ot-key-input="Enter" autofocus>
     </div>
 </main>
 
@@ -26,16 +25,16 @@
     <ot-pulse id="waiting" hidden></ot-pulse>
 </footer>
 
-{{ endblock }}
+{% endblock %}
 
-{{ block styles }}
+{% block styles %}
 <link rel="stylesheet" href="{{ static 'fullscreen.css' }}">
 <link rel="stylesheet" href="{{ static 'otree-front-ext.css' }}">
 <link rel="stylesheet" href="{{ static 'ot-progress.css' }}">
 <link rel="stylesheet" href="{{ static 'ot-pulse.css' }}">
-{{ endblock }}
+{% endblock %}
 
-{{ block scripts }}
+{% block scripts %}
 <script src="{{ static 'otree-front-2.0.b2.js' }}"></script>
 <script src="{{ static 'otree-front-ext.js' }}"></script>
 <script src="{{ static 'otree-front-live.js' }}"></script>
@@ -46,7 +45,7 @@
 <script>
     "use strict";
 
-    const FEEDBACK_DELAY = js_vars.C.FEEDBACK_DELAY;
+    const FEEDBACK_DELAY = js_vars.C.FEEDBACK_DELAY * 1000;
     const FADEOUT_TIME = parseInt(getStyleProp("--ot-fade-out-time"));
 
     onLoad(startGame);
@@ -54,10 +53,12 @@
     onLive('trial', startTrial);
     onInput('answer', inputAnswer);
     onLive('feedback', liveFeedback);
+    onUpdate("feedback", displayFeedback);
     onLive('failure', function (message) { alert(message); ot.completePage(); });
 
     function startGame() {
         vars.progress = {};
+        vars.styles = {};
         nextIter();
     };
 
@@ -79,21 +80,19 @@
         vars.trial = null;
         vars.answer = null;
         vars.feedback = null;
-        hideFeedback();
         ot.resetInputs();
         ot.disableInputs();
         ot.updatePage();
     }
 
-    function startTrial(value) {
-        vars.trial = value;
+    function startTrial(data) {
+        vars.trial = data;
 
         ot.showDisplay("main");
         ot.showDisplay("prompt");
 
         ot.enableInputs();
         ot.beginTimeMeasurement();
-        ot.updatePage();
     }
 
     function inputAnswer(value) {
@@ -112,33 +111,30 @@
 
     async function liveFeedback(value) {
         vars.feedback = value;
-
-        ot.showDisplay("waiting");
-        showFeedback();
-        await ot.delay(FEEDBACK_DELAY);
-        hideFeedback();
-        ot.hideDisplay("waiting");
-
         completeTrial();
     };
 
     async function completeTrial() {
+        ot.showDisplay("waiting");
+        await ot.delay(FEEDBACK_DELAY);
         ot.hideDisplay("main");
         await ot.delay(FADEOUT_TIME);
+        ot.hideDisplay("waiting");
         nextIter();
     }
 
-    function hideFeedback() {
-        ot.hideDisplay("gain");
-        vars.feedback_style = null;
-        vars.gain_txt = null;
+    function displayFeedback(feedback) {
+        if (feedback !== null) {
+            vars.styles.inp = vars.feedback.success ? "is-valid" : "is-invalid";
+            vars.styles.ans = vars.feedback.success ? "text-success" : "text-danger";
+            vars.gain = format_gain(vars.feedback.score);
+            ot.showDisplay("gain");
+        } else {
+            vars.styles.inp = null;
+            vars.styles.ans = null;
+            vars.gain = null;
+            ot.hideDisplay("gain");
+        }
     }
-
-    function showFeedback() {
-        vars.feedback_style = vars.feedback.success ? "is-valid" : "is-invalid";
-        vars.gain_txt = format_gain(vars.feedback.score);
-        ot.showDisplay("gain");
-    }
-
 </script>
-{{ endblock }}
+{% endblock %}

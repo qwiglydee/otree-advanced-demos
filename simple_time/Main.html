@@ -1,23 +1,22 @@
-{{ block content }}
+{% block content %}
 
 <header>
     <ot-progress class="timer timer-page" max="vars.page_timer.total" value="vars.page_timer.elapsed"></ot-progress>
-    <div class="d-flex">
-        <div class="alert alert-secondary otree-timer-custom m-2">Time left: <b class="otree-timer__time-left">0:00</b></div>
-        <div class="alert alert-secondary m-2">Total score: <b ot-text="vars.progress.score"></b></div>
-    </div>
-    <p id="timeout">You have run out of time.</p>
-    <p id="gain">You <i ot-text="vars.gain_txt"></i></p>
+    <div class="alert alert-secondary otree-timer-custom m-2">Time left: <b class="otree-timer__time-left">0:00</b></div>
+    <div class="alert alert-secondary m-2">Total score: <b ot-text="vars.progress.score"></b></div>
+    <p id="gain" hidden>You <i ot-text="vars.gain"></i></p>
 </header>
 
 <main id="main" class="ot-fade d-flex" hidden>
     <div class="fs-1 m-3">
-        <span ot-text="vars.trial.expression"></span> = ...
+        <span ot-text="vars.trial.expression"></span>
+        =
+        <span ot-text="vars.answer" ot-class="vars.styles.ans" class="answer"></span>
     </div>
 
     <div class="input-group">
         <span class="input-group-text">=</span>
-        <input ot-input type="number" name="answer" class="form-control" ot-class="vars.feedback_style" ot-key-input="Enter" autofocus>
+        <input ot-input type="number" name="answer" class="form-control" ot-class="vars.styles.inp" ot-key-input="Enter" autofocus>
         <ot-progress class="timer timer-trial" max="vars.trial_timer.total" value="vars.trial_timer.elapsed"></ot-progress>
     </div>
 </main>
@@ -27,9 +26,9 @@
     <ot-pulse id="waiting" hidden></ot-pulse>
 </footer>
 
-{{ endblock }}
+{% endblock %}
 
-{{ block styles }}
+{% block styles %}
 <link rel="stylesheet" href="{{ static 'fullscreen.css' }}">
 <link rel="stylesheet" href="{{ static 'otree-front-ext.css' }}">
 <link rel="stylesheet" href="{{ static 'ot-progress.css' }}">
@@ -38,21 +37,24 @@
     .otree-timer {
         display: none;
     }
+
     ot-progress.timer {
         --ot-progress-animation-style: linear;
     }
+
     ot-progress.timer-page {
         --ot-progress-animation-time: 1s;
     }
+
     ot-progress.timer-trial {
         --ot-progress-color: #0dcaf0;
         /* high precision to make it stop quickly when answer given */
         --ot-progress-animation-time: 100ms;
     }
 </style>
-{{ endblock }}
+{% endblock %}
 
-{{ block scripts }}
+{% block scripts %}
 <script src="{{ static 'otree-front-2.0.b2.js' }}"></script>
 <script src="{{ static 'otree-front-ext.js' }}"></script>
 <script src="{{ static 'otree-front-live.js' }}"></script>
@@ -62,12 +64,11 @@
 
 <script>
     "use strict";
+    const PAGE_TIMEOUT = js_vars.C.PAGE_TIMEOUT; // in seconds
+    const TRIAL_TIMEOUT = js_vars.C.TRIAL_TIMEOUT * 1000; // in milliseconds
+    const TRIAL_TIMESTEP = 100;
 
-    const PAGE_TIMEOUT = js_vars.C.PAGE_TIMEOUT;
-    const RESPONSE_TIMEOUT = js_vars.C.RESPONSE_TIMEOUT * 1000;
-    const FEEDBACK_DELAY = js_vars.C.FEEDBACK_DELAY;
-
-    const TIMEOUT_STEP = parseInt(getStyleProp("--ot-progress-animation-time", ".timer-trial"));
+    const FEEDBACK_DELAY = js_vars.C.FEEDBACK_DELAY * 1000;
     const FADEOUT_TIME = parseInt(getStyleProp("--ot-fade-out-time"));
 
     onLoad(startGame);
@@ -75,17 +76,23 @@
     onLive('trial', startTrial);
     onInput('answer', inputAnswer);
     onLive('feedback', liveFeedback);
+    onUpdate("feedback", displayFeedback);
     onLive('failure', function (message) { alert(message); ot.completePage(); });
+
     onCountdown(updatePageTimer);
     onTimer('timebar', updateTrialTimer);
     onTimer('timeout', timeoutTrial);
 
-
     function startGame() {
         vars.progress = {};
+        vars.styles = {};
         vars.page_timer = { total: PAGE_TIMEOUT, elapsed: null };
-        vars.trial_timer = { total: RESPONSE_TIMEOUT, elapsed: null };
+        vars.trial_timer = { total: TRIAL_TIMEOUT, elapsed: null };
         nextIter();
+    };
+
+    function updateProgress(data) {
+        Object.assign(vars.progress, data); // update object fields
     };
 
     function updatePageTimer(remaining) {
@@ -95,30 +102,24 @@
 
     async function updateTrialTimer(elapsed, count) {
         // animate towards next step
-        vars.trial_timer.elapsed = (count + 1) * TIMEOUT_STEP;
+        vars.trial_timer.elapsed = (count + 1) * TRIAL_TIMESTEP;
     }
 
-    function updateProgress(data) {
-        Object.assign(vars.progress, data);
-    };
 
-    async function nextIter() {
+    function nextIter() {
         resetTrial();
 
         if (vars.progress.terminated) {
             ot.completePage();
         } else {
-            sendLive('next');
+            sendLive('next'); // -> server replies progress and trial
         }
     }
 
     function resetTrial() {
-        ot.cancelTimers();
-        vars.trial_timer.elapsed = null;  // reset progress bar
         vars.trial = null;
         vars.answer = null;
         vars.feedback = null;
-        hideFeedback();
         ot.resetInputs();
         ot.disableInputs();
         ot.updatePage();
@@ -131,73 +132,62 @@
         ot.showDisplay("prompt");
 
         ot.enableInputs();
-        ot.startTimer('timeout', RESPONSE_TIMEOUT);
-        ot.startTimerPeriodic('timebar', TIMEOUT_STEP);
         ot.beginTimeMeasurement();
-        ot.updatePage();
+        ot.startTimer('timeout', TRIAL_TIMEOUT);
+        ot.startTimerPeriodic('timebar', TRIAL_TIMESTEP);
     }
 
     function inputAnswer(value) {
-        if (value === "") return;
-        ot.disableInputs();
-
+        ot.disableInputs(); // prevent double-commit
+        ot.hideDisplay("prompt");
         ot.cancelTimers();
 
-        ot.hideDisplay("prompt");
-
-        vars.answer = Number(value);
+        vars.answer = value;
 
         sendLive('response', {
             iteration: vars.trial.iteration,
             time: ot.getTimeMeasurement(),
             answer: vars.answer
-        });
+        }); // -> server replies feedback and progress
     };
 
     function timeoutTrial() {
         ot.disableInputs();
-
-        ot.cancelTimers();
-
         ot.hideDisplay('prompt');
+        ot.cancelTimers();
 
         sendLive('timeout', {
             iteration: vars.trial.iteration,
-            time: ot.getTimeMeasurement(),
         });
     }
 
-    async function liveFeedback(data) {
-        vars.feedback = data;
 
-        ot.showDisplay("waiting");
-        showFeedback();
-        await ot.delay(FEEDBACK_DELAY);
-        hideFeedback();
-        ot.hideDisplay("waiting");
-
+    async function liveFeedback(value) {
+        vars.feedback = value;
         completeTrial();
     };
 
     async function completeTrial() {
+        ot.showDisplay("waiting");
+        await ot.delay(FEEDBACK_DELAY);
         ot.hideDisplay("main");
         await ot.delay(FADEOUT_TIME);
+        ot.hideDisplay("waiting");
         nextIter();
     }
 
-    function hideFeedback() {
-        ot.hideDisplay("gain");
-        ot.hideDisplay("timeout");
-        vars.feedback_style = null;
-        vars.gain_txt = null;
+    function displayFeedback(feedback) {
+        if (feedback !== null) {
+            vars.styles.inp = vars.feedback.success ? "is-valid" : "is-invalid";
+            vars.styles.ans = vars.feedback.success ? "text-success" : "text-danger";
+            vars.gain = format_gain(vars.feedback.score);
+            ot.showDisplay("gain");
+        } else {
+            vars.styles.inp = null;
+            vars.styles.ans = null;
+            vars.gain = null;
+            ot.hideDisplay("gain");
+        }
     }
-
-    function showFeedback() {
-        vars.feedback_style = vars.feedback.success ? "is-valid" : "is-invalid";
-        vars.gain_txt = format_gain(vars.feedback.score);
-        if (vars.feedback.timeouted) ot.showDisplay('timeout')
-        ot.showDisplay("gain");
-    }
-
 </script>
-{{ endblock }}
+{% endblock %}

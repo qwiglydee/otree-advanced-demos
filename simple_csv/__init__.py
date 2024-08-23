@@ -1,18 +1,23 @@
+from pathlib import Path
 import random
 
 from otree.api import *
 
 from utils.live import live_page
+from utils.csv import read_csv
+
+
+WORKDIR = Path(__file__).parent  # directory of the module
 
 
 class C(BaseConstants):
-    NAME_IN_URL = "simple"
+    NAME_IN_URL = "simple_csv"
     PLAYERS_PER_GROUP = None
     NUM_ROUNDS = 1
 
     CONDITIONS = ["ODD", "EVEN", "MIXED"]
 
-    NUM_TRIALS = 10  # total number of trials to generate
+    NUM_TRIALS = 10  # total number of trials to sample from file
 
     PAGE_TIMEOUT = 600  # total time limit for tasks page (seconds)
     FEEDBACK_DELAY = 2  # time to show feedback before next trial
@@ -20,6 +25,20 @@ class C(BaseConstants):
     SCORE_ENDOWMENT = 100
     SCORE_SUCCESS = +5
     SCORE_FAILURE = -5
+
+
+CSVFIELDS = {
+    "expression": str,
+    "solution": int,
+    "options": str,
+}
+
+
+def load_tasks(filename):
+    data = read_csv(WORKDIR / filename, CSVFIELDS)
+    for d in data:
+        d["options"] = d["options"].split("|")
+    return data
 
 
 class Subsession(BaseSubsession):
@@ -63,38 +82,26 @@ class Trial(ExtraModel):
     score = models.IntegerField(initial=0)
 
     @staticmethod
-    def generate(player: Player, iteration: int):
+    def generate(player: Player, iteration: int, task: dict):
         """generate single trial for the player and iteration"""
-        if player.condition == "MIXED":
-            a = random.randint(10, 99)
-            b = random.randint(10, 99)
-        elif player.condition == "ODD":
-            a = random.randint(5, 49) * 2 + 1
-            b = random.randint(5, 49) * 2 + 1
-        elif player.condition == "EVEN":
-            a = random.randint(5, 49) * 2
-            b = random.randint(5, 49) * 2
-
-        expr = f"{a} + {b}"
-        solution = a + b
 
         return Trial.create(
             player=player,
             iteration=iteration,
-            expression=expr,
-            solution=solution,
+            expression=task["expression"],
+            solution=task["solution"],
         )
 
     @staticmethod
-    def pregenerate(player: Player, count: int):
-        for i in range(count):
-            Trial.generate(player, 1 + i)
+    def pregenerate(player: Player, count: int, tasks: list[dict]):
+        for i, task in enumerate(random.sample(tasks, k=count)):
+            Trial.generate(player, 1 + i, task)
 
     @staticmethod
     def next(player: Player):
-        "generates new trial for the player"
+        "retrieves pre-generated trial for the player, None if no more trials"
         assert player.completed < C.NUM_TRIALS
-        return Trial.generate(player, player.completed + 1)
+        return Trial.objects_filter(player=player, status="NEW").order_by("id").first()
 
     @staticmethod
     def current(player: Player):
@@ -103,8 +110,14 @@ class Trial(ExtraModel):
 
 
 def creating_session(subsession: Subsession):
+    conf = subsession.session.config
+
+    assert "tasks" in conf
+    data = load_tasks(conf["tasks"])
+
     for player in subsession.get_players():
         player.setup()
+        Trial.pregenerate(player, C.NUM_TRIALS, data)
 
 
 def set_payoff(player: Player):

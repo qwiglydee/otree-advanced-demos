@@ -14,4 +14,7 @@
 "pylint.args": [
     "--disable W0237"
 ],
+"files.associations": {
+    "*.html": "jinja-html"
+},
 }

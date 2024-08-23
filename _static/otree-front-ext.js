@@ -15,10 +15,10 @@
  * function doSomething() { ... }
  */
 function onLoad(handler) {
-    ot.onEvent('loaded', handler);
+    ot.onEvent("loaded", handler);
 }
 function onSubmit(handler) {
-    ot.onEvent('submitted', handler);
+    ot.onEvent("submitted", handler);
 }
 
 /**
@@ -32,10 +32,10 @@ function onSubmit(handler) {
  * function inputAll(name, value) { ... }
  */
 function onInputs(handler) {
-    ot.onEvent('input', (e) => handler(e.detail.name, e.detail.value));
+    ot.onEvent("input", (e) => handler(e.detail.name, e.detail.value));
 }
-function onInput(name,  handler) {
-    ot.onEvent('input', name, (e) => handler(e.detail.value));
+function onInput(name, handler) {
+    ot.onEvent("input", name, (e) => handler(e.detail.value));
 }
 
 /**
@@ -49,10 +49,10 @@ function onInput(name,  handler) {
  * function handleTimers(name, elapsed, counter) { ... }
  */
 function onTimers(handler) {
-    ot.onEvent('timer', (e) => handler(e.detail.name, e.detail.elapsed, e.detail.count));
+    ot.onEvent("timer", (e) => handler(e.detail.name, e.detail.elapsed, e.detail.count));
 }
 function onTimer(name, handler) {
-    ot.onEvent('timer', name, (e) => handler(e.detail.elapsed, e.detail.count));
+    ot.onEvent("timer", name, (e) => handler(e.detail.elapsed, e.detail.count));
 }
 
 /**
@@ -64,15 +64,22 @@ function onTimer(name, handler) {
  * function handleCountdown(remaining_seconds) { ... }
  */
 function onCountdown(handler) {
-    ot.onEvent('countdown', (e) => handler(e.detail.remaining))
+    ot.onEvent("countdown", (e) => handler(e.detail.remaining));
 }
 
 if (document.querySelector(".otree-timer")) {
     $(".otree-timer__time-left").on("update.countdown", function (e) {
-        ot.triggerEvent('countdown', { remaining: e.offset.totalSeconds });
+        ot.triggerEvent("countdown", { remaining: e.offset.totalSeconds });
     });
 }
 
+function onUpdate(varname, handler) {
+    ot.onEvent(
+        "update",
+        (e) => e.detail.changes.affect(varname),
+        (e) => handler(e.detail.changes.extract(varname))
+    );
+}
 
 /**
  * Get a property from actual stylesheet
@@ -88,7 +95,6 @@ function getStyleProp(propname, selector) {
     return window.getComputedStyle(elem).getPropertyValue(propname);
 }
 
-
 /**
  * Switch display subsections like <div id="secttion-subsection">
  *
@@ -103,9 +109,9 @@ function getStyleProp(propname, selector) {
  */
 function switchDisplays(selector) {
     let split = selector.lastIndexOf("-");
-    if(split == -1 || selector.endsWith('*')) throw Error("switchDisplays expects id like `prefix-subsection`");
+    if (split == -1 || selector.endsWith("*")) throw Error("switchDisplays expects id like `prefix-subsection`");
 
-    let pattern = selector.slice(0, split+1) + "*";
+    let pattern = selector.slice(0, split + 1) + "*";
     ot.hideDisplays(pattern);
     ot.showDisplays(selector);
 }

@@ -6,20 +6,22 @@ from utils.live import live_page
 
 
 class C(BaseConstants):
-    NAME_IN_URL = "simple"
+    NAME_IN_URL = "simple_time"
     PLAYERS_PER_GROUP = None
     NUM_ROUNDS = 1
 
     CONDITIONS = ["ODD", "EVEN", "MIXED"]
 
-    NUM_TRIALS = 10  # total number of trials to generate
+    NUM_TRIALS = None  # total number of trials to generate
 
-    PAGE_TIMEOUT = 600  # total time limit for tasks page (seconds)
+    PAGE_TIMEOUT = 60  # total time limit for tasks page (seconds)
+    TRIAL_TIMEOUT = 5  # total time for trial to answer (seconds)
     FEEDBACK_DELAY = 2  # time to show feedback before next trial
 
     SCORE_ENDOWMENT = 100
     SCORE_SUCCESS = +5
     SCORE_FAILURE = -5
+    SCORE_TIMEOUT = 0
 
 
 class Subsession(BaseSubsession):
@@ -54,7 +56,7 @@ class Player(BasePlayer):
 class Trial(ExtraModel):
     player = models.Link(Player)
     iteration = models.IntegerField(min=1)
-    status = models.StringField(choices=["NEW", "LOADED", "COMPLETED"], initial="NEW")
+    status = models.StringField(choices=["NEW", "LOADED", "COMPLETED", "TIMEOUT"], initial="NEW")
     expression = models.StringField()
     solution = models.IntegerField()
     response_time = models.IntegerField()
@@ -93,7 +95,6 @@ class Trial(ExtraModel):
     @staticmethod
     def next(player: Player):
         "generates new trial for the player"
-        assert player.completed < C.NUM_TRIALS
         return Trial.generate(player, player.completed + 1)
 
     @staticmethod
@@ -116,7 +117,6 @@ def set_payoff(player: Player):
 
 def current_progress(player: Player, trial: Trial = None):
     return {
-        "total": C.NUM_TRIALS,
         "completed": player.completed,
         "terminated": player.terminated,
         "current": trial.iteration if trial else None,
@@ -154,11 +154,29 @@ def evaluate_response(player: Player, trial: Trial, response: dict):
     }
 
 
+def evaluate_timeout(player: Player, trial: Trial, response: dict):
+    assert response["iteration"] == trial.iteration
+
+    trial.success = False
+    trial.score = C.SCORE_TIMEOUT
+
+    trial.status = "TIMEOUT"
+
+    return {
+        "completed": True,
+        "success": trial.success,
+        "score": trial.score,
+    }
+
+
 def update_progress(player: Player, trial: Trial, feedback: dict):
-    assert trial.status == "COMPLETED"
+    assert trial.status in ("COMPLETED", "TIMEOUT")
 
     player.completed += 1
-    player.terminated = player.completed == C.NUM_TRIALS
+
+    if C.NUM_TRIALS:
+        player.terminated = player.completed == C.NUM_TRIALS
+
     if trial.success:
         player.success += 1
     else:
@@ -217,6 +235,20 @@ class Main(Page):
 
         if feedback["completed"]:
             trial.response_time = response["time"]
+            progress = update_progress(player, trial, feedback)
+            yield "progress", progress
+
+    @staticmethod
+    def live_timeout(player: Player, response: dict):
+        assert not player.terminated
+
+        trial = Trial.current(player)
+        assert trial is not None
+
+        feedback = evaluate_timeout(player, trial, response)
+        yield "feedback", feedback
+
+        if feedback["completed"]:
             progress = update_progress(player, trial, feedback)
             yield "progress", progress
 
