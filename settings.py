@@ -38,18 +38,12 @@ SESSION_CONFIGS = [
         app_sequence=["choices_layout"],
         condition="random",
     ),
-    # dict(
-    #     name="trials_choices_radio",
-    #     display_name="Choices with radio",
-    #     app_sequence=["choices2"],
-    #     condition="random",
-    # ),
-    # dict(
-    #     name="trials_phases",
-    #     display_name="Scheduled phases",
-    #     app_sequence=["phases"],
-    #     condition="random",
-    # ),
+    dict(
+        name="gonogo",
+        display_name="Go/Nogo trials with time-scheduled phases",
+        app_sequence=["gonogo"],
+        condition="random",
+    ),
     # dict(
     #     name="multistep",
     #     display_name="Multiple sequential inputs in trials",

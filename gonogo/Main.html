@@ -1,7 +1,8 @@
-{{ block content }}
+{% block content %}
 
 <header>
-    <ot-progress ticks="1" max="vars.progress.total" value="vars.progress.completed" value2="vars.progress.current"></ot-progress>
+    <div class="alert alert-secondary m-2">Total score: <b ot-text="vars.progress.score"></b></div>
+    <p id="gain" hidden>You <i ot-text="vars.gain"></i></p>
 </header>
 
 <main id="main" class="ot-fade d-flex" hidden>
@@ -27,9 +28,9 @@
     <ot-pulse id="waiting" hidden></ot-pulse>
 </footer>
 
-{{ endblock }}
+{% endblock %}
 
-{{ block styles }}
+{% block styles %}
 <link rel="stylesheet" href="{{ static 'fullscreen.css' }}">
 <link rel="stylesheet" href="{{ static 'otree-front-ext.css' }}">
 <link rel="stylesheet" href="{{ static 'ot-progress.css' }}">
@@ -39,9 +40,9 @@
         font-size: xxx-large;
     }
 </style>
-{{ endblock }}
+{% endblock %}
 
-{{ block scripts }}
+{% block scripts %}
 <script src="{{ static 'otree-front-2.0.b2.js' }}"></script>
 <script src="{{ static 'otree-front-ext.js' }}"></script>
 <script src="{{ static 'otree-front-live.js' }}"></script>
@@ -51,11 +52,9 @@
 
 <script>
     "use strict";
-
     const SCHEDULE_PHASES = js_vars.C.SCHEDULE.filter(e => typeof (e) == 'string');
     const SCHEDULE_DURATIONS = js_vars.C.SCHEDULE.filter(e => typeof (e) == 'number');
-    const RESPONSE_TIMEOUT = js_vars.C.RESPONSE_TIMEOUT;
-    const FEEDBACK_DELAY = js_vars.C.FEEDBACK_DELAY;
+    const FEEDBACK_DELAY = js_vars.C.FEEDBACK_DELAY * 1000;
     const FADEOUT_TIME = parseInt(getStyleProp("--ot-fade-out-time"));
 
     onLoad(startGame);
@@ -63,18 +62,35 @@
     onLive('trial', startTrial);
     onInput('answer', inputAnswer);
     onLive('feedback', liveFeedback);
-    onLive('failure', function (message) { alert(message); ot.completePage(); });
+    onUpdate("feedback", displayFeedback);
     onTimer('phase', switchPhase);
+    onTimer('timeout', timeoutAnswer);
+    onLive('failure', function (message) { alert(message); ot.completePage(); });
+
+    onCountdown(updatePageTimer);
+    onTimer('timebar', updateTrialTimer);
     onTimer('timeout', timeoutAnswer);
 
     function startGame() {
         vars.progress = {};
+        vars.styles = {};
         nextIter();
     };
 
     function updateProgress(data) {
-        Object.assign(vars.progress, data);
+        Object.assign(vars.progress, data); // update object fields
     };
+
+    function updatePageTimer(remaining) {
+        // animate towards next step
+        vars.page_timer.elapsed = PAGE_TIMEOUT - remaining + 1;
+    }
+
+    async function updateTrialTimer(elapsed, count) {
+        // animate towards next step
+        vars.trial_timer.elapsed = (count + 1) * TRIAL_TIMESTEP;
+    }
+
 
     function nextIter() {
         resetTrial();
@@ -82,7 +98,7 @@
         if (vars.progress.terminated) {
             ot.completePage();
         } else {
-            sendLive('next');
+            sendLive('next'); // -> server replies progress and trial
         }
     }
 
@@ -90,7 +106,6 @@
         vars.trial = null;
         vars.answer = null;
         vars.feedback = null;
-        hideFeedback();
         ot.resetInputs();
         ot.disableInputs();
         ot.cancelTimers();
@@ -103,15 +118,13 @@
         ot.showDisplay("main");
         ot.showDisplay("prompt");
 
-        ot.beginTimeMeasurement();
         ot.startTimerSequence('phase', SCHEDULE_DURATIONS);
-        ot.updatePage();
     }
 
     function switchPhase(elapsed, count) {
-        let phase = SCHEDULE_PHASES[count];  // NB: count starts at 0
-        switchDisplays(`phase-${phase}`);
-        if (phase == 'response') {
+        let phasename = SCHEDULE_PHASES[count];  // NB: count starts at 0
+        switchDisplays(`phase-${phasename}`);
+        if (phasename == 'response') {
             ot.enableInputs();
             ot.beginTimeMeasurement();
             ot.startTimer('timeout', RESPONSE_TIMEOUT);
@@ -119,10 +132,8 @@
     }
 
     function inputAnswer(value) {
-        ot.disableInputs();
-
-        ot.cancelTimer("timeout");
-
+        ot.disableInputs(); // prevent double-commit
+        ot.cancelTimers();
         ot.hideDisplays("phase-*");
         ot.hideDisplay("prompt");
 
@@ -132,52 +143,52 @@
             iteration: vars.trial.iteration,
             time: ot.getTimeMeasurement(),
             answer: vars.answer
-        });
+        }); // -> server replies feedback and progress
     };
 
     function timeoutAnswer() {
         ot.disableInputs();
-
+        ot.cancelTimers();
         ot.hideDisplays("phase-*");
-        ot.hideDisplay("prompt");
+        ot.hideDisplay('prompt');
 
         sendLive('timeout', {
             iteration: vars.trial.iteration,
-            time: ot.getTimeMeasurement(),
         });
     }
 
-    async function liveFeedback(data) {
-        vars.feedback = data;
 
-        ot.showDisplay("waiting");
-        showFeedback();
-        await ot.delay(FEEDBACK_DELAY);
-        hideFeedback();
-        ot.hideDisplay("waiting");
-
+    async function liveFeedback(value) {
+        vars.feedback = value;
         completeTrial();
     };
 
     async function completeTrial() {
+        ot.showDisplay("waiting");
+        await ot.delay(FEEDBACK_DELAY);
         ot.hideDisplay("main");
         await ot.delay(FADEOUT_TIME);
+        ot.hideDisplay("waiting");
         nextIter();
     }
 
-    function hideFeedback() {
-        ot.hideDisplays("feedback-*");
-    }
+    function displayFeedback() {
+        if (vars.feedback) {
+            vars.gain = format_gain(vars.feedback.score);
+            ot.showDisplay("gain");
 
-    function showFeedback() {
-        if (vars.feedback.timeouted) {
-            switchDisplays('feedback-timeout');
-        } else if (vars.feedback.success) {
-            switchDisplays('feedback-success');
+            if (vars.feedback.timeouted) {
+                switchDisplays('feedback-timeout');
+            } else if (vars.feedback.success) {
+                switchDisplays('feedback-success');
+            } else {
+                switchDisplays('feedback-failure');
+            }
         } else {
-            switchDisplays('feedback-failure');
+            vars.gain = null;
+            ot.hideDisplays('feedback-*');
+            ot.hideDisplay("gain");
         }
     }
-
 </script>
-{{ endblock }}
+{% endblock %}

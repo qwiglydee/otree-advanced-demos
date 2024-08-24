@@ -6,17 +6,27 @@ from utils.live import live_page
 
 
 class C(BaseConstants):
-    NAME_IN_URL = "simple_time"
+    NAME_IN_URL = "gonogo"
     PLAYERS_PER_GROUP = None
     NUM_ROUNDS = 1
 
     CONDITIONS = ["ODD", "EVEN", "MIXED"]
 
     NUM_TRIALS = None  # total number of trials to generate
+    CHOICES = ["Y", "N"]
 
     PAGE_TIMEOUT = 60  # total time limit for tasks page (seconds)
     TRIAL_TIMEOUT = 5  # total time for trial to answer (seconds)
     FEEDBACK_DELAY = 2  # time to show feedback before next trial
+
+    # mix of phases names and pauses (ms) between them
+    SCHEDULE = [
+        "aim",
+        1000,
+        "stimulus",
+        3000,
+        "response",
+    ]
 
     SCORE_ENDOWMENT = 100
     SCORE_SUCCESS = +5
@@ -59,8 +69,10 @@ class Trial(ExtraModel):
     status = models.StringField(choices=["NEW", "LOADED", "COMPLETED", "TIMEOUT"], initial="NEW")
     expression = models.StringField()
     solution = models.IntegerField()
+    suggestion = models.IntegerField()
+    correct = models.StringField()
     response_time = models.IntegerField()
-    answer = models.IntegerField()
+    answer = models.StringField()
     success = models.BooleanField(initial=None)
     score = models.IntegerField(initial=0)
 
@@ -79,12 +91,16 @@ class Trial(ExtraModel):
 
         expr = f"{a} + {b}"
         solution = a + b
+        suggestion = random.choice([solution, solution + 10, solution - 10])
+        correct = "Y" if suggestion == solution else "N"
 
         return Trial.create(
             player=player,
             iteration=iteration,
             expression=expr,
             solution=solution,
+            suggestion=suggestion,
+            correct=correct,
         )
 
     @staticmethod
@@ -131,15 +147,16 @@ def current_trial(player: Player, trial: Trial):
     return {
         "iteration": trial.iteration,
         "expression": trial.expression,
+        "suggestion": trial.suggestion,
     }
 
 
 def evaluate_response(player: Player, trial: Trial, response: dict):
     assert response["iteration"] == trial.iteration
-    assert isinstance(response["answer"], int)
+    assert response["answer"] in C.CHOICES
 
     trial.answer = response["answer"]
-    trial.success = trial.answer == trial.solution
+    trial.success = trial.answer == trial.correct
     if trial.success:
         trial.score = C.SCORE_SUCCESS
     else:
@@ -286,6 +303,8 @@ def custom_export(players: list[Player]):
         "trial.status",
         "trial.expression",
         "trial.solution",
+        "trial.suggestion",
+        "trial.correct",
         "trial.response_time",
         "trial.answer",
         "trial.success",
@@ -309,6 +328,8 @@ def custom_export(players: list[Player]):
                 trial.status,
                 trial.expression,
                 trial.solution,
+                trial.suggestion,
+                trial.correct,
                 trial.response_time,
                 trial.answer,
                 trial.success,
