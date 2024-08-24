@@ -15,9 +15,9 @@
     </div>
 
     <div class="d-flex flex-row gap-3">
-        <button type="button" class="btn" ot-class="vars.styles.btn.1" ot-click-input name="choice" value="1" ot-text="vars.options.1"></button>
-        <button type="button" class="btn" ot-class="vars.styles.btn.2" ot-click-input name="choice" value="2" ot-text="vars.options.2"></button>
-        <button type="button" class="btn" ot-class="vars.styles.btn.3" ot-click-input name="choice" value="3" ot-text="vars.options.3"></button>
+        <button type="button" class="btn" ot-class="vars.styles.btn.1" ot-click-input name="choice" value="1" ot-text="vars.labels.1"></button>
+        <button type="button" class="btn" ot-class="vars.styles.btn.2" ot-click-input name="choice" value="2" ot-text="vars.labels.2"></button>
+        <button type="button" class="btn" ot-class="vars.styles.btn.3" ot-click-input name="choice" value="3" ot-text="vars.labels.3"></button>
     </div>
 </main>
 
@@ -34,6 +34,11 @@
 <link rel="stylesheet" href="{{ static 'ot-progress.css' }}">
 <link rel="stylesheet" href="{{ static 'ot-pulse.css' }}">
 <style>
+    button[name=choice] {
+        width: 10em;
+        height: 10rem;
+    }
+
     .answer {
         display: inline-block;
         width: 2em;
@@ -89,6 +94,7 @@
 
     function resetTrial() {
         vars.trial = null;
+        vars.choice = null;
         vars.selected = null;
         vars.answer = null;
         vars.feedback = null;
@@ -100,7 +106,22 @@
 
     function startTrial(data) {
         vars.trial = data;
-        vars.options = data.options;
+
+        vars.layout = {
+            1: data.layout[0],
+            2: data.layout[1],
+            3: data.layout[2],
+        }
+        vars.options = {
+            1: vars.trial.options[vars.layout[1]],
+            2: vars.trial.options[vars.layout[2]],
+            3: vars.trial.options[vars.layout[3]],
+        }
+        vars.labels = {
+            1: `${vars.layout[1]}=${vars.options[1]}`,
+            2: `${vars.layout[2]}=${vars.options[2]}`,
+            3: `${vars.layout[3]}=${vars.options[3]}`,
+        }
 
         ot.showDisplay("main");
         ot.showDisplay("prompt");
@@ -109,22 +130,23 @@
         ot.beginTimeMeasurement();
     }
 
-    function inputChoice(selected) {
+    function inputChoice(value) {
         ot.disableInputs(); // prevent double-commit
 
         ot.hideDisplay("prompt");
 
-        vars.selected = selected;
-        vars.answer = vars.trial.options[selected];
+        vars.selected = value; // index
+        vars.choice = vars.layout[value]; // label
+        vars.answer = vars.options[value]; // value
 
         sendLive('response', {
             iteration: vars.trial.iteration,
             time: ot.getTimeMeasurement(),
-            answer: vars.answer
+            choice: vars.choice,
         }); // -> server replies feedback and progress
     };
 
-    async function liveFeedback(value) {
+    function liveFeedback(value) {
         vars.feedback = value;
         completeTrial();
     };
@@ -139,6 +161,7 @@
     }
 
     function highlightButtons() {
+        console.debug("displayChoice");
         if (vars.selected) {
             vars.styles.btn = {
                 1: "btn-outline-dark",
@@ -155,8 +178,9 @@
         }
     }
 
-    function displayFeedback() {
-        if (vars.feedback !== null) {
+    async function displayFeedback() {
+        console.debug("displayFeedback");
+        if (vars.feedback) {
             vars.styles.btn[vars.selected] = vars.feedback.success ? ["selected", "btn-success"] : ["selected", "btn-danger"];
             vars.styles.ans = vars.feedback.success ? "text-success" : "text-danger";
             vars.gain = format_gain(vars.feedback.score);

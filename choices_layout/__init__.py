@@ -1,5 +1,6 @@
 import random
 
+
 from otree.api import *
 
 from utils.live import live_page
@@ -7,11 +8,12 @@ from utils import rnd
 
 
 class C(BaseConstants):
-    NAME_IN_URL = "choices"
+    NAME_IN_URL = "choices_layout"
     PLAYERS_PER_GROUP = None
     NUM_ROUNDS = 1
 
     CONDITIONS = ["ODD", "EVEN", "MIXED"]
+    CHOICES = ["A", "B", "C"]
 
     NUM_TRIALS = 10  # total number of trials to generate
 
@@ -59,16 +61,18 @@ class Trial(ExtraModel):
     expression = models.StringField()
     solution = models.IntegerField()
 
-    option_1 = models.IntegerField()
-    option_2 = models.IntegerField()
-    option_3 = models.IntegerField()
+    layout = models.StringField()
+    option_a = models.IntegerField()
+    option_b = models.IntegerField()
+    option_c = models.IntegerField()
+    correct = models.StringField()
 
     @property
     def options(trial):
-        return {1: trial.option_1, 2: trial.option_2, 3: trial.option_3}
+        return {"A": trial.option_a, "B": trial.option_b, "C": trial.option_c}
 
     response_time = models.IntegerField()
-    answer = models.IntegerField()
+    choice = models.IntegerField()
     success = models.BooleanField(initial=None)
     score = models.IntegerField(initial=0)
 
@@ -88,16 +92,21 @@ class Trial(ExtraModel):
         expr = f"{a} + {b}"
         solution = a + b
 
+        layout = "".join(random.sample(C.CHOICES, k=3))
+
         options = rnd.shuffled([solution, solution + 10, solution - 10])
+        correct = layout[options.index(solution)]
 
         return Trial.create(
             player=player,
             iteration=iteration,
             expression=expr,
             solution=solution,
-            option_1=options[0],
-            option_2=options[1],
-            option_3=options[2],
+            layout=layout,
+            option_a=options[0],
+            option_b=options[1],
+            option_c=options[2],
+            correct=correct,
         )
 
     @staticmethod
@@ -146,6 +155,7 @@ def current_trial(player: Player, trial: Trial):
     return {
         "iteration": trial.iteration,
         "expression": trial.expression,
+        "layout": trial.layout,
         "options": trial.options,
     }
 
@@ -153,10 +163,10 @@ def current_trial(player: Player, trial: Trial):
 def evaluate_response(player: Player, trial: Trial, response: dict):
     assert response["iteration"] == trial.iteration
     options = trial.options
-    assert response["answer"] in options.values()
+    assert response["choice"] in options
 
-    trial.answer = response["answer"]
-    trial.success = trial.answer == trial.solution
+    trial.choice = response["choice"]
+    trial.success = trial.choice == trial.correct
     if trial.success:
         trial.score = C.SCORE_SUCCESS
     else:
@@ -271,11 +281,15 @@ def custom_export(players: list[Player]):
         "trial.status",
         "trial.expression",
         "trial.solution",
-        "trial.options.1",
-        "trial.options.2",
-        "trial.options.3",
+        #
+        "trial.layout",
+        "trial.options.A",
+        "trial.options.B",
+        "trial.options.C",
+        "trial.correct",
+        #
         "trial.response_time",
-        "trial.answer",
+        "trial.choice",
         "trial.success",
         "trial.score",
     ]
@@ -297,11 +311,13 @@ def custom_export(players: list[Player]):
                 trial.status,
                 trial.expression,
                 trial.solution,
-                trial.option_1,
-                trial.option_2,
-                trial.option_3,
+                trial.layout,
+                trial.option_a,
+                trial.option_b,
+                trial.option_c,
+                trial.correct,
                 trial.response_time,
-                trial.answer,
+                trial.choice,
                 trial.success,
                 trial.score,
             ]

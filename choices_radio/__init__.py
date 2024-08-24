@@ -7,7 +7,7 @@ from utils import rnd
 
 
 class C(BaseConstants):
-    NAME_IN_URL = "choices"
+    NAME_IN_URL = "choices_radio"
     PLAYERS_PER_GROUP = None
     NUM_ROUNDS = 1
 

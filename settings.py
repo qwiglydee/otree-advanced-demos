@@ -20,12 +20,24 @@ SESSION_CONFIGS = [
         app_sequence=["simple_time"],
         condition="random",
     ),
-    # dict(
-    #     name="trials_choices_buttons",
-    #     display_name="Choices with buttons",
-    #     app_sequence=["choices"],
-    #     condition="random",
-    # ),
+    dict(
+        name="choices",
+        display_name="Choices with buttons",
+        app_sequence=["choices"],
+        condition="random",
+    ),
+    dict(
+        name="choices_radio",
+        display_name="Choices with radio buttons",
+        app_sequence=["choices_radio"],
+        condition="random",
+    ),
+    dict(
+        name="choices_layout",
+        display_name="Choices with labels and random layout",
+        app_sequence=["choices_layout"],
+        condition="random",
+    ),
     # dict(
     #     name="trials_choices_radio",
     #     display_name="Choices with radio",
