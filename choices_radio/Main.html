@@ -19,11 +19,11 @@
             <input id="choice-1" ot-input type="radio" name="choice" value="1" class="form-check-input" ot-class="vars.styles.inp.1">
             <label for="choice-1" class="form-check-label" ot-text="vars.trial.options.1"></label>
         </div>
-        <div class="form-check">
+        <div class="form-check" ot-class="vars.styles.inp.2">
             <input id="choice-2" ot-input type="radio" name="choice" value="2" class="form-check-input" ot-class="vars.styles.inp.2">
             <label for="choice-2" class="form-check-label" ot-text="vars.trial.options.2"></label>
         </div>
-        <div class="form-check">
+        <div class="form-check" ot-class="vars.styles.inp.2">
             <input id="choice-3" ot-input type="radio" name="choice" value="3" class="form-check-input" ot-class="vars.styles.inp.3">
             <label for="choice-3" class="form-check-label" ot-text="vars.trial.options.3"></label>
         </div>
@@ -53,6 +53,10 @@
     .answer:empty::before {
         content: "...";
     }
+
+    .form-check {
+        padding: 0.25em 0.75em;
+    }
 </style>
 {% endblock %}
 
@@ -76,8 +80,8 @@
     onInput('choice', inputChoice);
     onInput('submit', submitAnswer);
     onLive('feedback', liveFeedback);
-    onUpdate("choice", displayChoice);
-    onUpdate("feedback", displayFeedback);
+    onUpdate("feedback.success", highlightFeedback);
+    onUpdate("feedback.score", displayGain);
     onLive('failure', function (message) { alert(message); ot.completePage(); });
 
     function startGame() {
@@ -101,7 +105,7 @@
 
     function resetTrial() {
         vars.trial = null;
-        vars.choice = null;
+        vars.selected = null;
         vars.answer = null;
         vars.feedback = null;
         vars.styles = { btn: {}, ans: null };
@@ -121,7 +125,7 @@
     }
 
     function inputChoice(choice) {
-        vars.choice = choice;
+        vars.selected = choice;
         vars.answer = vars.trial.options[choice];
 
         ot.enableInput("submit");
@@ -152,34 +156,24 @@
         nextIter();
     }
 
-    function displayChoice(choice) {
-        if (choice !== null) {
-            vars.styles.btn = {
-                1: "btn-outline-dark",
-                2: "btn-outline-dark",
-                3: "btn-outline-dark",
-            }
-            vars.styles.btn[choice] = ["selected", "btn-dark"];
+
+    function highlightFeedback(success) {
+        if (success == null) {
+            vars.styles.ans = null;
+            vars.styles.inp = {};
         } else {
-            vars.styles.btn = {
-                1: "btn-primary",
-                2: "btn-primary",
-                3: "btn-primary",
-            }
+            vars.styles.ans = success ? "text-success" : "text-danger";
+            vars.styles.inp[vars.selected] = success ? ["selected", "is-valid"] : ["selected", "is-invalid"];
         }
     }
 
-    function displayFeedback(feedback) {
-        if (feedback !== null) {
-            vars.styles.inp[vars.choice] = vars.feedback.success ? ["selected", "is-valid"] : ["selected", "is-invalid"];
-            vars.styles.ans = vars.feedback.success ? "text-success" : "text-danger";
-            vars.gain = format_gain(vars.feedback.score);
-            ot.showDisplay("gain");
-        } else {
-            vars.styles.inp = {};
-            vars.styles.ans = null;
+    function displayGain(score) {
+        if (score == null) {
             vars.gain = null;
             ot.hideDisplay("gain");
+        } else {
+            vars.gain = format_gain(score);
+            ot.showDisplay("gain");
         }
     }
 </script>

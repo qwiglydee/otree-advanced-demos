@@ -63,6 +63,7 @@
     onInput('answer', inputAnswer);
     onLive('feedback', liveFeedback);
     onUpdate("feedback", displayFeedback);
+    onUpdate("feedback.score", displayGain);
     onTimer('phase', switchPhase);
     onTimer('timeout', timeoutAnswer);
     onLive('failure', function (message) { alert(message); ot.completePage(); });
@@ -172,11 +173,10 @@
         nextIter();
     }
 
-    function displayFeedback() {
-        if (vars.feedback) {
-            vars.gain = format_gain(vars.feedback.score);
-            ot.showDisplay("gain");
-
+    function displayFeedback(feedback) {
+        if (feedback == null) {
+            ot.hideDisplays('feedback-*');
+        } else {
             if (vars.feedback.timeouted) {
                 switchDisplays('feedback-timeout');
             } else if (vars.feedback.success) {
@@ -184,11 +184,18 @@
             } else {
                 switchDisplays('feedback-failure');
             }
-        } else {
-            vars.gain = null;
-            ot.hideDisplays('feedback-*');
-            ot.hideDisplay("gain");
         }
     }
+
+    function displayGain(score) {
+        if (score == null) {
+            vars.gain = null;
+            ot.hideDisplay("gain");
+        } else {
+            vars.gain = format_gain(score);
+            ot.showDisplay("gain");
+        }
+    }
+
 </script>
 {% endblock %}

@@ -53,7 +53,8 @@
     onLive('trial', startTrial);
     onInput('answer', inputAnswer);
     onLive('feedback', liveFeedback);
-    onUpdate("feedback", displayFeedback);
+    onUpdate("feedback.success", highlightFeedback);
+    onUpdate("feedback.score", displayGain);
     onLive('failure', function (message) { alert(message); ot.completePage(); });
 
     function startGame() {
@@ -96,6 +97,8 @@
     }
 
     function inputAnswer(value) {
+        if (value == "") return;
+
         ot.disableInputs(); // prevent double-commit
 
         ot.hideDisplay("prompt");
@@ -109,7 +112,7 @@
         }); // -> server replies feedback and progress
     };
 
-    async function liveFeedback(value) {
+    function liveFeedback(value) {
         vars.feedback = value;
         completeTrial();
     };
@@ -123,17 +126,23 @@
         nextIter();
     }
 
-    function displayFeedback(feedback) {
-        if (feedback !== null) {
-            vars.styles.inp = vars.feedback.success ? "is-valid" : "is-invalid";
-            vars.styles.ans = vars.feedback.success ? "text-success" : "text-danger";
-            vars.gain = format_gain(vars.feedback.score);
-            ot.showDisplay("gain");
-        } else {
+    function highlightFeedback(success) {
+        if (success == null) {
             vars.styles.inp = null;
             vars.styles.ans = null;
+        } else {
+            vars.styles.inp = success ? "is-valid" : "is-invalid";
+            vars.styles.ans = success ? "text-success" : "text-danger";
+        }
+    }
+
+    function displayGain(score) {
+        if (score == null) {
             vars.gain = null;
             ot.hideDisplay("gain");
+        } else {
+            vars.gain = format_gain(score);
+            ot.showDisplay("gain");
         }
     }
 </script>

@@ -64,8 +64,9 @@
     onLive('trial', startTrial);
     onInput('choice', inputChoice);
     onLive('feedback', liveFeedback);
-    onUpdate("selected", highlightButtons);
-    onUpdate("feedback", displayFeedback);
+    onUpdate("selected", highlightSelected);
+    onUpdate("feedback.success", highlightFeedback);
+    onUpdate("feedback.score", displayGain);
     onLive('failure', function (message) { alert(message); ot.completePage(); });
 
     function startGame() {
@@ -138,33 +139,39 @@
         nextIter();
     }
 
-    function highlightButtons() {
-        if (vars.selected) {
-            vars.styles.btn = {
-                1: "btn-outline-dark",
-                2: "btn-outline-dark",
-                3: "btn-outline-dark",
-            }
-            vars.styles.btn[vars.selected] = ["selected", "btn-dark"];
-        } else {
+    function highlightSelected(selected) {
+        if (selected == null) {
             vars.styles.btn = {
                 1: "btn-primary",
                 2: "btn-primary",
                 3: "btn-primary",
             }
+        } else {
+            vars.styles.btn = {
+                1: "btn-outline-dark",
+                2: "btn-outline-dark",
+                3: "btn-outline-dark",
+            }
+            vars.styles.btn[selected] = ["selected", "btn-dark"];
         }
     }
 
-    function displayFeedback() {
-        if (vars.feedback !== null) {
-            vars.styles.btn[vars.selected] = vars.feedback.success ? ["selected", "btn-success"] : ["selected", "btn-danger"];
-            vars.styles.ans = vars.feedback.success ? "text-success" : "text-danger";
-            vars.gain = format_gain(vars.feedback.score);
-            ot.showDisplay("gain");
-        } else {
+    function highlightFeedback(success) {
+        if (success == null) {
             vars.styles.ans = null;
+        } else {
+            vars.styles.ans = success ? "text-success" : "text-danger";
+            vars.styles.btn[vars.selected] = success ? ["selected", "btn-success"] : ["selected", "btn-danger"];
+        }
+    }
+
+    function displayGain(score) {
+        if (score == null) {
             vars.gain = null;
             ot.hideDisplay("gain");
+        } else {
+            vars.gain = format_gain(score);
+            ot.showDisplay("gain");
         }
     }
 </script>
