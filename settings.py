@@ -50,6 +50,12 @@ SESSION_CONFIGS = [
         app_sequence=["captcha"],
         condition="random",
     ),
+    dict(
+        name="drawing",
+        display_name="Free hand drawing",
+        app_sequence=["drawing"],
+        condition="random",
+    ),
     # dict(
     #     name="multistep",
     #     display_name="Multiple sequential inputs in trials",
@@ -61,11 +67,6 @@ SESSION_CONFIGS = [
     #     display_name="Multiple nonregular stages of trials",
     #     app_sequence=['multistage'],
     #     condition="random",
-    # ),
-    # dict(
-    #     name="drawing",
-    #     display_name="Free hand drawing",
-    #     app_sequence=["drawing"]
     # ),
     # dict(
     #     name="voting",

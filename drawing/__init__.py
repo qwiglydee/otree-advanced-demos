@@ -7,26 +7,29 @@ from otree.common2 import url_of_static
 from utils.live import live_page
 
 
-APPDIR = Path(__file__).parent
-IMAGES = list((APPDIR / "static" / "images").glob("*.png"))
-
-
 class C(BaseConstants):
     NAME_IN_URL = "drawing"
     PLAYERS_PER_GROUP = None
     NUM_ROUNDS = 1
 
-    NUM_TRIALS = len(IMAGES)
+    CONDITIONS = ["A", "B"]
 
-    PAGE_TIMEOUT = 300
-    FEEDBACK_DELAY = 2000  # time (ms) to show feedback before next trial
+    NUM_TRIALS = 10  # total number of trials to generate
+
+    PAGE_TIMEOUT = 600  # total time limit for tasks page (seconds)
+    FEEDBACK_DELAY = 2  # time to show feedback before next trial
 
     CANVAS_SIZE = (256, 256)
     FEATHER = 4
     COLOR = "#00000"
 
+    SCORE_ENDOWMENT = 0
     SCORE_DRAW = +1
     SCORE_SKIP = 0
+
+
+APPDIR = Path(__file__).parent
+IMAGES = list((APPDIR / "static" / "images").glob("*.png"))
 
 
 class Subsession(BaseSubsession):
@@ -39,63 +42,96 @@ class Group(BaseGroup):
 
 class Player(BasePlayer):
     condition = models.StringField()
-    trials_completed = models.IntegerField(initial=0)
-    trials_failed = models.IntegerField(initial=0)
-    total_score = models.IntegerField(initial=0)
+
+    completed = models.IntegerField(initial=0)
     terminated = models.BooleanField(initial=False)
+    success = models.IntegerField(initial=0)
+    errors = models.IntegerField(initial=0)
+    score = models.IntegerField(initial=0)
+
+    def setup(player):
+        conf = player.session.config
+
+        if conf.get("condition", "random") != "random":
+            assert conf["condition"] in C.CONDITIONS
+            player.condition = conf["condition"]
+        else:
+            player.condition = random.choice(C.CONDITIONS)
+
+        player.score = C.SCORE_ENDOWMENT
 
 
 class Trial(ExtraModel):
     player = models.Link(Player)
     iteration = models.IntegerField(min=1)
-    # status fields
     status = models.StringField(choices=["NEW", "LOADED", "COMPLETED"], initial="NEW")
-    score = models.IntegerField(initial=0)
-    # task fields
+    #
     image = models.StringField()
-    # response fields
-    response_time = models.IntegerField()
     drawing = models.LongStringField()
+    #
+    response_time = models.IntegerField()
+    score = models.IntegerField(initial=0)
+
+    @staticmethod
+    def generate(player: Player, iteration: int, image: Path):
+        """generate single trial for the player and iteration"""
+        return Trial.create(
+            player=player,
+            iteration=iteration,
+            image=image.stem,
+        )
+
+    @staticmethod
+    def pregenerate(player: Player, count: int):
+        images = random.sample(IMAGES, k=count)
+
+        for i, img in enumerate(images):
+            Trial.generate(player, i + 1, img)
+
+    @staticmethod
+    def next(player: Player):
+        "generates new trial for the player"
+        assert player.completed < C.NUM_TRIALS
+        return Trial.objects_filter(player=player, status="NEW").order_by("id").first()
+
+    @staticmethod
+    def current(player: Player):
+        "retrieves a trial currently loaded for a player, None if not loaded"
+        return Trial.objects_filter(player=player, status="LOADED").order_by("id").first()
 
 
 def creating_session(subsession: Subsession):
     for player in subsession.get_players():
-        init_player(player, subsession.session.config)
-        generate_trials(player, subsession.session.config)
+        player.setup()
+        Trial.pregenerate(player, C.NUM_TRIALS)
 
 
-def init_player(player: Player, config: dict):
-    pass
+def set_payoff(player: Player):
+    player.payoff = max(0, player.score) * player.session.config["real_world_currency_per_point"]
 
 
-def generate_trials(player: Player, config: dict):
-    images = random.sample(IMAGES, k=C.NUM_TRIALS)
-
-    for i, img in enumerate(images):
-        generate_trial(player, i + 1, img)
+#### script logic
 
 
-def generate_trial(player: Player, iteration: int, image: Path):
-    return Trial.create(
-        player=player,
-        iteration=iteration,
-        image=image.stem,
-    )
+def current_progress(player: Player, trial: Trial = None):
+    return {
+        "total": C.NUM_TRIALS,
+        "completed": player.completed,
+        "terminated": player.terminated,
+        "current": trial.iteration if trial else None,
+        #
+        "score": player.score,
+    }
 
 
-def current_trial(player: Player):
-    trials = Trial.filter(player=player, iteration=player.trials_completed + 1)
-    return trials[0] if trials else None
-
-
-def output_trial(trial: Trial):
+def current_trial(player: Player, trial: Trial):
     return {
         "iteration": trial.iteration,
         "image_url": url_of_static("images/" + trial.image + ".png"),
     }
 
 
-def evaluate_response(trial: Trial, response: dict):
+def evaluate_response(player: Player, trial: Trial, response: dict):
     assert response["iteration"] == trial.iteration
 
     if "drawing" in response:
@@ -111,35 +147,19 @@ def evaluate_response(trial: Trial, response: dict):
         "score": trial.score,
     }
 
+
 def update_progress(player: Player, trial: Trial, feedback: dict):
-    assert trial.status == 'COMPLETED'
+    assert trial.status == "COMPLETED"
 
-    player.trials_completed += 1
-
-    player.terminated = player.trials_completed == C.NUM_TRIALS
-
-    player.total_score += trial.score
+    player.completed += 1
+    player.terminated = player.completed == C.NUM_TRIALS
+    player.score += trial.score
 
     return {
-        "completed": player.trials_completed,
+        "completed": player.completed,
         "terminated": player.terminated,
-        "score": player.total_score,
+        "score": player.score,
     }
-
-
-
-def current_progress(player: Player, trial: Trial):
-    return {
-        "total": C.NUM_TRIALS,
-        "completed": player.trials_completed,
-        "current": trial.iteration,
-        "score": player.total_score,
-        "terminated": player.terminated,
-    }
-
-
-def set_payoff(player: Player):
-    player.payoff = max(0, player.total_score) * player.session.config["real_world_currency_per_point"]
 
 
 #### PAGES ####
@@ -165,24 +185,26 @@ class Main(Page):
     def live_next(player: Player, _):
         assert not player.terminated
 
-        trial = current_trial(player)
-        if trial.status == "LOADED":
-            raise Warning("Page reloading is prohibited")
+        trial = Trial.current(player)
+        if trial is None:
+            trial = Trial.next(player)
         trial.status = "LOADED"
 
         yield "progress", current_progress(player, trial)
-        yield "trial", output_trial(trial)
+        yield "trial", current_trial(player, trial)
 
     @staticmethod
-    def live_drawing(player: Player, payload: dict):
-        trial = current_trial(player)
-        assert trial is not None and trial.status == "LOADED"
+    def live_drawing(player: Player, response: dict):
+        assert not player.terminated
 
-        feedback = evaluate_response(trial, payload)
+        trial = Trial.current(player)
+        assert trial is not None
+
+        feedback = evaluate_response(player, trial, response)
         yield "feedback", feedback
 
-        if feedback['completed']:
-            trial.response_time = payload["time"]
+        if feedback["completed"]:
+            trial.response_time = response["time"]
             progress = update_progress(player, trial, feedback)
             yield "progress", progress
 
@@ -194,11 +216,7 @@ class Main(Page):
 
 
 class Results(Page):
-    @staticmethod
-    def vars_for_template(player: Player):
-        return {
-            "completed": player.trials_completed,
-        }
+    pass
 
 
 page_sequence = [
@@ -214,15 +232,15 @@ def custom_export(players: list[Player]):
         "participant.code",
         #
         "player.condition",
-        "player.trials_completed",
-        "player.total_score",
+        "player.completed",
+        "player.score",
         #
         "trial.iteration",
         "trial.status",
         "trial.image",
         "trial.response_time",
-        "trial.score",
         "trial.drawing",
+        "trial.score",
     ]
 
     for player in players:
@@ -231,8 +249,8 @@ def custom_export(players: list[Player]):
             player.participant.code,
             #
             player.condition,
-            player.trials_completed,
-            player.total_score,
+            player.completed,
+            player.score,
         ]
         for trial in Trial.filter(player=player):
             yield player_fields + [
@@ -240,6 +258,6 @@ def custom_export(players: list[Player]):
                 trial.status,
                 trial.image,
                 trial.response_time,
-                trial.score,
                 trial.drawing,
+                trial.score,
             ]

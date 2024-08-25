@@ -1,18 +1,13 @@
-{{ block title }}
-Intro
-{{ endblock }}
+{% block title %} Intro {% endblock %}
 
-{{ block content }}
+{% block content %}
 
 <p>
     Your task is to reproduce emojis you see by free-hand drawing on a canvas .
 </p>
 
-<p>
-    The game consists of {{C.NUM_TRIALS}} trials.
-    You gain {{C.SCORE_DRAW}} points for each drawn image.
-</p>
+<p>The game consists of {{C.NUM_TRIALS}} trials. The more you solve correctly, the better.</p>
 
-{{ next_button }}
+{% next_button %}
 
-{{ endblock }}
+{% endblock %}
