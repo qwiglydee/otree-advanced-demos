@@ -13,14 +13,15 @@ class C(BaseConstants):
     PLAYERS_PER_GROUP = None
     NUM_ROUNDS = 1
 
+    CONDITIONS = ["A", "B"]
     NUM_TRIALS = 10  # total number of trials to generate
-    MAX_FAILURES = 5  # num of failures to abort the game
 
     PAGE_TIMEOUT = 600  # total time limit for tasks page (seconds)
-    FEEDBACK_DELAY = 2000  # time (ms) to show feedback before next trial
+    FEEDBACK_DELAY = 2  # time to show feedback before next trial
 
-    SCORE_SUCCESS = +10
-    SCORE_FAILURE = -1
+    SCORE_ENDOWMENT = 100
+    SCORE_SUCCESS = +5
+    SCORE_FAILURE = -5
 
     SYMBOLS = string.ascii_uppercase
     LENGTH = 5
@@ -44,83 +45,118 @@ class Group(BaseGroup):
 
 class Player(BasePlayer):
     condition = models.StringField()
-    trials_completed = models.IntegerField(initial=0)
-    trials_failed = models.IntegerField(initial=0)
-    total_score = models.IntegerField(initial=0)
+
+    completed = models.IntegerField(initial=0)
     terminated = models.BooleanField(initial=False)
+    success = models.IntegerField(initial=0)
+    errors = models.IntegerField(initial=0)
+    score = models.IntegerField(initial=0)
+
+    def setup(player):
+        conf = player.session.config
+
+        if conf.get("condition", "random") != "random":
+            assert conf["condition"] in C.CONDITIONS
+            player.condition = conf["condition"]
+        else:
+            player.condition = random.choice(C.CONDITIONS)
+
+        player.score = C.SCORE_ENDOWMENT
 
 
 class Trial(ExtraModel):
     player = models.Link(Player)
     iteration = models.IntegerField(min=1)
-    # status fields
     status = models.StringField(choices=["NEW", "LOADED", "COMPLETED"], initial="NEW")
-    success = models.BooleanField(initial=None)
-    score = models.IntegerField(initial=0)
-    # task fields
+    #
     text = models.StringField()
     image = models.LongStringField()
-    # response fields
+    #
     response_time = models.IntegerField()
-    answer = models.IntegerField()
+    answer = models.StringField()
+    success = models.BooleanField(initial=None)
+    score = models.IntegerField(initial=0)
+
+    @staticmethod
+    def generate(player: Player, iteration: int):
+        """generate single trial for the player and iteration"""
+        text = "".join(random.sample(C.SYMBOLS, k=C.LENGTH))
+        image = images.text(
+            text,
+            FONT,
+            size=C.TEXT_SIZE,
+            padding=C.TEXT_SIZE // 2,
+            color=C.TEXT_COLOR,
+            bgcolor=C.TEXT_BGCOLOR,
+        )
+        image = images.distort(image)
+        image_data = images.encode(image)
+
+        return Trial.create(
+            player=player,
+            iteration=iteration,
+            text=text,
+            image=image_data,
+        )
+
+    @staticmethod
+    def pregenerate(player: Player, count: int):
+        for i in range(count):
+            Trial.generate(player, 1 + i)
+
+    @staticmethod
+    def next(player: Player):
+        "generates new trial for the player"
+        assert player.completed < C.NUM_TRIALS
+        return Trial.generate(player, player.completed + 1)
+
+    @staticmethod
+    def current(player: Player):
+        "retrieves a trial currently loaded for a player, None if not loaded"
+        return Trial.objects_filter(player=player, status="LOADED").order_by("id").first()
 
 
 def creating_session(subsession: Subsession):
     for player in subsession.get_players():
-        init_player(player, subsession.session.config)
-        generate_trials(player, subsession.session.config)
+        player.setup()
 
 
-def init_player(player: Player, config: dict):
-    pass
+def set_payoff(player: Player):
+    player.payoff = max(0, player.score) * player.session.config["real_world_currency_per_point"]
 
 
-def generate_trials(player: Player, config: dict):
-    for i in range(C.NUM_TRIALS):
-        generate_trial(player, i + 1)
+#### script logic
 
 
-def generate_trial(player: Player, iteration: int):
-    text = "".join(random.sample(C.SYMBOLS, k=C.LENGTH))
-    image = images.text(
-        text,
-        FONT,
-        size=C.TEXT_SIZE,
-        padding=C.TEXT_SIZE // 2,
-        color=C.TEXT_COLOR,
-        bgcolor=C.TEXT_BGCOLOR,
-    )
-    image = images.distort(image)
-    image_data = images.encode(image)
-
-    return Trial.create(
-        player=player,
-        iteration=iteration,
-        text=text,
-        image=image_data,
-    )
+def current_progress(player: Player, trial: Trial = None):
+    return {
+        "total": C.NUM_TRIALS,
+        "completed": player.completed,
+        "terminated": player.terminated,
+        "current": trial.iteration if trial else None,
+        #
+        "success": player.success,
+        "errors": player.errors,
+        "score": player.score,
+    }
 
 
-def current_trial(player: Player):
-    trials = Trial.filter(player=player, iteration=player.trials_completed + 1)
-    return trials[0] if trials else None
-
-
-def output_trial(trial: Trial):
+def current_trial(player: Player, trial: Trial):
     return {
         "iteration": trial.iteration,
         "image": trial.image,
     }
 
 
-def evaluate_response(trial: Trial, response: dict):
+def evaluate_response(player: Player, trial: Trial, response: dict):
     assert response["iteration"] == trial.iteration
 
-    answer = response["answer"].upper()
-
-    trial.answer = answer
+    trial.answer = response["answer"].upper()
     trial.success = trial.answer == trial.text
-    trial.score = C.SCORE_SUCCESS if trial.success else C.SCORE_FAILURE
+    if trial.success:
+        trial.score = C.SCORE_SUCCESS
+    else:
+        trial.score = C.SCORE_FAILURE
 
     trial.status = "COMPLETED"
 
@@ -132,35 +168,23 @@ def evaluate_response(trial: Trial, response: dict):
 
 
 def update_progress(player: Player, trial: Trial, feedback: dict):
-    assert trial.status == 'COMPLETED'
+    assert trial.status == "COMPLETED"
 
-    player.trials_completed += 1
-    if not trial.success:
-        player.trials_failed += 1
-
-    player.terminated = player.trials_completed == C.NUM_TRIALS or player.trials_failed >= C.MAX_FAILURES
-
-    player.total_score += trial.score
+    player.completed += 1
+    player.terminated = player.completed == C.NUM_TRIALS
+    if trial.success:
+        player.success += 1
+    else:
+        player.errors += 1
+    player.score += trial.score
 
     return {
-        "completed": player.trials_completed,
+        "completed": player.completed,
         "terminated": player.terminated,
-        "score": player.total_score,
+        "success": player.success,
+        "errors": player.errors,
+        "score": player.score,
     }
-
-
-def current_progress(player: Player, trial: Trial):
-    return {
-        "total": C.NUM_TRIALS,
-        "completed": player.trials_completed,
-        "current": trial.iteration,
-        "score": player.total_score,
-        "terminated": player.terminated,
-    }
-
-
-def set_payoff(player: Player):
-    player.payoff = max(0, player.total_score) * player.session.config["real_world_currency_per_point"]
 
 
 #### PAGES ####
@@ -186,24 +210,26 @@ class Main(Page):
     def live_next(player: Player, _):
         assert not player.terminated
 
-        trial = current_trial(player)
-        if trial is not None and trial.status == "LOADED":
-            raise Warning("Page reloading is prohibited")
+        trial = Trial.current(player)
+        if trial is None:
+            trial = Trial.next(player)
         trial.status = "LOADED"
 
         yield "progress", current_progress(player, trial)
-        yield "trial", output_trial(trial)
+        yield "trial", current_trial(player, trial)
 
     @staticmethod
-    def live_response(player: Player, payload: dict):
-        trial = current_trial(player)
-        assert trial is not None and trial.status == "LOADED" and trial.status == "LOADED"
+    def live_response(player: Player, response: dict):
+        assert not player.terminated
 
-        feedback = evaluate_response(trial, payload)
+        trial = Trial.current(player)
+        assert trial is not None
+
+        feedback = evaluate_response(player, trial, response)
         yield "feedback", feedback
 
         if feedback["completed"]:
-            trial.response_time = payload["time"]
+            trial.response_time = response["time"]
             progress = update_progress(player, trial, feedback)
             yield "progress", progress
 
@@ -215,13 +241,7 @@ class Main(Page):
 
 
 class Results(Page):
-    @staticmethod
-    def vars_for_template(player: Player):
-        return {
-            "completed": player.trials_completed,
-            "solved": len(Trial.filter(player=player, success=True)),
-            "failed": len(Trial.filter(player=player, success=False)),
-        }
+    pass
 
 
 page_sequence = [
@@ -237,8 +257,10 @@ def custom_export(players: list[Player]):
         "participant.code",
         #
         "player.condition",
-        "player.trials_completed",
-        "player.total_score",
+        "player.completed",
+        "player.success",
+        "player.errors",
+        "player.score",
         #
         "trial.iteration",
         "trial.status",
@@ -256,8 +278,10 @@ def custom_export(players: list[Player]):
             player.participant.code,
             #
             player.condition,
-            player.trials_completed,
-            player.total_score,
+            player.completed,
+            player.success,
+            player.errors,
+            player.score,
         ]
         for trial in Trial.filter(player=player):
             yield player_fields + [

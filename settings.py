@@ -44,6 +44,12 @@ SESSION_CONFIGS = [
         app_sequence=["gonogo"],
         condition="random",
     ),
+    dict(
+        name="captcha",
+        display_name="Transcribing text from generated images",
+        app_sequence=["captcha"],
+        condition="random",
+    ),
     # dict(
     #     name="multistep",
     #     display_name="Multiple sequential inputs in trials",
@@ -60,11 +66,6 @@ SESSION_CONFIGS = [
     #     name="drawing",
     #     display_name="Free hand drawing",
     #     app_sequence=["drawing"]
-    # ),
-    # dict(
-    #     name="captcha",
-    #     display_name="Transcribing text from images",
-    #     app_sequence=["captcha"]
     # ),
     # dict(
     #     name="voting",
