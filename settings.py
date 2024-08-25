@@ -56,6 +56,12 @@ SESSION_CONFIGS = [
         app_sequence=["drawing"],
         condition="random",
     ),
+    dict(
+        name="sliders",
+        display_name="Sliders task",
+        app_sequence=["sliders"],
+        condition="random",
+    ),
     # dict(
     #     name="multistep",
     #     display_name="Multiple sequential inputs in trials",
@@ -73,11 +79,6 @@ SESSION_CONFIGS = [
     #     display_name="Group voting and chatting",
     #     app_sequence=["voting"],
     #     num_demo_participants=3,
-    # ),
-    # dict(
-    #     name="sliders",
-    #     display_name="Sliders task",
-    #     app_sequence=["sliders"],
     # ),
     # dict(
     #     name="ultimatum",

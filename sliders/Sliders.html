@@ -1,4 +1,4 @@
-{{ block content }}
+{% block content %}
 
 <header>
     <ot-progress max="vars.progress.total" ticks="1" value="vars.progress.solved"></ot-progress>
@@ -6,69 +6,62 @@
         <div class="alert alert-secondary otree-timer-custom m-2">Time left: <b class="otree-timer__time-left">0:00</b></div>
         <div class="alert alert-secondary m-2">Total score: <b ot-text="vars.progress.score"></b></div>
     </div>
+    <p id="gain" hidden class="ot-fade">You <i ot-text="vars.gain"></i></p>
 </header>
 
 <main id="main" class="ot-fade d-flex" hidden>
-    {{ for id in sliders }}
-    <ot-slider name="slider-{{id}}" min="-{{C.SLIDER_RANGE}}" max="{{C.SLIDER_RANGE}}"
-        target="vars.sliders.{{id}}.target" value="vars.sliders.{{id}}.value"
+    {% for id in sliders %}
+    <ot-slider name="slider-{{id}}" min="-{{C.SLIDER_RANGE}}" max="{{C.SLIDER_RANGE}}" target="vars.sliders.{{id}}.target" value="vars.sliders.{{id}}.value"
         offset="vars.sliders.{{id}}.offset" solved="vars.sliders.{{id}}.solved"></ot-slider>
-    {{ endfor }}
+    {% endfor %}
 </main>
 
 <footer>
     <p>Put all sliders into their target positions.</p>
 </footer>
 
-{{ endblock }}
+{% endblock %}
 
-{{ block styles }}
+{% block styles %}
 <link rel="stylesheet" href="{{ static 'fullscreen.css' }}">
 <link rel="stylesheet" href="{{ static 'otree-front-ext.css' }}">
 <link rel="stylesheet" href="{{ static 'ot-progress.css' }}">
 <link rel="stylesheet" href="{{ static 'ot-slider.css' }}">
 <style>
-    :root {
+    main {
         --ot-fade-out-time: 1000ms;
     }
 </style>
-{{ endblock }}
+{% endblock %}
 
-{{ block scripts }}
+{% block scripts %}
 <script src="{{ static 'otree-front-2.0.b2.js' }}"></script>
 <script src="{{ static 'otree-front-ext.js' }}"></script>
 <script src="{{ static 'otree-front-live.js' }}"></script>
 <script src="{{ static 'ot-progress.js' }}"></script>
 <script src="{{ static 'ot-slider.js' }}"></script>
+<script src="{{ static 'format_score.js' }}"></script>
 <script>
     "use strict";
 
     const FADEOUT_TIME = parseInt(getStyleProp("--ot-fade-out-time"));
 
     onLoad(startGame);
-    onLive('sliders', liveSliders);
+    // onLive('sliders', liveSliders);
     onLive('progress', updateProgress);
     onLive('feedback', liveFeedback);
     onLive('failure', function (message) { alert(message); ot.completePage(); });
     onInputs(inputSlider);
 
     function startGame() {
-        // all aliders data, { id: { value, offset, solved, ... } }
-        vars.sliders = {};
-        vars.progress = {};
-
-        sendLive('reset'); // servers replies 'sliders'
+        vars.sliders = js_vars.sliders;
+        vars.progress = js_vars.progress;
+        ot.showDisplay("main");
     };
 
     function updateProgress(data) {
         Object.assign(vars.progress, data);
         if (vars.progress.terminated) completeGame();
-    };
-
-    function liveSliders(data) {
-        vars.sliders = data;
-        ot.enableInputs();
-        ot.showDisplay("main");
     };
 
     function inputSlider(name, value) {
@@ -77,8 +70,13 @@
         sendLive("slider", { id, value }); // -> server replies 'feedback' and 'progress'
     };
 
-    function liveFeedback(data) {
-        vars.sliders[data['id']].solved = data['solved'];
+    async function liveFeedback(data) {
+        vars.sliders[data.id].solved = data.solved;
+
+        vars.gain = format_gain(data.score);
+        ot.showDisplay("gain");
+        await ot.delay(500);
+        ot.hideDisplay("gain");
     };
 
     async function completeGame() {
@@ -87,5 +85,6 @@
         await ot.delay(FADEOUT_TIME);
         ot.completePage();
     }
+
 </script>
 {{ endblock }}
