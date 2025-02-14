@@ -1,10 +1,14 @@
-{{ block content }}
-
-
+{% block content %}
 <header>
+    {% if C.NUM_TRIALS %}
     <ot-progress ticks="1" max="vars.progress.total" value="vars.progress.completed" value2="vars.progress.current"></ot-progress>
+    {% endif %}
     <div class="d-flex">
-        <div class="alert alert-secondary otree-timer-custom m-2">Time left: <b class="otree-timer__time-left">0:00</b></div>
+        {% if C.PAGE_TIMEOUT %}
+        <div class="alert alert-secondary otree-timer-custom m-2">
+            Time left: <b class="otree-timer__time-left">0:00</b>
+        </div>
+        {% endif %}
         <div class="alert alert-secondary m-2">Total score: <b ot-text="vars.progress.score"></b></div>
     </div>
     <p id="gain">You <i ot-text="vars.gain_txt"></i></p>
@@ -12,12 +16,14 @@
 
 <main id="main" class="ot-fade d-flex" hidden>
     <div class="fs-1 m-3">
-        <span ot-text="vars.trial.expression"></span> = ...
+        <span ot-text="vars.trial.expression"></span>
+        =
+        <span ot-text="vars.answer" ot-class="vars.feedback_txt_style" class="answer"></span>
     </div>
 
     <div class="input-group">
         <span class="input-group-text">=</span>
-        <input ot-input type="number" name="answer" class="form-control" ot-class="vars.feedback_style" ot-key-input="Enter" autofocus>
+        <input ot-input type="number" name="answer" class="form-control" ot-class="vars.feedback_inp_style" ot-key-input="Enter" autofocus />
     </div>
 </main>
 
@@ -25,17 +31,26 @@
     <p id="prompt">Enter your answer and press <kbd>Enter</kbd>.</p>
     <ot-pulse id="waiting" hidden></ot-pulse>
 </footer>
+{% endblock %}
 
-{{ endblock }}
+{% block styles %}
+<link rel="stylesheet" href="{{ static 'fullscreen.css' }}" />
+<link rel="stylesheet" href="{{ static 'otree-front-ext.css' }}" />
+<link rel="stylesheet" href="{{ static 'ot-progress.css' }}" />
+<link rel="stylesheet" href="{{ static 'ot-pulse.css' }}" />
+<style>
+    .answer {
+        display: inline-block;
+        min-width: 2em;
+    }
 
-{{ block styles }}
-<link rel="stylesheet" href="{{ static 'fullscreen.css' }}">
-<link rel="stylesheet" href="{{ static 'otree-front-ext.css' }}">
-<link rel="stylesheet" href="{{ static 'ot-progress.css' }}">
-<link rel="stylesheet" href="{{ static 'ot-pulse.css' }}">
-{{ endblock }}
+    .answer:empty::before {
+        content: "...";
+    }
+</style>
+{% endblock %}
 
-{{ block scripts }}
+{% block scripts %}
 <script src="{{ static 'otree-front-2.0.b2.js' }}"></script>
 <script src="{{ static 'otree-front-ext.js' }}"></script>
 <script src="{{ static 'otree-front-live.js' }}"></script>
@@ -46,24 +61,24 @@
 <script>
     "use strict";
 
-    const FEEDBACK_DELAY = js_vars.C.FEEDBACK_DELAY;
+    const FEEDBACK_DELAY = js_vars.C.FEEDBACK_DELAY * 1000;
     const FADEOUT_TIME = parseInt(getStyleProp("--ot-fade-out-time"));
 
     onLoad(startGame);
-    onLive('progress', updateProgress);
-    onLive('trial', startTrial);
-    onInput('answer', inputAnswer);
-    onLive('feedback', liveFeedback);
-    onLive('failure', function (message) { alert(message); ot.completePage(); });
+    onLive("progress", updateProgress);
+    onLive("trial", startTrial);
+    onInput("answer", inputAnswer);
+    onLive("feedback", liveFeedback);
+    onLive("failure", function (message) { alert(message); ot.completePage(); });
 
     function startGame() {
         vars.progress = {};
         nextIter();
-    };
+    }
 
     function updateProgress(data) {
-        Object.assign(vars.progress, data); // update object fields
-    };
+        Object.assign(vars.progress, data);
+    }
 
     function nextIter() {
         resetTrial();
@@ -71,7 +86,7 @@
         if (vars.progress.terminated) {
             ot.completePage();
         } else {
-            sendLive('next'); // -> server replies progress and trial
+            sendLive("next"); // -> server replies with progress and trial
         }
     }
 
@@ -79,14 +94,15 @@
         vars.trial = null;
         vars.answer = null;
         vars.feedback = null;
-        hideFeedback();
+        ot.hideDisplays(['main', 'prompt', 'waiting', 'gain']);
+        clearFeedback();
         ot.resetInputs();
         ot.disableInputs();
         ot.updatePage();
     }
 
-    function startTrial(value) {
-        vars.trial = value;
+    function startTrial(data) {
+        vars.trial = data;
 
         ot.showDisplay("main");
         ot.showDisplay("prompt");
@@ -101,44 +117,41 @@
 
         ot.hideDisplay("prompt");
 
-        vars.answer = value;
+        vars.answer = parseInt(value);
 
-        sendLive('response', {
+        sendLive("response", {
             iteration: vars.trial.iteration,
             time: ot.getTimeMeasurement(),
-            answer: vars.answer
+            answer: vars.answer,
         }); // -> server replies feedback and progress
-    };
+    }
 
-    async function liveFeedback(value) {
-        vars.feedback = value;
-
-        ot.showDisplay("waiting");
-        showFeedback();
+    async function liveFeedback(data) {
+        vars.feedback = data;
+        displayFeedback();
+        ot.showDisplays(["waiting", "gain"]);
         await ot.delay(FEEDBACK_DELAY);
-        hideFeedback();
-        ot.hideDisplay("waiting");
-
+        ot.showDisplays(["waiting", "gain"]);
         completeTrial();
-    };
+    }
+
+    function clearFeedback() {
+        vars.feedback_inp_style = null;
+        vars.feedback_txt_style = null;
+        vars.gain_txt = null;
+    }
+
+    function displayFeedback() {
+        vars.feedback_inp_style = vars.feedback.success ? "is-valid" : "is-invalid";
+        vars.feedback_txt_style = vars.feedback.success ? "text-success" : "text-danger";
+        vars.gain_txt = format_gain(vars.feedback.score);
+    }
+
 
     async function completeTrial() {
         ot.hideDisplay("main");
         await ot.delay(FADEOUT_TIME);
         nextIter();
     }
-
-    function hideFeedback() {
-        ot.hideDisplay("gain");
-        vars.feedback_style = null;
-        vars.gain_txt = null;
-    }
-
-    function showFeedback() {
-        vars.feedback_style = vars.feedback.success ? "is-valid" : "is-invalid";
-        vars.gain_txt = format_gain(vars.feedback.score);
-        ot.showDisplay("gain");
-    }
-
 </script>
-{{ endblock }}
+{% endblock %}

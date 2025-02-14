@@ -2,90 +2,39 @@ from os import environ
 
 SESSION_CONFIGS = [
     dict(
-        name="trials_simple",
-        display_name="Simple trials",
+        name="trials",
+        display_name="Simple trials (pregenerated)",
         app_sequence=["simple"],
         condition="random",
     ),
     dict(
-        name="trials_local",
-        display_name="Local fast trials",
-        app_sequence=["local"],
-        condition="random"
+        name="trials_ondemand",
+        display_name="Simple trials (generating on demand)",
+        app_sequence=["simple_ondemand"],
+        condition="random",
     ),
     dict(
-        name="trials_choices_buttons",
-        display_name="Choices with buttons",
+        name="trials_choices",
+        display_name="Choice trials with buttons",
         app_sequence=["choices"],
         condition="random",
     ),
     dict(
-        name="trials_choices_radio",
-        display_name="Choices with radio",
-        app_sequence=["choices2"],
+        name="trials_radio",
+        display_name="Choice trials with radio and submit",
+        app_sequence=["choices_radio"],
         condition="random",
-    ),
-    dict(
-        name="trials_infinite",
-        display_name="Infinite series",
-        app_sequence=["infinite"],
-        condition="random",
-    ),
-    dict(
-        name="trials_infinite_timers",
-        display_name="Infinite series with timers",
-        app_sequence=["timers"],
-        condition="random",
-    ),
-    dict(
-        name="trials_phases",
-        display_name="Scheduled phases",
-        app_sequence=["phases"],
-        condition="random",
-    ),
-    dict(
-        name="multistep",
-        display_name="Multiple sequential inputs in trials",
-        app_sequence=['multistep'],
-        condition="random",
-    ),
-    dict(
-        name="multistage",
-        display_name="Multiple nonregular stages of trials",
-        app_sequence=['multistage'],
-        condition="random",
-    ),
-    dict(
-        name="drawing",
-        display_name="Free hand drawing",
-        app_sequence=["drawing"]
-    ),
-    dict(
-        name="captcha",
-        display_name="Transcribing text from images",
-        app_sequence=["captcha"]
-    ),
-    dict(
-        name="voting",
-        display_name="Group voting and chatting",
-        app_sequence=["voting"],
-        num_demo_participants=3,
-    ),
-    dict(
-        name="sliders",
-        display_name="Sliders task",
-        app_sequence=["sliders"],
-    ),
-    dict(
-        name="ultimatum",
-        display_name="Utimatum game",
-        app_sequence=['ultimatum_screener', 'ultimatum_game'],
-        num_demo_participants=2,
     ),
     dict(
         name="forms",
         app_sequence=["forms"],
-    )
+    ),
+    dict(
+        name="ultimatum",
+        display_name="Ultimatum game (2 players)",
+        app_sequence=["ultimatum_screener", "ultimatum_game"],
+        num_demo_participants=2,
+    ),
 ]
 
 SESSION_CONFIG_DEFAULTS = dict(
